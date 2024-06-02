@@ -1,10 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { createStandaloneToast } from "@chakra-ui/react";
+import { config } from "../utlls/config.js";
 
 const { toast } = createStandaloneToast();
 
-const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+const BASE_URL = config.BASE_URL;
 
 const initialState = {
     students: [],

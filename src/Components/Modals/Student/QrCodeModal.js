@@ -16,13 +16,14 @@ import { useDisclosure } from "@chakra-ui/react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { QrCode } from "lucide-react";
+import { config } from "../../../utlls/config";
 
 function QrCodeModal({ student }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [qrCode, setQrCode] = useState(student.qrcode);
   const [isLoading, setIsLoading] = useState(false);
 
-  const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+  const BASE_URL = config.BASE_URL;
   const authToken = Cookies.get("authToken");
 
   const handleQrCodeUpdate = async () => {

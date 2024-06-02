@@ -19,6 +19,7 @@ import { useSelector } from "react-redux";
 import { selectUser } from "../../../Features/authSlice";
 import { fetchUserById } from "../../../Features/authSlice";
 import { useDispatch } from "react-redux";
+import { config } from "../../../utlls/config";
 
 const imageSrc =
   "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9";
@@ -30,7 +31,7 @@ function ChangeAvatarModal() {
   const [imageSource, setImageSource] = useState(user?.avatar ?? imageSrc);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+  const BASE_URL = config.BASE_URL;
   const authToken = Cookies.get("authToken");
 
   const handleChangeSource = async (selectedFile) => {

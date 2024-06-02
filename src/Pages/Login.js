@@ -18,12 +18,13 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { Eye, EyeOff } from "lucide-react";
+import { config } from "../utlls/config.js";
 
 const bgImageUrl =
   "https://scontent.flhe4-2.fna.fbcdn.net/v/t39.30808-6/414463992_281655228223938_6472109216520204944_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeHiu9iJFBzhz-4JWuZ6AIyy3QGKTqbgZWfdAYpOpuBlZzrWY1San5W3ln-0LB7I2dcw8M54_GEXvO66vV259ySJ&_nc_ohc=iMYUxfsHDD0Q7kNvgHRYgxd&_nc_zt=23&_nc_ht=scontent.flhe4-2.fna&oh=00_AYDbVe5Tt0X-_ugcwgwYS6eVbG1iB9_1YBNXF2KiSq1CYw&oe=665A1615";
 
 const Login = () => {
-  const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+  const BASE_URL = config.BASE_URL;
   const toast = useToast();
   const navigate = useNavigate();
 
