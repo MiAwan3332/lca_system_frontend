@@ -79,7 +79,7 @@ function Teacher() {
               {fetchStatus === "loading" ? (
                 <TableRowLoading nOfColumns={5} actions={["w-10", "w-10"]} />
               ) : (
-                teachers.map((teacher) => (
+                teachers?.map((teacher) => (
                   <Tr key={teacher._id}>
                     <Td>{teachers.indexOf(teacher) + 1}</Td>
                     <Td>
