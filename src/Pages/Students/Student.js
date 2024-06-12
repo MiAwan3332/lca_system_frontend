@@ -82,14 +82,14 @@ function Student() {
                 <Th>Total Fee</Th>
                 <Th>Paid Fee</Th>
                 <Th>Remaining Fee</Th>
-                <Th>Current Batch</Th>
+                <Th>Last Active Batch</Th>
                 <Th isNumeric>Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={8}
+                  nOfColumns={9}
                   actions={["w-10", "w-10", "w-20"]}
                 />
               ) : (
