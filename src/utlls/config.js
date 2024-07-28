@@ -5,6 +5,7 @@ export const config = {
     page: 1,
     limit: 10,
     limits: [1, 5, 10, 20, 30, 40, 50],
+    batch: ''
   },
   TABLE_PAGINATION: {
     totalDocs: 0,

@@ -101,6 +101,9 @@ const studentSlice = createSlice({
             state.filters.page = 1;
             state.filters.limit = action.payload;
         },
+        setBatchFilter(state, action) {
+            state.filters.batch = action.payload;
+        },
     },
 
     extraReducers: (builder) => {
@@ -206,6 +209,6 @@ const studentSlice = createSlice({
 export const selectAllStudents = (state) => state.students.students;
 
 export { fetchStudents, addStudent, updateStudent, basicUpdate, deleteStudent };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = studentSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter,setBatchFilter } = studentSlice.actions;
 
 export default studentSlice.reducer;

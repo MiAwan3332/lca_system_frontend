@@ -37,6 +37,7 @@ function Batch() {
 
   const { fetchStatus, pagination } = useSelector((state) => state.batches);
   const batches = useSelector(selectAllBatches);
+  
   const activeBatch = useSelector(selectCurrentActiveBatch);
   const dispatch = useDispatch();
 

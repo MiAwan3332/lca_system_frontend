@@ -16,6 +16,7 @@ import UpdateModal from "./UpdateModal";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
+  selectAllBatches,
   selectCurrentActiveBatch,
 } from "../../Features/batchSlice";
 import QrCodeModal from "../../Components/Modals/Student/QrCodeModal";
@@ -23,6 +24,7 @@ import { FileX, Plus } from "lucide-react";
 import {
   fetchStudents,
   selectAllStudents,
+  setBatchFilter,
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
@@ -31,16 +33,18 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import EnrollmentModal from "./EnrollmentModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
+import { Select } from '@chakra-ui/react'
 
 function Student() {
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
-
+  
   const { fetchStatus, pagination } = useSelector((state) => state.students);
   const students = useSelector(selectAllStudents);
   const activeBatch = useSelector(selectCurrentActiveBatch);
+  const batches = useSelector(selectAllBatches);
   const dispatch = useDispatch();
 
   const hasPermission = (permissionsToCheck) => {
@@ -53,17 +57,34 @@ function Student() {
     );
   };
 
+
   useEffect(() => {
     dispatch(fetchStudents({ authToken }));
     dispatch(fetchBatches({ authToken }));
   }, []);
+
+  // handle batch change filter 
+  const handleBatchChange = (event) => {
+    const selectedBatchId = event.target.value;
+    dispatch(setBatchFilter(selectedBatchId));
+    dispatch(fetchStudents({ authToken }));
+  };
+
   return (
     <>
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-semibold ml-6 text-nowrap">All Students</h1>
-        <div className="w-full flex justify-end gap-3">
+        <div className="w-full flex justify-end items-center gap-3">
           <div>
             <TableSearch setQueryFilter={setQueryFilter} method={fetchStudents} />
+          </div>
+          <div>
+          <Select placeholder="Select Batch" onChange={handleBatchChange}>
+              <option value="" disabled selected>Select batch</option>
+              {batches.map((batch) => (
+                <option key={batch.id} value={batch.id}>{batch.name}</option>
+              ))}
+            </Select>
           </div>
           {hasPermission(["Add_Student"]) && (
             <button
@@ -121,7 +142,7 @@ function Student() {
                     <Td>{student.total_fee}</Td>
                     <Td>{student.paid_fee}</Td>
                     <Td>{student.pending_fee}</Td>
-                    <Td>{student.batch ? student.batch.name : "No Batch"}</Td>
+                    <Td>{student.batch ? student.batch.name : "No Batch"} </Td>
                     <Td className="space-x-3" isNumeric>
                       <div className="flex flex-nowrap justify-end items-center gap-2">
                         {hasPermission(["Update_Student"]) && (
