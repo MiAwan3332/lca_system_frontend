@@ -82,7 +82,7 @@ function Mcq() {
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading nOfColumns={7} />
-              ) : mcqs.length === 0 ? (
+              ) : mcqs?.length === 0 ? (
                 <Tr>
                   <Td colSpan={7}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
@@ -92,7 +92,7 @@ function Mcq() {
                   </Td>
                 </Tr>
               ) : (
-                mcqs.map((mcq, index) => (
+                mcqs?.map((mcq, index) => (
                   <Tr key={mcq._id}>
                     <Td>{index + 1}</Td>
                     <Td>{mcq.question}</Td>

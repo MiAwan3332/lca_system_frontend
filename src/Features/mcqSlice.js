@@ -6,22 +6,24 @@ import { config } from "../utlls/config.js";
 const { toast } = createStandaloneToast();
 
 const BASE_URL = config.BASE_URL;
+const TABLE_FILTERS = config.TABLE_FILTERS;
+const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
   mcqs: [],
-  fetchStatus: "idle",
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalPages: 1,
-  },
-  query: "",
+  filters: TABLE_FILTERS,
+  pagination: TABLE_PAGINATION,
+  fetchStatus: 'idle',
+  addStatus: 'idle',
+  updateStatus: 'idle',
+  deleteStatus: 'idle',
+  error: null,
 };
 
 
 // Async thunk to fetch MCQs
-export const fetchMcqs = createAsyncThunk("mcqs/fetchMcqs", async ({ authToken }) => {
-  const response = await fetch("/api/mcqs", {
+const fetchMcqs = createAsyncThunk("mcqs/fetchMcqs", async ({ authToken }) => {
+  const response = await fetch(`${BASE_URL}/mcqs`, {
     headers: {
       Authorization: `Bearer ${authToken}`,
     },
@@ -31,8 +33,8 @@ export const fetchMcqs = createAsyncThunk("mcqs/fetchMcqs", async ({ authToken }
 });
 
 // Async thunk to add a new MCQ
-export const addMcq = createAsyncThunk("mcqs/addMcq", async ({ mcqData, authToken }) => {
-  const response = await fetch("/api/mcqs", {
+const addMcq = createAsyncThunk("mcqs/addMcq", async ({ mcqData, authToken }) => {
+  const response = await fetch(`${BASE_URL}/mcqs/add`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -45,9 +47,9 @@ export const addMcq = createAsyncThunk("mcqs/addMcq", async ({ mcqData, authToke
 });
 
 // Async thunk to update an MCQ
-export const updateMcq = createAsyncThunk("mcqs/updateMcq", async ({ mcqId, mcqData, authToken }) => {
-  const response = await fetch(`/api/mcqs/${mcqId}`, {
-    method: "PUT",
+const updateMcq = createAsyncThunk("mcqs/updateMcq", async ({ mcqId, mcqData, authToken }) => {
+  const response = await fetch(`${BASE_URL}/mcqs/update/${mcqId}`, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
@@ -59,9 +61,9 @@ export const updateMcq = createAsyncThunk("mcqs/updateMcq", async ({ mcqId, mcqD
 });
 
 // Async thunk to delete an MCQ
-export const deleteMcq = createAsyncThunk("mcqs/deleteMcq", async ({ mcqId, authToken }) => {
-  const response = await fetch(`/api/mcqs/${mcqId}`, {
-    method: "DELETE",
+const deleteMcq = createAsyncThunk("mcqs/deleteMcq", async ({ mcqId, authToken }) => {
+  const response = await fetch(`${BASE_URL}/mcqs/delete/${mcqId}`, {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${authToken}`,
     },
@@ -74,44 +76,78 @@ const mcqSlice = createSlice({
   name: "mcqs",
   initialState,
   reducers: {
-    setLimitFilter: (state, action) => {
-      state.pagination.limit = action.payload;
+    setQueryFilter(state, action) {
+      state.filters.query = action.payload;
     },
-    setPageFilter: (state, action) => {
-      state.pagination.page = action.payload;
+    setPageFilter(state, action) {
+      state.filters.page = action.payload;
     },
-    setQueryFilter: (state, action) => {
-      state.query = action.payload;
+    setLimitFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.limit = action.payload;
     },
   },
   extraReducers: (builder) => {
     builder
+      // Fetch MCQs
       .addCase(fetchMcqs.pending, (state) => {
         state.fetchStatus = "loading";
       })
       .addCase(fetchMcqs.fulfilled, (state, action) => {
+        state.mcqs = action.payload;
         state.fetchStatus = "succeeded";
-        state.mcqs = action.payload.mcqs;
-        state.pagination = action.payload.pagination;
       })
-      .addCase(fetchMcqs.rejected, (state) => {
+      .addCase(fetchMcqs.rejected, (state, action) => {
         state.fetchStatus = "failed";
+        state.error = action.error.message;
+      })
+
+      // Add MCQ
+      .addCase(addMcq.pending, (state) => {
+        state.addStatus = "loading";
       })
       .addCase(addMcq.fulfilled, (state, action) => {
-        state.mcqs.push(action.payload.mcq);
+        state.mcqs.push(action.payload);
+        state.addStatus = "succeeded";
+      })
+      .addCase(addMcq.rejected, (state, action) => {
+        state.addStatus = "failed";
+        state.error = action.error.message;
+      })
+
+      // Update MCQ
+      .addCase(updateMcq.pending, (state) => {
+        state.updateStatus = "loading";
       })
       .addCase(updateMcq.fulfilled, (state, action) => {
-        const index = state.mcqs.findIndex((mcq) => mcq._id === action.payload.mcq._id);
-        if (index !== -1) {
-          state.mcqs[index] = action.payload.mcq;
-        }
+        state.mcqs = state.mcqs.map((mcq) =>
+          mcq._id === action.payload._id ? action.payload : mcq
+        );
+        state.updateStatus = "succeeded";
+      })
+      .addCase(updateMcq.rejected, (state, action) => {
+        state.updateStatus = "failed";
+        state.error = action.error.message;
+      })
+
+      // Delete MCQ
+      .addCase(deleteMcq.pending, (state) => {
+        state.deleteStatus = "loading";
       })
       .addCase(deleteMcq.fulfilled, (state, action) => {
-        state.mcqs = state.mcqs.filter((mcq) => mcq._id !== action.payload.mcqId);
+        state.mcqs = state.mcqs.filter((mcq) => mcq._id !== action.payload._id);
+        state.deleteStatus = "succeeded";
+      })
+      .addCase(deleteMcq.rejected, (state, action) => {
+        state.deleteStatus = "failed";
+        state.error = action.error.message;
       });
   },
 });
 
-export const { setLimitFilter, setPageFilter, setQueryFilter } = mcqSlice.actions;
-export const selectAllMcqs = (state) => state.mcqs;
+export const selectAllMcqs = (state) => state.mcqs.mcqs;
+
+export { fetchMcqs, addMcq, updateMcq, deleteMcq };
+export const { setQueryFilter, setPageFilter, setLimitFilter } = mcqSlice.actions;
+
 export default mcqSlice.reducer;
