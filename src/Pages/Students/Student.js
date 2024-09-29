@@ -84,7 +84,7 @@ function Student() {
             <Thead>
               <Tr>
                 <Th>No</Th>
-                <Th>QR</Th>
+                <Th>QR | Card</Th>
                 <Th data-searchable>Name</Th>
                 <Th data-searchable>Email</Th>
                 <Th data-searchable>Phone</Th>

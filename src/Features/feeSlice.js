@@ -92,7 +92,7 @@ const discountFee = createAsyncThunk('fees/discountFee', async (payload) => {
 const deleteFee = createAsyncThunk('fees/deleteFee', async (payload) => {
     const { authToken, id } = payload;
     const response = await fetch(`${BASE_URL}/fees/delete/${id}`, {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authToken}`,
@@ -147,7 +147,6 @@ const feeSlice = createSlice({
             })
             .addCase(fetchFees.fulfilled, (state, action) => {
                 state.fees = action.payload.docs;
-                console.log(action.payload);
                 state.fetchStatus = 'idle';
                 state.pagination = {
                     totalDocs: action.payload.totalDocs,
@@ -176,6 +175,7 @@ const feeSlice = createSlice({
             .addCase(fetchFeeById.rejected, (state) => {
                 state.fetchStatus = 'failed';
             })
+
             // CREATE FEE
             .addCase(createFee.pending, (state) => {
                 state.addStatus = 'loading';
@@ -187,6 +187,7 @@ const feeSlice = createSlice({
             .addCase(createFee.rejected, (state) => {
                 state.addStatus = 'failed';
             })
+
             // PAY FEE
             .addCase(payFee.pending, (state) => {
                 state.addStatus = 'loading';
@@ -198,6 +199,7 @@ const feeSlice = createSlice({
             .addCase(payFee.rejected, (state) => {
                 state.addStatus = 'failed';
             })
+
             // DISCOUNT FEE
             .addCase(discountFee.pending, (state) => {
                 state.addStatus = 'loading';
@@ -209,6 +211,7 @@ const feeSlice = createSlice({
             .addCase(discountFee.rejected, (state) => {
                 state.addStatus = 'failed';
             })
+
             // DELETE FEE
             .addCase(deleteFee.pending, (state) => {
                 state.addStatus = 'loading';
@@ -220,17 +223,19 @@ const feeSlice = createSlice({
             .addCase(deleteFee.rejected, (state) => {
                 state.addStatus = 'failed';
             })
+
             // FETCH FEE LOGS
             .addCase(fetchFeeLogs.pending, (state) => {
-                state.fetchStatus = 'loading';
+                state.fetchFeeLogsStatus = 'loading';
             })
             .addCase(fetchFeeLogs.fulfilled, (state, action) => {
-                state.fees = action.payload;
-                state.fetchStatus = 'idle';
+                state.fetchFeeLogsStatus = 'idle';
+                state.feeLogs = action.payload;
             })
             .addCase(fetchFeeLogs.rejected, (state) => {
-                state.fetchStatus = 'failed';
+                state.fetchFeeLogsStatus = 'failed';
             })
+
             // FETCH FEES BY STUDENT
             .addCase(fetchFeesByStudent.pending, (state) => {
                 state.fetchStatus = 'loading';
