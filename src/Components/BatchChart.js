@@ -1,17 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 import axios from 'axios';
+import { config } from '../utlls/config';
 
-const BatchChart = ({ chartTitle }) => {
+const buildChartParams = (filters = {}) => {
+  const params = new URLSearchParams();
+  const { batch_id, start_date, end_date } = filters;
+
+  if (batch_id) params.append('batch_id', batch_id);
+  if (start_date) params.append('start_date', start_date);
+  if (end_date) params.append('end_date', end_date);
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : '';
+};
+
+const BatchChart = ({ chartTitle, filters = {} }) => {
   const [chartOptions, setChartOptions] = useState({
     chart: {
       id: 'batch-column-chart',
       type: 'bar',
     },
     xaxis: {
-      categories: [], // Initialize with an empty array
+      categories: [],
     },
-    colors: ['#FFCB82'], // Set the bar color here
+    colors: ['#FFCB82'],
     title: {
       text: chartTitle || 'Batch Data',
       align: 'center',
@@ -23,20 +36,21 @@ const BatchChart = ({ chartTitle }) => {
     dataLabels: {
       enabled: true,
       style: {
-        colors: ['#000000'] // Set the data labels text color to black
+        colors: ['#000000']
       }
     }
   });
 
   const [chartSeries, setChartSeries] = useState([{
     name: 'Count',
-    data: [] // Initialize with an empty array
+    data: []
   }]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        // Get authToken from session storage
         const authToken = sessionStorage.getItem('authToken');
 
         if (!authToken) {
@@ -44,22 +58,22 @@ const BatchChart = ({ chartTitle }) => {
           return;
         }
 
-        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/students/students/Batchesgraph`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}` // Include the authToken in the headers
+        const response = await axios.get(
+          `${config.BASE_URL}/students/students/Batchesgraph${buildChartParams(filters)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`
+            }
           }
-        });
+        );
 
         const responseData = response.data;
 
-        // Ensure that responseData is not undefined or null
         if (responseData && responseData.length > 0) {
-          // Extract batch names and counts
-          const batchNames = responseData.map(item => item.batch);
-          const batchCounts = responseData.map(item => item.count);
+          const batchNames = responseData.map((item) => item.batch);
+          const batchCounts = responseData.map((item) => item.count);
 
-          // Update the chart options and series with the fetched data
-          setChartOptions(prevOptions => ({
+          setChartOptions((prevOptions) => ({
             ...prevOptions,
             xaxis: {
               ...prevOptions.xaxis,
@@ -72,19 +86,31 @@ const BatchChart = ({ chartTitle }) => {
             data: batchCounts
           }]);
         } else {
-          console.error('No data returned from the API');
+          setChartOptions((prevOptions) => ({
+            ...prevOptions,
+            xaxis: {
+              ...prevOptions.xaxis,
+              categories: []
+            }
+          }));
+          setChartSeries([{ name: 'Count', data: [] }]);
         }
       } catch (error) {
         console.error('Error fetching the data', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, []); // Empty dependency array means this effect runs once on component mount
+  }, [filters.batch_id, filters.start_date, filters.end_date, chartTitle]);
 
-  // Conditional rendering to avoid rendering the chart with undefined or empty data
-  if (chartSeries[0].data.length === 0 || chartOptions.xaxis.categories.length === 0) {
+  if (loading) {
     return <div>Loading...</div>;
+  }
+
+  if (chartSeries[0].data.length === 0) {
+    return <div className="my-8 text-center text-gray-500">No batch data found for selected filters.</div>;
   }
 
   return (

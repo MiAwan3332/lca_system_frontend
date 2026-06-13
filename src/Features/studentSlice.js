@@ -12,7 +12,14 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
     students: [],
-    filters: TABLE_FILTERS,
+    filters: {
+        ...TABLE_FILTERS,
+        batch_id: "",
+        enrollment_status: "",
+        start_date: "",
+        end_date: "",
+        city: "",
+    },
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
     addStatus: 'idle',
@@ -112,6 +119,35 @@ const studentSlice = createSlice({
         setLimitFilter(state, action) {
             state.filters.page = 1;
             state.filters.limit = action.payload;
+        },
+        setBatchFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.batch_id = action.payload;
+        },
+        setEnrollmentFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.enrollment_status = action.payload;
+        },
+        setStartDateFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.start_date = action.payload;
+        },
+        setEndDateFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.end_date = action.payload;
+        },
+        setCityFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.city = action.payload;
+        },
+        clearStudentFilters(state) {
+            state.filters.page = 1;
+            state.filters.query = "";
+            state.filters.batch_id = "";
+            state.filters.enrollment_status = "";
+            state.filters.start_date = "";
+            state.filters.end_date = "";
+            state.filters.city = "";
         },
     },
 
@@ -242,6 +278,6 @@ const studentSlice = createSlice({
 export const selectAllStudents = (state) => state.students.students;
 
 export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, deleteStudent };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = studentSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, clearStudentFilters } = studentSlice.actions;
 
 export default studentSlice.reducer;

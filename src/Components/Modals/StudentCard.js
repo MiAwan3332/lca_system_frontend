@@ -2,11 +2,24 @@ import React from "react";
 import html2canvas from "html2canvas";
 import { Button } from "@chakra-ui/react";
 import jsPDF from "jspdf";
+import { showErrorPopup } from "../../utlls/errorHandler";
 
 const StudentCard = ({ student, qrCode }) => {
+    if (!student) {
+        return <p className="text-center text-gray-500 py-6">Student data is not available.</p>;
+    }
+
+    const studentName = student.name || "student";
+    const safeName = studentName.replace(/\s+/g, "");
+
     const captureAndDownload = async () => {
+        try {
         const cardFront = document.querySelector(".card-front");
         const cardBack = document.querySelector(".card-back");
+
+        if (!cardFront || !cardBack) {
+            throw new Error("Student card preview is not ready.");
+        }
 
         // Capture front and back of the card
         const frontCanvas = await html2canvas(cardFront, { scale: 5, useCORS: true });
@@ -19,18 +32,27 @@ const StudentCard = ({ student, qrCode }) => {
         // Create download links for front and back card
         const frontLink = document.createElement("a");
         frontLink.href = frontImage;
-        frontLink.download = `card-front-${(student.name)?.replace(' ', '')}-${student._id}.png`;
+        frontLink.download = `card-front-${safeName}-${student._id || "id"}.png`;
         frontLink.click();
 
         const backLink = document.createElement("a");
         backLink.href = backImage;
-        backLink.download = `card-back-${(student.name)?.replace(' ', '')}-${student._id}.png`;
+        backLink.download = `card-back-${safeName}-${student._id || "id"}.png`;
         backLink.click();
+        } catch (error) {
+            console.error(error);
+            showErrorPopup("Download Failed", error.message || "Failed to download card images.");
+        }
     };
 
     const generatePDF = async () => {
+        try {
         const cardFront = document.querySelector(".card-front");
         const cardBack = document.querySelector(".card-back");
+
+        if (!cardFront || !cardBack) {
+            throw new Error("Student card preview is not ready.");
+        }
     
         // Capture front and back of the card
         const frontCanvas = await html2canvas(cardFront, { scale: 5,useCORS: true });
@@ -55,9 +77,12 @@ const StudentCard = ({ student, qrCode }) => {
         pdf.addImage(backCanvas.toDataURL("image/png"), "PNG", 0, 0, cardWidth, cardHeight);
     
         // Save the PDF with the student's name and ID
-        pdf.save(`student-card-${(student.name)?.replace(' ', '')}-${student._id}.pdf`);
+        pdf.save(`student-card-${safeName}-${student._id || "id"}.pdf`);
+        } catch (error) {
+            console.error(error);
+            showErrorPopup("PDF Failed", error.message || "Failed to generate PDF.");
+        }
     };
-    
 
     return (
         <>
@@ -92,7 +117,7 @@ const StudentCard = ({ student, qrCode }) => {
                                 <tr>
                                     <th>Batch:</th>
                                     <td>
-                                        <u>{student.batch.name || "N/A"}</u>
+                                        <u>{student?.batch?.name || "N/A"}</u>
                                     </td>
                                 </tr>
                             </tbody>
@@ -135,7 +160,18 @@ const StudentCard = ({ student, qrCode }) => {
                                 <tr>
                                     <th>Valid Till:</th>
                                     <td>
-                                        <u>{new Date(student.batch.enddate).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').join('-')} </u>
+                                        <u>
+                                            {student?.batch?.enddate
+                                                ? new Date(student.batch.enddate)
+                                                    .toLocaleDateString("en-GB", {
+                                                        year: "numeric",
+                                                        month: "2-digit",
+                                                        day: "2-digit",
+                                                    })
+                                                    .split("/")
+                                                    .join("-")
+                                                : "N/A"}
+                                        </u>
                                     </td>
                                 </tr>
                             </tbody>
@@ -162,9 +198,9 @@ const StudentCard = ({ student, qrCode }) => {
 
                         <div className="absolute bottom-1 left-1" style={{ paddingBottom: "20px" }}>
                             <div
-                                dangerouslySetInnerHTML={{ __html: qrCode }}
-                                style={{ width: "128px", height: "128px" }}
-                            />
+                            dangerouslySetInnerHTML={{ __html: qrCode || "" }}
+                            style={{ width: "128px", height: "128px" }}
+                        />
                         </div>
                         <div className="absolute bottom-2 right-2 text-right">
                             <hr className="border-t-2 border-black mb-1" />

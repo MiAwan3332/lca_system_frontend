@@ -13,11 +13,25 @@ const initialState = {
     error: null,
 };
 
+const buildStatisticsParams = (payload = {}) => {
+  const params = new URLSearchParams();
+  const { batch_id, start_date, end_date } = payload;
+
+  if (batch_id) params.append("batch_id", batch_id);
+  if (start_date) params.append("start_date", start_date);
+  if (end_date) params.append("end_date", end_date);
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : "";
+};
+
 const fetchStatistics = createAsyncThunk(
     "statistics/fetchStatistics",
     async (payload) => {
         const { authToken } = payload;
-        const response = await fetch(`${BASE_URL}/statistics`, {
+        const response = await fetch(
+            `${BASE_URL}/statistics${buildStatisticsParams(payload)}`,
+            {
             headers: {
                 Authorization: `Bearer ${authToken}`,
             },
