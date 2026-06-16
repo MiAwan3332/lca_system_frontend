@@ -38,8 +38,44 @@ import {
   selectAllBatches,
   setLimitFilter,
 } from "../Features/batchSlice";
+import { isStudentViewOnly } from "../utlls/studentAccess";
 
 function Home() {
+  const viewOnly = isStudentViewOnly();
+
+  const studentDashboardData = [
+    {
+      key: "batch_name",
+      title: "My Batch",
+      helpText: "Assigned batch",
+      icon: <Box size={32} color="#d69e2e" />,
+    },
+    {
+      key: "total_fee_record",
+      title: "Total Fee",
+      helpText: "Your total fee amount",
+      icon: <DollarSign size={32} color="#d69e2e" />,
+    },
+    {
+      key: "total_fee_recovered",
+      title: "Fee Paid",
+      helpText: "Amount you have paid",
+      icon: <HandCoins size={32} color="#d69e2e" />,
+    },
+    {
+      key: "total_fee_pending",
+      title: "Fee Pending",
+      helpText: "Outstanding fee balance",
+      icon: <ArrowDown01 size={32} color="#d69e2e" />,
+    },
+    {
+      key: "attendance_records_count",
+      title: "Attendance Records",
+      helpText: "Your attendance entries",
+      icon: <GraduationCap size={32} color="#d69e2e" />,
+    },
+  ];
+
   const data = [
     {
       key: "current_batches_count",
@@ -202,8 +238,10 @@ function Home() {
   };
 
   useEffect(() => {
-    dispatch(setLimitFilter(100));
-    dispatch(fetchBatches({ authToken }));
+    if (!viewOnly) {
+      dispatch(setLimitFilter(100));
+      dispatch(fetchBatches({ authToken }));
+    }
     loadStatistics({
       batch_id: "",
       start_date: "",
@@ -211,15 +249,24 @@ function Home() {
     });
   }, []);
 
+  const dashboardCards = viewOnly ? studentDashboardData : data;
+
   return (
     <>
       <div className="flex justify-between items-start gap-4 flex-wrap">
         <div className="ml-6 mb-5">
-          <h1 className="text-xl font-semibold">Welcome to LCA System</h1>
+          <h1 className="text-xl font-semibold">
+            {viewOnly
+              ? `Welcome, ${statistics.student_name || "Student"}`
+              : "Welcome to LCA System"}
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Analytics dashboard with charts and key statistics
+            {viewOnly
+              ? "Your personal dashboard"
+              : "Analytics dashboard with charts and key statistics"}
           </p>
         </div>
+        {!viewOnly && (
         <div className="flex items-center gap-3 mr-6 mb-5 flex-wrap justify-end">
           <HStack spacing={3}>
             <FormControl>
@@ -270,11 +317,12 @@ function Home() {
             />
           </HStack>
         </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 px-1">
-        {data.map((item, index) => (
-          hasPermission(item.permissions) && (
+        {dashboardCards.map((item, index) => (
+          (viewOnly || hasPermission(item.permissions)) && (
             <div className="w-full" key={index}>
               <div className="bg-white rounded-xl border border-[#E0E8EC] p-6 flex justify-between items-start">
                 <Stat>
@@ -293,6 +341,8 @@ function Home() {
         ))}
       </div>
 
+      {!viewOnly && (
+      <>
       <div className="mt-6 mb-2 ml-2">
         <h2 className="text-lg font-semibold">Graphical Overview</h2>
       </div>
@@ -393,6 +443,19 @@ function Home() {
       <div className="grid grid-cols-1 gap-4 mt-4">
         <BatchChart chartTitle="Students per Batch" filters={dashboardFilters} />
       </div>
+      </>
+      )}
+
+      {viewOnly && chartData.fee_overview?.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <DashboardDonutChart
+            title="My Fee Overview"
+            labels={(chartData.fee_overview || []).map((item) => item.label)}
+            values={(chartData.fee_overview || []).map((item) => item.value)}
+            colors={["#82FFCB", "#FF8A8A"]}
+          />
+        </div>
+      )}
     </>
   );
 }

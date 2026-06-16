@@ -6,6 +6,7 @@ import { useDisclosure } from '@chakra-ui/react';
 import Sidebar from '../Components/Sidebar.js';
 import MobileNav from '../Components/MobileNav.js';
 import { extractUserIdFromToken } from '../utlls/useful.js';
+import { canAccessRoute, isStudentRole, syncStudentProfileStatus } from '../utlls/studentAccess.js';
 import { useDispatch } from 'react-redux';
 import { fetchUserById } from '../Features/authSlice.js';
 
@@ -17,20 +18,36 @@ function Dashboard() {
   const location = useLocation();
   const { hash, pathname, search } = location;
   useEffect(() => {
-    // Check if authToken is present in cookies
     const authToken = Cookies.get('authToken');
     if (!authToken) {
-      // Redirect to the login page if not authenticated
       navigate('/login');
-    } else {
-      const userId = extractUserIdFromToken(authToken);
-      dispatch(fetchUserById({ userId, authToken }));
+      return;
     }
 
-    if(pathname=='/'){
-      navigate('/dashboard')
+    const userId = extractUserIdFromToken(authToken);
+    dispatch(fetchUserById({ userId, authToken }));
+
+    if (pathname === '/') {
+      navigate('/dashboard');
+      return;
     }
-  }, [pathname]); // Empty dependency array ensures this effect runs only once, similar to componentDidMount
+
+    const enforceStudentAccess = async () => {
+      if (isStudentRole()) {
+        const profileComplete = await syncStudentProfileStatus();
+        if (!profileComplete && pathname !== '/student') {
+          navigate('/student', { replace: true });
+          return;
+        }
+      }
+
+      if (!canAccessRoute(pathname)) {
+        navigate('/dashboard', { replace: true });
+      }
+    };
+
+    enforceStudentAccess();
+  }, [pathname, navigate, dispatch]);
 
   return (
     <Box minH="100vh" bg={useColorModeValue('#F9FBFC', 'gray.900')}>

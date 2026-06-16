@@ -25,11 +25,13 @@ import {
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
+import { isStudentViewOnly } from "../../utlls/studentAccess";
 
 const defaultAvatar =
   "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9";
 
 function User() {
+  const viewOnly = isStudentViewOnly();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
@@ -57,12 +59,16 @@ function User() {
   return (
     <div>
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">All Users</h1>
+        <h1 className="text-xl font-semibold ml-6 text-nowrap">
+          {viewOnly ? "My Account" : "All Users"}
+        </h1>
         <div className="w-full flex justify-end gap-3">
+          {!viewOnly && (
           <div>
             <TableSearch setQueryFilter={setQueryFilter} method={fetchUsers} />
           </div>
-          {hasPermission(["Add_User"]) && (
+          )}
+          {!viewOnly && hasPermission(["Add_User"]) && (
             <button
               className="min-w-max bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
               onClick={onAddOpen}
@@ -82,7 +88,7 @@ function User() {
                 <Th data-searchable>Avatar/Name</Th>
                 <Th data-searchable>Email</Th>
                 <Th>User Role</Th>
-                <Th isNumeric>Actions</Th>
+                {!viewOnly && <Th isNumeric>Actions</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -117,6 +123,7 @@ function User() {
                         {user.role}
                       </span>
                     </Td>
+                    {!viewOnly && (
                     <Td className="space-x-3" isNumeric>
                       {hasPermission(["Update_User"]) && (
                         <UpdateModal user={user} />
@@ -125,6 +132,7 @@ function User() {
                         <DeleteModal userId={user._id} />
                       )}
                     </Td>
+                    )}
                   </Tr>
                 ))
               )}
@@ -140,7 +148,7 @@ function User() {
           method={fetchUsers}
         />
       )}
-      <AddModel isOpen={isAddOpen} onClose={onAddClose} />
+      {!viewOnly && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
     </div>
   );
 }

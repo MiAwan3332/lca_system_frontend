@@ -27,8 +27,10 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import ChangeAvatarModal from "./Modals/User/ChangeAvatarModal";
 import { ChevronDown, Info } from "lucide-react";
+import { isStudentViewOnly } from "../utlls/studentAccess";
 
 export default function MobileNav({ onOpen, ...rest }) {
+  const viewOnly = isStudentViewOnly();
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -37,6 +39,10 @@ export default function MobileNav({ onOpen, ...rest }) {
   const handleLogout = () => {
     sessionStorage.removeItem("authToken");
     sessionStorage.removeItem("permissions");
+    sessionStorage.removeItem("role");
+    sessionStorage.removeItem("studentId");
+    sessionStorage.removeItem("profileUpdatedOnce");
+    sessionStorage.removeItem("skipProfileCompletion");
     Cookies.remove("authToken");
     dispatch(setUser(null));
 
@@ -120,7 +126,7 @@ export default function MobileNav({ onOpen, ...rest }) {
               borderColor={useColorModeValue("gray.200", "gray.700")}
               className="p-2"
             >
-              <ChangeAvatarModal user={user} />
+              {!viewOnly && <ChangeAvatarModal user={user} />}
               <MenuDivider />
               <MenuItem onClick={handleLogout} className="rounded-lg hover:bg-[#FF8A8A] hover:text-[#6D1F1F]">Sign out</MenuItem>
             </MenuList>

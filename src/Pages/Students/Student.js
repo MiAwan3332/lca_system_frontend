@@ -14,6 +14,8 @@ import {
   Input,
   Select,
   Button,
+  Text,
+  Box,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
@@ -37,18 +39,23 @@ import {
   setStartDateFilter,
   setEndDateFilter,
   setCityFilter,
+  setSearchFieldFilter,
   clearStudentFilters,
 } from "../../Features/studentSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import EnrollmentModal from "./EnrollmentModal";
+import ChangePasswordModal from "./ChangePasswordModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import StudentCardModal from "../../Components/Modals/Student/StudentCardModal";
 import ViewModal from "./ViewModal";
 import ExportModal from "./ExportModal";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
+import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
+import { useNavigate } from "react-router-dom";
 
 function Student() {
+  const navigate = useNavigate();
   const tableSearchRef = useRef();
   const [authToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -96,6 +103,22 @@ function Student() {
     }
   };
 
+  const handleSearchFieldChange = (e) => {
+    dispatch(setSearchFieldFilter(e.target.value));
+    if (filters.query) {
+      loadStudents();
+    }
+  };
+
+  const searchPlaceholder =
+    filters.search_field === "name"
+      ? "Search by student name..."
+      : filters.search_field === "email"
+      ? "Search by email..."
+      : filters.search_field === "phone"
+      ? "Search by phone number..."
+      : "Search by name, email, or phone...";
+
   const handleClearFilters = () => {
     tableSearchRef.current?.clearSearch?.();
     dispatch(clearStudentFilters());
@@ -112,6 +135,9 @@ function Student() {
     );
   };
 
+  const viewOnly = isStudentViewOnly();
+  const profileIncomplete = isStudentProfileIncomplete();
+
   useEffect(() => {
     dispatch(setBatchLimitFilter(100));
     dispatch(fetchBatches({ authToken }));
@@ -120,15 +146,61 @@ function Student() {
 
   return (
     <>
+      {viewOnly && profileIncomplete && students[0] && (
+        <ViewModal
+          student={students[0]}
+          forced
+          onComplete={() => navigate("/dashboard")}
+        />
+      )}
+
+      {viewOnly && profileIncomplete && (
+        <Box
+          mb={4}
+          ml={6}
+          p={4}
+          borderRadius="xl"
+          bg="orange.50"
+          border="1px solid"
+          borderColor="orange.200"
+          maxW="3xl"
+        >
+          <Text fontSize="sm" color="orange.800" fontWeight="medium">
+            Profile completion is required on your first login. Please fill in
+            all details in the form below to access the rest of the system.
+          </Text>
+        </Box>
+      )}
+
       <div className="flex justify-between items-center flex-wrap gap-3">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">All Students</h1>
+        <h1 className="text-xl font-semibold ml-6 text-nowrap">
+          {viewOnly ? "My Profile" : "All Students"}
+        </h1>
         <div className="w-full flex items-center justify-end gap-3 flex-wrap">
-          <TableSearch
-            ref={tableSearchRef}
-            setQueryFilter={setQueryFilter}
-            method={fetchStudents}
-          />
-          {hasPermission(["Add_Student"]) && (
+          {!viewOnly && (
+            <FormControl w={{ base: "full", sm: "10rem" }}>
+              <Select
+                size="lg"
+                borderRadius="xl"
+                value={filters.search_field}
+                onChange={handleSearchFieldChange}
+              >
+                <option value="all">All Fields</option>
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+              </Select>
+            </FormControl>
+          )}
+          {!viewOnly && (
+            <TableSearch
+              ref={tableSearchRef}
+              setQueryFilter={setQueryFilter}
+              method={fetchStudents}
+              placeholder={searchPlaceholder}
+            />
+          )}
+          {!viewOnly && hasPermission(["Add_Student"]) && (
             <button
               className="bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
               onClick={onAddOpen}
@@ -137,10 +209,11 @@ function Student() {
               Add Student
             </button>
           )}
-          <ExportModal />
+          {!viewOnly && <ExportModal />}
         </div>
       </div>
 
+      {!viewOnly && (
       <div className="flex items-center justify-end gap-3 mr-6 mt-3 flex-wrap">
         <HStack spacing={3}>
           <FormControl>
@@ -204,6 +277,7 @@ function Student() {
           </Button>
         </HStack>
       </div>
+      )}
 
       <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
         <TableContainer>
@@ -211,13 +285,13 @@ function Student() {
             <Thead>
               <Tr>
                 <Th>No</Th>
-                <Th>View | QR | Card</Th>
+                <Th>{viewOnly ? "View" : "View | QR | Card"}</Th>
                 <Th data-searchable>Name</Th>
                 <Th data-searchable>Email</Th>
                 <Th data-searchable>Phone</Th>
                 <Th>City</Th>
                 <Th>Last Active Batch</Th>
-                <Th isNumeric>Actions</Th>
+                {!viewOnly && <Th isNumeric>Actions</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -241,9 +315,11 @@ function Student() {
                     <Td>{index + 1}</Td>
                     <Td>
                       <ButtonGroup variant="outline">
-                        <ViewModal student={student} />
-                        <QrCodeModal student={student} />
-                        <StudentCardModal student={student} />
+                        {(!viewOnly || !profileIncomplete) && (
+                          <ViewModal student={student} />
+                        )}
+                        {!viewOnly && <QrCodeModal student={student} />}
+                        {!viewOnly && <StudentCardModal student={student} />}
                       </ButtonGroup>
                     </Td>
                     <Td>{student.name}</Td>
@@ -251,10 +327,14 @@ function Student() {
                     <Td>{student.phone}</Td>
                     <Td>{student.city || "-"}</Td>
                     <Td>{student.batch ? student.batch.name : "No Batch"}</Td>
+                    {!viewOnly && (
                     <Td className="space-x-3" isNumeric>
                       <div className="flex flex-nowrap justify-end items-center gap-2">
                         {hasPermission(["Update_Student"]) && (
-                          <UpdateModal student={student} />
+                          <>
+                            <UpdateModal student={student} />
+                            <ChangePasswordModal student={student} />
+                          </>
                         )}
                         {hasPermission(["Delete_Student"]) && (
                           <DeleteModal studentId={student._id} />
@@ -262,6 +342,7 @@ function Student() {
                         <EnrollmentModal studentId={student._id} />
                       </div>
                     </Td>
+                    )}
                   </Tr>
                 ))
               )}

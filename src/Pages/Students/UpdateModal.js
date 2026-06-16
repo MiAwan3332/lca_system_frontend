@@ -14,6 +14,7 @@ import {
   VStack,
   Box,
   Select,
+  Checkbox,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -23,9 +24,11 @@ import { selectAllBatches } from "../../Features/batchSlice.js";
 import { Pen } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { updateStudent, fetchStudents, basicUpdate } from "../../Features/studentSlice";
+import { isStudentViewOnly } from "../../utlls/studentAccess";
 
 function AddModel({ student }) {
   const batches = useSelector(selectAllBatches);
+  const viewOnly = isStudentViewOnly();
 
   const [isOpen, setIsOpen] = React.useState(false);
   const onOpen = () => setIsOpen(true);
@@ -41,6 +44,7 @@ function AddModel({ student }) {
       name: student.name,
       phone: student.phone,
       paid_fee: 0,
+      skip_profile_completion: student.skip_profile_completion === true,
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
@@ -48,7 +52,20 @@ function AddModel({ student }) {
       paid_fee: Yup.number(),
     }),
     onSubmit: async (values) => {
-      dispatch(basicUpdate({ authToken, studentId: student._id, student: values }))
+      dispatch(
+        basicUpdate({
+          authToken,
+          studentId: student._id,
+          student: {
+            name: values.name,
+            phone: values.phone,
+            paid_fee: values.paid_fee,
+            ...(!viewOnly
+              ? { skip_profile_completion: values.skip_profile_completion }
+              : {}),
+          },
+        })
+      )
         .unwrap()
         .then(() => {
           dispatch(fetchStudents({ authToken }));
@@ -120,6 +137,22 @@ function AddModel({ student }) {
                     </Box>
                   ) : null}
                 </FormControl> */}
+                {!viewOnly && (
+                  <FormControl>
+                    <Checkbox
+                      name="skip_profile_completion"
+                      isChecked={formik.values.skip_profile_completion}
+                      onChange={formik.handleChange}
+                      colorScheme="orange"
+                    >
+                      Allow skip profile completion on first login
+                    </Checkbox>
+                    <Box fontSize="xs" color="gray.500" mt={1} ml={6}>
+                      When enabled, this student is not required to complete
+                      their profile before using the system.
+                    </Box>
+                  </FormControl>
+                )}
               </VStack>
             </ModalBody>
 

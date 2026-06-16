@@ -19,12 +19,14 @@ const initialState = {
         start_date: "",
         end_date: "",
         city: "",
+        search_field: "all",
     },
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
     addStatus: 'idle',
     updateStatus: 'idle',
     deleteStatus: 'idle',
+    changePasswordStatus: 'idle',
     error: null,
 };
 
@@ -94,6 +96,30 @@ const basicUpdate = createAsyncThunk('students/basicUpdate', async (payload) => 
     return data;
 });
 
+const updateStudentInfo = createAsyncThunk(
+    'students/updateStudentInfo',
+    async (payload, { rejectWithValue }) => {
+        const { authToken, studentId, formData } = payload;
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/students/studentInfoUpdate/${studentId}`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to update profile'
+            );
+        }
+    }
+);
+
 const deleteStudent = createAsyncThunk('students/deleteStudent', async (payload) => {
     const { authToken, studentId } = payload;
     const response = await fetch(`${BASE_URL}/students/delete/${studentId}`, {
@@ -106,12 +132,30 @@ const deleteStudent = createAsyncThunk('students/deleteStudent', async (payload)
     return data;
 });
 
+const changeStudentPassword = createAsyncThunk(
+    'students/changeStudentPassword',
+    async (payload) => {
+        const { authToken, studentId, password } = payload;
+        const response = await axios.post(
+            `${BASE_URL}/students/change-password/${studentId}`,
+            { password },
+            {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            }
+        );
+        return response.data;
+    }
+);
+
 const studentSlice = createSlice({
     name: 'students',
     initialState,
     reducers: {
         setQueryFilter(state, action) {
             state.filters.query = action.payload;
+            state.filters.page = 1;
         },
         setPageFilter(state, action) {
             state.filters.page = action.payload;
@@ -140,9 +184,14 @@ const studentSlice = createSlice({
             state.filters.page = 1;
             state.filters.city = action.payload;
         },
+        setSearchFieldFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.search_field = action.payload;
+        },
         clearStudentFilters(state) {
             state.filters.page = 1;
             state.filters.query = "";
+            state.filters.search_field = "all";
             state.filters.batch_id = "";
             state.filters.enrollment_status = "";
             state.filters.start_date = "";
@@ -255,6 +304,31 @@ const studentSlice = createSlice({
                 state.error = action.error.message;
             })
 
+            .addCase(updateStudentInfo.pending, (state) => {
+                state.updateStatus = 'loading';
+            })
+            .addCase(updateStudentInfo.fulfilled, (state) => {
+                state.updateStatus = 'success';
+                toast({
+                    title: "Profile updated successfully!",
+                    description: "This was your one-time profile update.",
+                    status: "success",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(updateStudentInfo.rejected, (state, action) => {
+                state.updateStatus = 'failure';
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: "Profile update failed",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+
             // Delete student
             .addCase(deleteStudent.pending, (state) => {
                 state.deleteStatus = 'loading';
@@ -272,12 +346,37 @@ const studentSlice = createSlice({
                 state.deleteStatus = 'failure';
                 state.error = action.error.message;
             })
+
+            // Change student password
+            .addCase(changeStudentPassword.pending, (state) => {
+                state.changePasswordStatus = 'loading';
+            })
+            .addCase(changeStudentPassword.fulfilled, (state) => {
+                state.changePasswordStatus = 'success';
+                toast({
+                    title: "Student password updated successfully!",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            })
+            .addCase(changeStudentPassword.rejected, (state, action) => {
+                state.changePasswordStatus = 'failure';
+                state.error = action.error.message;
+                toast({
+                    title: "Failed to update password",
+                    description: action.error.message,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
     }
 });
 
 export const selectAllStudents = (state) => state.students.students;
 
-export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, deleteStudent };
-export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, clearStudentFilters } = studentSlice.actions;
+export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword };
+export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, clearStudentFilters } = studentSlice.actions;
 
 export default studentSlice.reducer;

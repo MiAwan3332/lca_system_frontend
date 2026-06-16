@@ -65,10 +65,10 @@ function AddModel({ isOpen, onClose }) {
       courseId: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      // console.log(values);
-      dispatch(addMcq({mcqData:values,authToken }))
+      dispatch(addMcq({ mcqData: values, authToken }))
         .unwrap()
         .then(() => {
+          formik.resetForm();
           onClose();
           dispatch(fetchMcqs({ authToken }));
         });
@@ -188,16 +188,16 @@ function AddModel({ isOpen, onClose }) {
                   value={formik.values.courseId}
                   onChange={formik.handleChange}
                 >
-                  {
-                    courses.map((course , index) => (
-                      <option key={index} value={course._id}>{course.name}</option>
-                    ))
-
-                  }
+                  <option value="">Select course</option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.name}
+                    </option>
+                  ))}
                 </Select>
                 {formik.touched.courseId && formik.errors.courseId ? (
                   <Box color="red" fontSize="sm">
-                    {formik.errors.correct_option}
+                    {formik.errors.courseId}
                   </Box>
                 ) : null}
               </FormControl>

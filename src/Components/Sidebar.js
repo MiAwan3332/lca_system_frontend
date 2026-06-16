@@ -17,11 +17,14 @@ import {
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { routes } from "../routes";
+import { getVisibleRoutes } from "../utlls/studentAccess";
 import { Image } from "@chakra-ui/react";
 // const LinkItems = [
 //   { name: 'Home', icon: FiHome },
 // ];
 export default function Sidebar({ onClose, ...rest }) {
+  const visibleRoutes = getVisibleRoutes(routes);
+
   return (
     <Box
       transition="3s ease"
@@ -40,7 +43,7 @@ export default function Sidebar({ onClose, ...rest }) {
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
       <div className="flex flex-col gap-2">
-      {routes.map((link) => (
+      {visibleRoutes.map((link) => (
         <NavItem key={link.name} icon={link.icon} to={link.path}>
           {link.name}
         </NavItem>

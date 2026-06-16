@@ -12,37 +12,52 @@ import {
     FormLabel,
     Input,
     VStack,
-    Box,
     Code,
+    Textarea,
+    FormErrorMessage,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector } from "react-redux";
-import { HandCoins, Pen, Percent } from "lucide-react";
+import { Percent } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { discountFee, fetchFees } from "../../Features/feeSlice.js";
 
 function DiscountFeeModal({ fee, isDisabled }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const onOpen = () => setIsOpen(true);
-    const onClose = () => setIsOpen(false);
 
-    const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
-
+    const [authToken] = useState(Cookies.get("authToken"));
     const [inputAmount, setInputAmount] = useState(0);
     const { updateStatus } = useSelector((state) => state.fees);
     const dispatch = useDispatch();
 
     const formik = useFormik({
         initialValues: {
-            amount: 0,
+            amount: "",
+            description: "",
         },
         validationSchema: Yup.object({
-            amount: Yup.number().min(1).max(fee.amount).required("Required"),
+            amount: Yup.number()
+                .min(1, "Minimum 1")
+                .max(fee.amount, "Amount exceeds fee balance")
+                .required("Required"),
+            description: Yup.string()
+                .trim()
+                .min(3, "Description must be at least 3 characters")
+                .required("Description is required"),
         }),
         onSubmit: async (values) => {
-            dispatch(discountFee({ authToken, id: fee._id, studentId: fee.student._id, amount: values.amount }))
+            dispatch(
+                discountFee({
+                    authToken,
+                    id: fee._id,
+                    studentId: fee.student._id,
+                    amount: Number(values.amount),
+                    description: values.description.trim(),
+                })
+            )
                 .unwrap()
                 .then(() => {
                     dispatch(fetchFees({ authToken }));
@@ -50,6 +65,13 @@ function DiscountFeeModal({ fee, isDisabled }) {
                 });
         },
     });
+
+    const onClose = () => {
+        formik.resetForm();
+        setInputAmount(0);
+        setIsOpen(false);
+    };
+
     return (
         <>
             <button
@@ -69,25 +91,64 @@ function DiscountFeeModal({ fee, isDisabled }) {
                     <ModalCloseButton />
                     <form onSubmit={formik.handleSubmit}>
                         <ModalBody>
-                            <VStack spacing={4} align={"stretch"}>
-                                <Code colorScheme={fee.amount - inputAmount >= 0 && inputAmount > 0 && inputAmount ? "green" : "red"}>{fee.amount + " - " + (inputAmount || 0) + " = " + parseInt(fee.amount - inputAmount) + " Rs."}</Code>
-                                <FormControl>
+                            <VStack spacing={4} align="stretch">
+                                <Code
+                                    colorScheme={
+                                        fee.amount - inputAmount >= 0 &&
+                                        inputAmount > 0
+                                            ? "green"
+                                            : "red"
+                                    }
+                                >
+                                    {fee.amount} - {inputAmount || 0} ={" "}
+                                    {parseInt(fee.amount - (inputAmount || 0))} Rs.
+                                </Code>
+
+                                <FormControl
+                                    isRequired
+                                    isInvalid={
+                                        formik.errors.amount && formik.touched.amount
+                                    }
+                                >
                                     <FormLabel>Discount Amount</FormLabel>
                                     <Input
                                         name="amount"
-                                        placeholder="Enter amount"
-                                        borderRadius={"0.75rem"}
+                                        placeholder="Enter discount amount"
+                                        borderRadius="0.75rem"
                                         type="number"
                                         onChange={(e) => {
                                             setInputAmount(e.target.value);
                                             formik.handleChange(e);
                                         }}
+                                        onBlur={formik.handleBlur}
                                         value={formik.values.amount}
                                         disabled={isDisabled}
                                     />
-                                    {formik.errors.amount && formik.touched.amount ? (
-                                        <p className="text-red-500">{formik.errors.amount}</p>
-                                    ) : null}
+                                    <FormErrorMessage>
+                                        {formik.errors.amount}
+                                    </FormErrorMessage>
+                                </FormControl>
+
+                                <FormControl
+                                    isRequired
+                                    isInvalid={
+                                        formik.errors.description &&
+                                        formik.touched.description
+                                    }
+                                >
+                                    <FormLabel>Description</FormLabel>
+                                    <Textarea
+                                        name="description"
+                                        placeholder="Enter reason for discount (required)"
+                                        borderRadius="0.75rem"
+                                        rows={3}
+                                        value={formik.values.description}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                    />
+                                    <FormErrorMessage>
+                                        {formik.errors.description}
+                                    </FormErrorMessage>
                                 </FormControl>
                             </VStack>
                         </ModalBody>
@@ -96,25 +157,25 @@ function DiscountFeeModal({ fee, isDisabled }) {
                             <Button
                                 variant="ghost"
                                 mr={3}
-                                borderRadius={"0.75rem"}
+                                borderRadius="0.75rem"
                                 onClick={onClose}
                             >
                                 Close
                             </Button>
                             <Button
-                                borderRadius={"0.75rem"}
-                                backgroundColor={"#82B4FF"}
-                                color={"#2D4185"}
+                                borderRadius="0.75rem"
+                                backgroundColor="#82B4FF"
+                                color="#2D4185"
                                 _hover={{
                                     backgroundColor: "#74A0E3",
                                     color: "#223163",
                                 }}
-                                fontWeight={"500"}
+                                fontWeight="500"
                                 type="submit"
-                                loadingText="Updating"
+                                loadingText="Applying..."
                                 isLoading={updateStatus === "loading"}
                             >
-                                Update
+                                Apply Discount
                             </Button>
                         </ModalFooter>
                     </form>

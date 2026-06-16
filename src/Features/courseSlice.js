@@ -21,14 +21,17 @@ const initialState = {
     error: null,
 };
 
-const fetchCourses = createAsyncThunk('courses/fetchCourses', async (payload, { getState }) => {
+const fetchCourses = createAsyncThunk('courses/fetchCourses', async (payload = {}, { getState }) => {
     const state = getState();
-    const { authToken } = payload;
+    const { authToken, queryParams = {} } = payload;
     const response = await axios.get(`${BASE_URL}/courses`, {
         headers: {
             Authorization: `Bearer ${authToken}`,
         },
-        params: state.courses.filters,
+        params: {
+            ...state.courses.filters,
+            ...queryParams,
+        },
     });
     return response.data;
 });

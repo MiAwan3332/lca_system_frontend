@@ -32,8 +32,10 @@ import FeeHistoryModal from "./FeeHistoryModal";
 import PayFeeModal from "./PayFeeModal";
 import DeleteFeeModal from "./DeleteFeeModal";
 import DiscountFeeModal from "./DiscountFeeModal";
+import { isStudentViewOnly } from "../../utlls/studentAccess";
 
 function Fees() {
+  const viewOnly = isStudentViewOnly();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
 
@@ -46,16 +48,6 @@ function Fees() {
   const handleFormDateChange = (e) => {
     setFormDate(e.target.value);
     dispatch(fetchFees({ authToken, date: e.target.value }));
-  }
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
   };
 
   useEffect(() => {
@@ -65,11 +57,15 @@ function Fees() {
   return (
     <>
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">Student Fees</h1>
+        <h1 className="text-xl font-semibold ml-6 text-nowrap">
+          {viewOnly ? "My Fees" : "Student Fees"}
+        </h1>
         <div className="w-full flex items-center justify-end gap-3">
+          {!viewOnly && (
           <div>
             <TableSearch setQueryFilter={setQueryFilter} method={fetchFees} />
           </div>
+          )}
           <HStack spacing={3}>
             <FormControl>
               <Input
@@ -110,7 +106,7 @@ function Fees() {
                 <Th>Fee Amount</Th>
                 <Th>Due Date</Th>
                 <Th>Status</Th>
-                <Th isNumeric>Action</Th>
+                {!viewOnly && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -153,25 +149,21 @@ function Fees() {
                         {fee?.status}
                       </Badge>
                     </Td>
+                    {!viewOnly && (
                     <Td className="space-x-3" isNumeric>
                       <div className="flex flex-nowrap justify-end items-center gap-2">
-                        {hasPermission(["Pay_Fee"]) && (
-                          <PayFeeModal
-                            fee={fee}
-                            isDisabled={fee.amount === 0 || fee.status === "Paid"}
-                          />
-                        )}
-                        {hasPermission(["Discount_Fee"]) && (
-                          <DiscountFeeModal
-                            fee={fee}
-                            isDisabled={fee.amount === 0 || fee.status === "Paid"}
-                          />
-                        )}
-                        {hasPermission(["Delete_Fee"]) && (
-                          <DeleteFeeModal fee={fee} />
-                        )}
+                        <PayFeeModal
+                          fee={fee}
+                          isDisabled={fee.amount === 0 || fee.status === "Paid"}
+                        />
+                        <DiscountFeeModal
+                          fee={fee}
+                          isDisabled={fee.amount === 0 || fee.status === "Paid"}
+                        />
+                        <DeleteFeeModal fee={fee} />
                       </div>
                     </Td>
+                    )}
                   </Tr>
                 ))
               ) : (

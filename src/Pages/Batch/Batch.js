@@ -27,8 +27,10 @@ import AssignCoursesModal from "./AssignCoursesModal";
 import AssignTeachersModal from "./AssignTeachersModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
+import { isStudentViewOnly } from "../../utlls/studentAccess";
 
 function Batch() {
+  const viewOnly = isStudentViewOnly();
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -57,12 +59,16 @@ function Batch() {
   return (
     <>
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">All Batchs</h1>
+        <h1 className="text-xl font-semibold ml-6 text-nowrap">
+          {viewOnly ? "My Batch" : "All Batchs"}
+        </h1>
         <div className="w-full flex justify-end gap-3">
+          {!viewOnly && (
           <div>
             <TableSearch setQueryFilter={setQueryFilter} method={fetchBatches} />
           </div>
-          {hasPermission(["Add_Batch"]) && (
+          )}
+          {!viewOnly && hasPermission(["Add_Batch"]) && (
             <button
               className="bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
               onClick={onAddOpen}
@@ -84,7 +90,7 @@ function Batch() {
                 <Th data-searchable>Batch Type</Th>
                 <Th>Start Date</Th>
                 <Th>End Date</Th>
-                <Th isNumeric>Action</Th>
+                {!viewOnly && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -116,6 +122,7 @@ function Batch() {
                     <Td>{batch.batch_type ? batch.batch_type : "N/A"}</Td>
                     <Td>{batch.startdate}</Td>
                     <Td>{batch.enddate}</Td>
+                    {!viewOnly && (
                     <Td className="space-x-3 flex justify-end" isNumeric>
                       {hasPermission(["Update_Batch"]) && (
                         <UpdateModal batch={batch} />
@@ -130,6 +137,7 @@ function Batch() {
                         <AssignTeachersModal batchId={batch._id} />
                       )}
                     </Td>
+                    )}
                   </Tr>
                 ))
               )}
@@ -145,7 +153,7 @@ function Batch() {
           method={fetchBatches}
         />
       )}
-      <AddModel isOpen={isAddOpen} onClose={onAddClose} />
+      {!viewOnly && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
     </>
   );
 }

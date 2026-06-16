@@ -31,8 +31,10 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TablePagination from "../../Components/TablePagination";
 import { downloadExcel } from "react-export-table-to-excel";
 import moment from "moment";
+import { isStudentViewOnly } from "../../utlls/studentAccess";
 
 function Attendance() {
+  const viewOnly = isStudentViewOnly();
   const tableSearchRef = useRef();
 
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
@@ -152,8 +154,11 @@ function Attendance() {
   return (
     <>
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">Attendance</h1>
+        <h1 className="text-xl font-semibold ml-6 text-nowrap">
+          {viewOnly ? "My Attendance" : "Attendance"}
+        </h1>
         <div className="w-full flex items-center justify-end gap-3">
+          {!viewOnly && (
           <div>
             <TableSearch
               ref={tableSearchRef}
@@ -161,7 +166,9 @@ function Attendance() {
               method={fetchAttendances}
             />
           </div>
+          )}
           <HStack spacing={3}>
+            {!viewOnly && (
             <FormControl>
               <Select
                 placeholder="Select Batch"
@@ -178,7 +185,8 @@ function Attendance() {
                 ))}
               </Select>
             </FormControl>
-            {selectedBatch && selectedBatch.courses.length > 0 && (
+            )}
+            {!viewOnly && selectedBatch && selectedBatch.courses.length > 0 && (
               <FormControl>
                 <Select
                   placeholder="Select Course"
@@ -214,6 +222,7 @@ function Attendance() {
             >
               <FilterX className="h-4 w-4" />
             </Button>
+            {!viewOnly && (
             <button
               className="whitespace-nowrap bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
               onClick={handleDownloadExcel}
@@ -221,6 +230,7 @@ function Attendance() {
               <Download size={20} />
               Excel File
             </button>
+            )}
           </HStack>
         </div>
       </div>

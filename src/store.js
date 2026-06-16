@@ -18,6 +18,7 @@ import mcqReducer from './Features/mcqSlice';
 import feeReducer from './Features/feeSlice';
 import financeReportReducer from './Features/financeReportSlice';
 import expenseReducer from './Features/expenseSlice';
+import quizReducer from './Features/quizSlice';
 
 export const store = configureStore({
   reducer: {
@@ -38,6 +39,7 @@ export const store = configureStore({
     mcqs: mcqReducer,
     fees: feeReducer,
     financeReport: financeReportReducer,
-    expenses: expenseReducer
+    expenses: expenseReducer,
+    quiz: quizReducer,
   },
 });

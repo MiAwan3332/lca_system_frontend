@@ -7,7 +7,7 @@ import Dashboard from "./Layouts/Dashboard.js";
 import { routes } from "./routes.js";
 import { useEffect } from "react";
 import Cookies from "js-cookie";
-import { extractPermissionsFromToken } from "./utlls/useful.js";
+import { extractPermissionsFromToken, extractRoleFromToken, extractStudentIdFromToken, storeAuthSession } from "./utlls/useful.js";
 import ErrorBoundary from "./Components/ErrorBoundary.js";
 import { setupGlobalErrorHandlers } from "./utlls/errorHandler.js";
 
@@ -16,7 +16,9 @@ function App() {
     const authToken = Cookies.get('authToken');
     if (authToken) {
       const permissions = extractPermissionsFromToken(authToken);
-      sessionStorage.setItem('permissions', permissions);
+      const role = extractRoleFromToken(authToken);
+      const studentId = extractStudentIdFromToken(authToken);
+      storeAuthSession({ permissions, role, studentId });
     }
 
     return setupGlobalErrorHandlers();

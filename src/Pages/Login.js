@@ -19,9 +19,11 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { Eye, EyeOff } from "lucide-react";
 import { config } from "../utlls/config.js";
-
-const bgImageUrl =
-  "https://scontent.flhe4-2.fna.fbcdn.net/v/t39.30808-6/414463992_281655228223938_6472109216520204944_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeHiu9iJFBzhz-4JWuZ6AIyy3QGKTqbgZWfdAYpOpuBlZzrWY1San5W3ln-0LB7I2dcw8M54_GEXvO66vV259ySJ&_nc_ohc=iMYUxfsHDD0Q7kNvgHRYgxd&_nc_zt=23&_nc_ht=scontent.flhe4-2.fna&oh=00_AYDbVe5Tt0X-_ugcwgwYS6eVbG1iB9_1YBNXF2KiSq1CYw&oe=665A1615";
+import { storeAuthSession } from "../utlls/useful.js";
+import {
+  isStudentRole,
+  syncStudentProfileStatus,
+} from "../utlls/studentAccess.js";
 
 const Login = () => {
   const BASE_URL = config.BASE_URL;
@@ -32,13 +34,20 @@ const Login = () => {
   const handleClick = () => setShow(!show)
 
   useEffect(() => {
-    // Check if authToken is present in cookies
-    const authToken = Cookies.get("authToken");
-    if (authToken) {
-      // Redirect to dashboard or the page the user came from
-      navigate("/dashboard");
-    }
-  }, []); // Empty dependency array ensures this effect runs only once, similar to componentDidMount
+    const redirectIfAuthenticated = async () => {
+      const authToken = Cookies.get("authToken");
+      if (!authToken) return;
+
+      if (isStudentRole()) {
+        const profileComplete = await syncStudentProfileStatus();
+        navigate(profileComplete ? "/dashboard" : "/student");
+      } else {
+        navigate("/dashboard");
+      }
+    };
+
+    redirectIfAuthenticated();
+  }, []);
 
   const formik = useFormik({
     initialValues: {
@@ -50,39 +59,61 @@ const Login = () => {
       password: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      try {
-        const response = await axios.post(`${BASE_URL}/users/adminlogin`, values);
-        if (response.status === 200) {
-          // Login successful
-          toast({
-            title: "Logged in",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-          });
-          // Save authToken to cookies securely
-          const authToken = response.data.authToken;
-          const permissions = response.data.permissions;
-          Cookies.set("authToken", authToken, { expires: 7, secure: true }); // Expires in 7 days and secure flag set to true
-          sessionStorage.setItem("authToken", authToken);
-          sessionStorage.setItem("permissions", permissions);
-          // Redirect to dashboard with react router
-          navigate("/dashboard");
+      const completeLogin = (response) => {
+        toast({
+          title: "Logged in",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+
+        const authToken = response.data.authToken;
+        const permissions = response.data.permissions;
+        const role = response.data.role;
+        const studentId =
+          response.data.studentId || response.data.studentData?._id;
+        const profileUpdatedOnce =
+          response.data.studentData?.profile_updated_once === true;
+        const skipProfileCompletion =
+          response.data.studentData?.skip_profile_completion === true;
+        const profileRequired =
+          role?.toLowerCase() === "student" &&
+          !profileUpdatedOnce &&
+          !skipProfileCompletion;
+
+        Cookies.set("authToken", authToken, { expires: 7, secure: true });
+        storeAuthSession({
+          authToken,
+          permissions,
+          role,
+          studentId,
+          profileUpdatedOnce,
+          skipProfileCompletion,
+        });
+
+        if (profileRequired) {
+          navigate("/student");
         } else {
-          // Handle other status codes if needed
-          toast({
-            title: "Error",
-            description: "An error occurred during login",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-          });
+          navigate("/dashboard");
+        }
+      };
+
+      try {
+        let response;
+        try {
+          response = await axios.post(`${BASE_URL}/users/adminlogin`, values);
+        } catch (adminError) {
+          response = await axios.post(`${BASE_URL}/users/login`, values);
+        }
+
+        if (response.status === 200) {
+          completeLogin(response);
         }
       } catch (error) {
-        // Handle network errors or server errors
         toast({
           title: "Error",
-          description: "An error occurred during login",
+          description:
+            error.response?.data?.message || "An error occurred during login",
           status: "error",
           duration: 3000,
           isClosable: true,

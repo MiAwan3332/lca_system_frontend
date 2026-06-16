@@ -11,7 +11,7 @@ import { useDispatch } from "react-redux";
 import Cookies from "js-cookie";
 
 
-const TableSearch = forwardRef(({ setQueryFilter, method }, ref) => {
+const TableSearch = forwardRef(({ setQueryFilter, method, placeholder = "Search..." }, ref) => {
   const [authToken] = useState(Cookies.get("authToken"));
   const [searchQuery, setSearchQuery] = useState("");
   const dispatch = useDispatch();
@@ -47,7 +47,7 @@ const TableSearch = forwardRef(({ setQueryFilter, method }, ref) => {
           <Search />
         </InputLeftElement>
         <Input
-          placeholder="Search..."
+          placeholder={placeholder}
           borderRadius="xl"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

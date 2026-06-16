@@ -22,6 +22,7 @@ import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
 import FinanceReport from "./Pages/FinanceReport/FinanceReport.js";
 import Expense from "./Pages/Expense/Expense.js";
+import Quiz from "./Pages/Quiz/Quiz.js";
 
 export const routes = [
   { name: "Dashboard", icon: LayoutDashboard, component: <Home />, path: "/dashboard" },
@@ -91,6 +92,12 @@ export const routes = [
     icon: CircleHelp,
     component: <Mcq />,
     path: "/mcq",
+  },
+  {
+    name: "Quiz",
+    icon: BrainCircuit,
+    component: <Quiz />,
+    path: "/quiz",
   },
   {
     name: "Roles",

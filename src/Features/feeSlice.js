@@ -81,16 +81,19 @@ const payFee = createAsyncThunk('fees/payFee', async (payload) => {
 });
 
 const discountFee = createAsyncThunk('fees/discountFee', async (payload) => {
-    const { authToken, id, studentId, amount } = payload;
+    const { authToken, id, studentId, amount, description } = payload;
     const response = await fetch(`${BASE_URL}/fees/discount/${id}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ studentId, amount }),
+        body: JSON.stringify({ student_id: studentId, amount, description }),
     });
     const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Failed to apply discount');
+    }
     return data;
 });
 

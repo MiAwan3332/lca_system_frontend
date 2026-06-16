@@ -44,8 +44,10 @@ import {
 import { Tab, TabList, TabPanels, Tabs } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import TimeTableEventEditForm from "./TimeTableEventEditForm";
+import { isStudentViewOnly } from "../utlls/studentAccess";
 
 export default function TimetableCalendar() {
+  const viewOnly = isStudentViewOnly();
   const {
     isOpen: isAddModalOpen,
     onOpen: onAddModalOpen,
@@ -81,6 +83,7 @@ export default function TimetableCalendar() {
 
   const handleSelectSlot = useCallback(
     ({ start, end }) => {
+      if (viewOnly) return;
       setStart(start);
       setEnd(end);
       setDay(moment(start).format("YYYY-MM-DD"));
@@ -89,13 +92,14 @@ export default function TimetableCalendar() {
       formik.setFieldValue("end_time", moment(end).format("HH:mm"));
       onAddModalOpen();
     },
-    [setEvents]
+    [setEvents, viewOnly]
   );
 
   const handleSelectEvent = useCallback((event) => {
+    if (viewOnly) return;
     setEventDetails(event);
     onEditModalOpen();
-  }, []);
+  }, [viewOnly]);
 
   const { defaultDate, scrollToTime } = useMemo(
     () => ({
@@ -199,9 +203,9 @@ export default function TimetableCalendar() {
           defaultDate={defaultDate}
           defaultView={Views.MONTH}
           events={events}
-          onSelectEvent={handleSelectEvent}
-          onSelectSlot={handleSelectSlot}
-          selectable
+          onSelectEvent={viewOnly ? undefined : handleSelectEvent}
+          onSelectSlot={viewOnly ? undefined : handleSelectSlot}
+          selectable={!viewOnly}
           scrollToTime={scrollToTime}
           components={{
             day: {
@@ -228,6 +232,8 @@ export default function TimetableCalendar() {
         />
       )}
 
+      {!viewOnly && (
+      <>
       {/* Add New Timetable Event Modal */}
       <Modal isOpen={isAddModalOpen} onClose={onAddModalClose}>
         <ModalOverlay />
@@ -493,6 +499,8 @@ export default function TimetableCalendar() {
           </Tabs>
         </ModalContent>
       </Modal>
+      </>
+      )}
     </>
   );
 }
