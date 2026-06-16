@@ -23,6 +23,10 @@ import {
   setQueryFilter,
 } from "../../Features/studentSlice";
 import moment from "moment";
+import {
+  getResponsiveModalSize,
+  responsiveModalContentProps,
+} from "../../utlls/responsiveModal";
 import { downloadExcel } from "react-export-table-to-excel";
 import TablePagination from "../../Components/TablePagination";
 import { fetchBatches } from "../../Features/batchSlice";
@@ -158,20 +162,19 @@ const ExportModal = () => {
         Excel File
       </button>
 
-      <Modal isOpen={isOpen} onClose={handleModalClose} size="6xl">
+      <Modal isOpen={isOpen} onClose={handleModalClose} {...getResponsiveModalSize("6xl")}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Export Student Records
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <div className="flex flex-col gap-2 mb-6 border-l-4 border-blue-400 pl-6 ml-5 py-4">
-              <FormControl>
+            <div className="flex flex-col gap-2 mb-6 border-l-4 border-blue-400 pl-4 sm:pl-6 py-4">
+              <FormControl w={{ base: "full", md: "12rem" }}>
                 <Select
                   placeholder="Select Batch"
-                  w={48}
-                  size={"lg"}
+                  size="lg"
                   borderRadius="xl"
                   value={formBatch}
                   onChange={(e) => handleFormBatchChange(e)}

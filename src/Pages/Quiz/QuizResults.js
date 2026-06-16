@@ -30,8 +30,8 @@ function QuizResults({ result, onRetry, onViewHistory }) {
   if (!result) return null;
 
   return (
-    <Box className="max-w-5xl mx-auto">
-      <Box className="bg-white rounded-2xl border border-[#E0E8EC] p-8 mb-4">
+    <Box className="max-w-5xl mx-auto w-full px-0 sm:px-2">
+      <Box className="bg-white rounded-2xl border border-[#E0E8EC] p-4 sm:p-8 mb-4">
         <Text fontSize="2xl" fontWeight="semibold" mb={2}>
           Quiz Results
         </Text>

@@ -24,6 +24,7 @@ import {
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Permissions() {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -51,26 +52,23 @@ function Permissions() {
   }, []);
   return (
     <>
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">
-          All Permissions
-        </h1>
-        <div className="w-full flex justify-end gap-3">
-          <div>
+      <PageHeader title="All Permissions">
+        <FilterStack>
+          <div className="w-full sm:max-w-xs">
             <TableSearch setQueryFilter={setQueryFilter} method={fetchPermissions} />
           </div>
           {hasPermission(["Add_Permission"]) && (
             <button
-              className="bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+              className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
               onClick={onAddOpen}
             >
               <Plus size={24} />
               Add Permission
             </button>
           )}
-        </div>
-      </div>
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+        </FilterStack>
+      </PageHeader>
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -114,7 +112,7 @@ function Permissions() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {fetchStatus !== "loading" && (
         <TablePagination
           pagination={pagination}

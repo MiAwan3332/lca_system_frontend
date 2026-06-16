@@ -88,7 +88,7 @@ function QuizSetup({ onStarted }) {
   }
 
   return (
-    <Box className="max-w-3xl mx-auto bg-white rounded-2xl border border-[#E0E8EC] p-8">
+    <Box className="max-w-3xl mx-auto bg-white rounded-2xl border border-[#E0E8EC] p-4 sm:p-8">
       <Text fontSize="2xl" fontWeight="semibold" mb={2}>
         Start a Quiz
       </Text>

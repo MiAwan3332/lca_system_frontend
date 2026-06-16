@@ -185,8 +185,8 @@ function QuizAttempt({ attempt, onSubmitted, onCancel }) {
   const currentResponse = responses[currentQuestion.question_order];
 
   return (
-    <Box className="max-w-5xl mx-auto">
-      <Box className="bg-white rounded-2xl border border-[#E0E8EC] p-6 mb-4">
+    <Box className="max-w-5xl mx-auto w-full px-0 sm:px-2">
+      <Box className="bg-white rounded-2xl border border-[#E0E8EC] p-4 sm:p-6 mb-4">
         <HStack justify="space-between" mb={4} flexWrap="wrap" gap={3}>
           <VStack align="start" spacing={1}>
             <Text fontSize="lg" fontWeight="semibold">
@@ -299,7 +299,7 @@ function QuizAttempt({ attempt, onSubmitted, onCancel }) {
         </HStack>
       </Box>
 
-      <Box className="bg-white rounded-2xl border border-[#E0E8EC] p-6">
+      <Box className="bg-white rounded-2xl border border-[#E0E8EC] p-4 sm:p-6">
         <Text fontWeight="semibold" mb={4}>
           Question Navigator
         </Text>

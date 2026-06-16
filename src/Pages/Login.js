@@ -124,9 +124,11 @@ const Login = () => {
 
   return (
     <Box
-      height={"100vh"}
-      width={"100vw"}
-      className="bg-[#F9FBFC] flex justify-center items-center"
+      minH="100dvh"
+      w="full"
+      maxW="100%"
+      overflowX="hidden"
+      className="bg-[#F9FBFC] flex justify-center items-center px-4"
     >
       <VStack
         spacing={6}
@@ -134,7 +136,6 @@ const Login = () => {
         width="100%"
         maxW="500px"
         margin="auto"
-        paddingX="4"
       >
         <Image
           h={70}
@@ -150,7 +151,7 @@ const Login = () => {
         </p>
         <form
           onSubmit={formik.handleSubmit}
-          className="flex flex-col gap-5 mt-3 bg-white shadow-xl rounded-2xl p-8"
+          className="flex flex-col gap-5 mt-3 bg-white shadow-xl rounded-2xl p-5 sm:p-8"
         >
           <h1 className="text-xl font-medium">Login Form</h1>
           <FormControl

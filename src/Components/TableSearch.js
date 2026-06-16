@@ -38,7 +38,7 @@ const TableSearch = forwardRef(({ setQueryFilter, method, placeholder = "Search.
 
   return (
     <>
-      <InputGroup size="lg" variant="filled" bg="white">
+      <InputGroup size="lg" variant="filled" bg="white" w="full">
         <InputLeftElement
           pointerEvents="none"
           color="gray.300"

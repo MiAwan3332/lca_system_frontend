@@ -4,7 +4,6 @@ import moment from "moment";
 import {
   Badge,
   FormControl,
-  HStack,
   Input,
   Select,
   Stat,
@@ -42,6 +41,7 @@ import {
   clearExpenseFilters,
 } from "../../Features/expenseSlice";
 import { EXPENSE_CATEGORIES } from "./expenseConstants";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 const STATUS_OPTIONS = ["Pending", "Approved", "Rejected"];
 
@@ -122,83 +122,76 @@ function Expense() {
 
   return (
     <>
-      <div className="flex justify-between items-center flex-wrap gap-3">
-        <div className="ml-6">
-          <h1 className="text-xl font-semibold text-nowrap">Expense Management</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Daily expenses require approval before deduction from finance
-          </p>
-        </div>
-        <div className="w-full flex items-center justify-end gap-3 flex-wrap">
-          <TableSearch setQueryFilter={setQueryFilter} method={fetchExpenses} />
-          <HStack spacing={3}>
-            <FormControl>
-              <Select
-                placeholder="All Statuses"
-                w={40}
-                size="lg"
-                borderRadius="xl"
-                value={filters.status}
-                onChange={handleStatusChange}
-              >
-                {STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl>
-              <Select
-                placeholder="All Categories"
-                w={40}
-                size="lg"
-                borderRadius="xl"
-                value={filters.category}
-                onChange={handleCategoryChange}
-              >
-                {EXPENSE_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl>
-              <Input
-                type="date"
-                w={40}
-                size="lg"
-                borderRadius="xl"
-                value={filters.start_date}
-                onChange={handleStartDateChange}
-              />
-            </FormControl>
-            <FormControl>
-              <Input
-                type="date"
-                w={40}
-                size="lg"
-                borderRadius="xl"
-                value={filters.end_date}
-                onChange={handleEndDateChange}
-              />
-            </FormControl>
-            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-              <FilterX className="h-4 w-4" />
-            </Button>
-          </HStack>
+      <PageHeader
+        title="Expense Management"
+        subtitle="Daily expenses require approval before deduction from finance"
+      >
+        <FilterStack>
+          <div className="w-full sm:max-w-xs">
+            <TableSearch setQueryFilter={setQueryFilter} method={fetchExpenses} />
+          </div>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Select
+              placeholder="All Statuses"
+              size="lg"
+              borderRadius="xl"
+              value={filters.status}
+              onChange={handleStatusChange}
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Select
+              placeholder="All Categories"
+              size="lg"
+              borderRadius="xl"
+              value={filters.category}
+              onChange={handleCategoryChange}
+            >
+              {EXPENSE_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={filters.start_date}
+              onChange={handleStartDateChange}
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={filters.end_date}
+              onChange={handleEndDateChange}
+            />
+          </FormControl>
+          <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+            <FilterX className="h-4 w-4" />
+          </Button>
           <button
-            className="bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+            className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
             onClick={onAddOpen}
           >
             <Plus size={24} />
             Add Expense
           </button>
-        </div>
-      </div>
+        </FilterStack>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 ml-6 mr-6">
+      <div className="summary-cards">
         {summaryCards.map((card) => (
           <div
             key={card.label}
@@ -218,7 +211,7 @@ function Expense() {
         ))}
       </div>
 
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -290,7 +283,7 @@ function Expense() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
 
       {fetchStatus !== "loading" && (
         <TablePagination

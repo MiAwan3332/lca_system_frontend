@@ -6,7 +6,6 @@ import {
   Button,
   ButtonGroup,
   FormControl,
-  HStack,
   Input,
   Stat,
   StatHelpText,
@@ -48,6 +47,7 @@ import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import SearchableUserSelect from "../../Components/SearchableUserSelect";
 import FinanceReportChart from "../../Components/FinanceReportChart";
 import TableRowLoading from "../../Components/TableRowLoading";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 const PERIOD_OPTIONS = [
   { value: "daily", label: "Daily" },
@@ -187,81 +187,72 @@ function FinanceReport() {
 
   const summary = report?.summary || {};
   const periodLabel = PERIOD_OPTIONS.find((item) => item.value === period)?.label;
+  const reportSubtitle =
+    report && `${periodLabel} report: ${report.start_date} to ${report.end_date}`;
 
   return (
     <>
-      <div className="flex justify-between items-start gap-4 flex-wrap">
-        <div className="ml-6">
-          <h1 className="text-xl font-semibold">Finance Reporting</h1>
-          {report && (
-            <p className="text-sm text-gray-500 mt-1">
-              {periodLabel} report: {report.start_date} to {report.end_date}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 mr-6 flex-wrap justify-end">
-          <ButtonGroup isAttached variant="outline" borderRadius="xl">
-            {PERIOD_OPTIONS.map((option) => (
-              <Button
-                key={option.value}
-                size="lg"
-                borderRadius="xl"
-                colorScheme={period === option.value ? "yellow" : "gray"}
-                bg={period === option.value ? "#FFCB82" : "white"}
-                onClick={() => handlePeriodChange(option.value)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </ButtonGroup>
-
-          <HStack spacing={3}>
-            <FormControl>
-              <Input
-                type="date"
-                w={48}
-                size="lg"
-                borderRadius="xl"
-                value={reportDate}
-                onChange={handleDateChange}
-              />
-            </FormControl>
-            <FormControl>
-              <SearchableBatchSelect
-                batches={batches}
-                value={formBatch}
-                onChange={handleBatchChange}
-                placeholder="All batches"
-                width="12rem"
-              />
-            </FormControl>
-            <FormControl>
-              <SearchableUserSelect
-                users={users}
-                value={formChangedBy}
-                onChange={handleChangedByChange}
-                placeholder="Changed by"
-                width="12rem"
-              />
-            </FormControl>
-            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-              <FilterX className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              p={4}
+      <PageHeader title="Finance Reporting" subtitle={reportSubtitle || undefined}>
+        <FilterStack>
+          <div className="period-toggle overflow-x-auto pb-1">
+            <ButtonGroup isAttached variant="outline" borderRadius="xl" flexWrap="wrap">
+              {PERIOD_OPTIONS.map((option) => (
+                <Button
+                  key={option.value}
+                  size={{ base: "sm", md: "lg" }}
+                  borderRadius="xl"
+                  colorScheme={period === option.value ? "yellow" : "gray"}
+                  bg={period === option.value ? "#FFCB82" : "white"}
+                  onClick={() => handlePeriodChange(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </ButtonGroup>
+          </div>
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <Input
+              type="date"
+              size="lg"
               borderRadius="xl"
-              onClick={() => loadReport()}
-              className={status === "loading" ? "animate-spin" : ""}
-            >
-              <RotateCw className="h-4 w-4" />
-            </Button>
-          </HStack>
-        </div>
-      </div>
+              value={reportDate}
+              onChange={handleDateChange}
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <SearchableBatchSelect
+              batches={batches}
+              value={formBatch}
+              onChange={handleBatchChange}
+              placeholder="All batches"
+              width="100%"
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <SearchableUserSelect
+              users={users}
+              value={formChangedBy}
+              onChange={handleChangedByChange}
+              placeholder="Changed by"
+              width="100%"
+            />
+          </FormControl>
+          <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+            <FilterX className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            p={4}
+            borderRadius="xl"
+            onClick={() => loadReport()}
+            className={status === "loading" ? "animate-spin" : ""}
+          >
+            <RotateCw className="h-4 w-4" />
+          </Button>
+        </FilterStack>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
         {SUMMARY_CARDS.map((item) => (
           <div key={item.key} className="w-full">
             <div className="bg-white rounded-xl border border-[#E0E8EC] p-6 flex justify-between items-start">
@@ -292,8 +283,8 @@ function FinanceReport() {
         title={`${periodLabel} Finance Overview`}
       />
 
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
-        <div className="px-6 py-4 border-b border-[#E0E8EC]">
+      <DataTableShell className="mt-3">
+        <div className="px-4 sm:px-6 py-4 border-b border-[#E0E8EC]">
           <h2 className="text-lg font-semibold">Finance Transactions</h2>
           <p className="text-sm text-gray-500">
             Includes fee income and approved expense deductions
@@ -380,7 +371,7 @@ function FinanceReport() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
     </>
   );
 }

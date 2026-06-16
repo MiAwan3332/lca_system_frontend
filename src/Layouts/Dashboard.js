@@ -65,8 +65,14 @@ function Dashboard() {
         </DrawerContent>
       </Drawer>
       <MobileNav onOpen={onOpen} />
-      <Box ml={{ base: 0, md: 60 }} p="6">
-        <Outlet /> {/* This renders nested child routes */}
+      <Box
+        ml={{ base: 0, md: 60 }}
+        px={{ base: 3, sm: 4, md: 6 }}
+        py={{ base: 3, md: 6 }}
+        maxW="100%"
+        overflowX="hidden"
+      >
+        <Outlet />
       </Box>
     </Box>
   );

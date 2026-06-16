@@ -25,6 +25,7 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Course() {
   const viewOnly = isStudentViewOnly();
@@ -53,28 +54,25 @@ function Course() {
   }, []);
   return (
     <>
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">
-          {viewOnly ? "My Courses" : "All Courses"}
-        </h1>
-        <div className="w-full flex justify-end gap-3">
-          {!viewOnly && (
-          <div>
-            <TableSearch setQueryFilter={setQueryFilter} method={fetchCourses} />
-          </div>
-          )}
-          {!viewOnly && hasPermission(["Add_Course"]) && (
-            <button
-              className="bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
-              onClick={onAddOpen}
-            >
-              <Plus size={24} />
-              Add Course
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+      <PageHeader title={viewOnly ? "My Courses" : "All Courses"}>
+        {!viewOnly && (
+          <FilterStack>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch setQueryFilter={setQueryFilter} method={fetchCourses} />
+            </div>
+            {hasPermission(["Add_Course"]) && (
+              <button
+                className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                onClick={onAddOpen}
+              >
+                <Plus size={24} />
+                Add Course
+              </button>
+            )}
+          </FilterStack>
+        )}
+      </PageHeader>
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -124,7 +122,7 @@ function Course() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {fetchStatus !== "loading" && (
         <TablePagination
           pagination={pagination}

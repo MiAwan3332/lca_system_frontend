@@ -9,7 +9,6 @@ import {
   Td,
   TableContainer,
   ButtonGroup,
-  HStack,
   FormControl,
   Input,
   Select,
@@ -53,6 +52,7 @@ import ExportModal from "./ExportModal";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { useNavigate } from "react-router-dom";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Student() {
   const navigate = useNavigate();
@@ -157,7 +157,6 @@ function Student() {
       {viewOnly && profileIncomplete && (
         <Box
           mb={4}
-          ml={6}
           p={4}
           borderRadius="xl"
           bg="orange.50"
@@ -172,13 +171,10 @@ function Student() {
         </Box>
       )}
 
-      <div className="flex justify-between items-center flex-wrap gap-3">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">
-          {viewOnly ? "My Profile" : "All Students"}
-        </h1>
-        <div className="w-full flex items-center justify-end gap-3 flex-wrap">
-          {!viewOnly && (
-            <FormControl w={{ base: "full", sm: "10rem" }}>
+      <PageHeader title={viewOnly ? "My Profile" : "All Students"}>
+        {!viewOnly && (
+          <FilterStack>
+            <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
               <Select
                 size="lg"
                 borderRadius="xl"
@@ -191,44 +187,42 @@ function Student() {
                 <option value="phone">Phone</option>
               </Select>
             </FormControl>
-          )}
-          {!viewOnly && (
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchStudents}
-              placeholder={searchPlaceholder}
-            />
-          )}
-          {!viewOnly && hasPermission(["Add_Student"]) && (
-            <button
-              className="bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
-              onClick={onAddOpen}
-            >
-              <Plus size={24} />
-              Add Student
-            </button>
-          )}
-          {!viewOnly && <ExportModal />}
-        </div>
-      </div>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchStudents}
+                placeholder={searchPlaceholder}
+              />
+            </div>
+            {hasPermission(["Add_Student"]) && (
+              <button
+                className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                onClick={onAddOpen}
+              >
+                <Plus size={24} />
+                Add Student
+              </button>
+            )}
+            <ExportModal />
+          </FilterStack>
+        )}
+      </PageHeader>
 
       {!viewOnly && (
-      <div className="flex items-center justify-end gap-3 mr-6 mt-3 flex-wrap">
-        <HStack spacing={3}>
-          <FormControl>
+      <FilterStack className="mt-3">
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
             <SearchableBatchSelect
               batches={batches}
               value={filters.batch_id}
               onChange={handleBatchChange}
               placeholder="All Batches"
-              width="12rem"
+              width="100%"
             />
           </FormControl>
-          <FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
             <Select
               placeholder="Enrollment Status"
-              w={44}
               size="lg"
               borderRadius="xl"
               value={filters.enrollment_status}
@@ -238,10 +232,9 @@ function Student() {
               <option value="unenrolled">Unenrolled</option>
             </Select>
           </FormControl>
-          <FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
             <Input
               type="date"
-              w={40}
               size="lg"
               borderRadius="xl"
               placeholder="Admission From"
@@ -249,10 +242,9 @@ function Student() {
               onChange={handleStartDateChange}
             />
           </FormControl>
-          <FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
             <Input
               type="date"
-              w={40}
               size="lg"
               borderRadius="xl"
               placeholder="Admission To"
@@ -260,10 +252,9 @@ function Student() {
               onChange={handleEndDateChange}
             />
           </FormControl>
-          <FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "9rem" }}>
             <Input
               placeholder="City"
-              w={36}
               size="lg"
               borderRadius="xl"
               value={filters.city}
@@ -275,11 +266,10 @@ function Student() {
           <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
             <FilterX className="h-4 w-4" />
           </Button>
-        </HStack>
-      </div>
+      </FilterStack>
       )}
 
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -329,7 +319,7 @@ function Student() {
                     <Td>{student.batch ? student.batch.name : "No Batch"}</Td>
                     {!viewOnly && (
                     <Td className="space-x-3" isNumeric>
-                      <div className="flex flex-nowrap justify-end items-center gap-2">
+                      <div className="action-cell">
                         {hasPermission(["Update_Student"]) && (
                           <>
                             <UpdateModal student={student} />
@@ -349,7 +339,7 @@ function Student() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {fetchStatus !== "loading" && (
         <TablePagination
           pagination={pagination}

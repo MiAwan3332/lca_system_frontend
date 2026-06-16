@@ -28,6 +28,8 @@ import {
   fetchQuizAttemptLog,
 } from "../../Features/quizSlice";
 import { FileX, Eye } from "lucide-react";
+import { DataTableShell } from "../../Components/PageHeader";
+import { getResponsiveModalSize, responsiveModalContentProps } from "../../utlls/responsiveModal";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 
 const PATTERN_LABELS = {
@@ -73,8 +75,8 @@ function QuizHistory() {
 
   return (
     <>
-      <Box className="bg-white rounded-2xl border border-[#E0E8EC]">
-        <Box className="px-6 py-4 border-b border-[#E0E8EC]">
+      <DataTableShell>
+        <Box className="px-4 sm:px-6 py-4 border-b border-[#E0E8EC]">
           <Text fontSize="xl" fontWeight="semibold">
             {viewOnly ? "My Attempt History" : "Quiz Attempt Logs"}
           </Text>
@@ -146,11 +148,11 @@ function QuizHistory() {
             </Tbody>
           </Table>
         </TableContainer>
-      </Box>
+      </DataTableShell>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="4xl" scrollBehavior="inside">
+      <Modal isOpen={isOpen} onClose={onClose} {...getResponsiveModalSize("4xl")}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent {...responsiveModalContentProps}>
           <ModalHeader>Attempt Detail Log</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>

@@ -8,7 +8,6 @@ import {
   Th,
   Td,
   TableContainer,
-  HStack,
   FormControl,
   FormLabel,
   Input,
@@ -32,6 +31,7 @@ import TablePagination from "../../Components/TablePagination";
 import { downloadExcel } from "react-export-table-to-excel";
 import moment from "moment";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Attendance() {
   const viewOnly = isStudentViewOnly();
@@ -153,27 +153,22 @@ function Attendance() {
 
   return (
     <>
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">
-          {viewOnly ? "My Attendance" : "Attendance"}
-        </h1>
-        <div className="w-full flex items-center justify-end gap-3">
+      <PageHeader title={viewOnly ? "My Attendance" : "Attendance"}>
+        <FilterStack>
           {!viewOnly && (
-          <div>
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchAttendances}
-            />
-          </div>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchAttendances}
+              />
+            </div>
           )}
-          <HStack spacing={3}>
-            {!viewOnly && (
-            <FormControl>
+          {!viewOnly && (
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
               <Select
                 placeholder="Select Batch"
-                w={48}
-                size={"lg"}
+                size="lg"
                 borderRadius="xl"
                 value={formBatch}
                 onChange={(e) => handleFormBatchChange(e)}
@@ -185,56 +180,53 @@ function Attendance() {
                 ))}
               </Select>
             </FormControl>
-            )}
-            {!viewOnly && selectedBatch && selectedBatch.courses.length > 0 && (
-              <FormControl>
-                <Select
-                  placeholder="Select Course"
-                  w={48}
-                  size={"lg"}
-                  borderRadius="xl"
-                  value={formCourse}
-                  onChange={(e) => handleFormCourseChange(e)}
-                >
-                  {selectedBatch?.courses?.map((course) => (
-                    <option key={course._id} value={course._id}>
-                      {course.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-            <FormControl>
-              <Input
-                type="date"
-                w={48}
-                size={"lg"}
+          )}
+          {!viewOnly && selectedBatch && selectedBatch.courses.length > 0 && (
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+              <Select
+                placeholder="Select Course"
+                size="lg"
                 borderRadius="xl"
-                value={formDate}
-                onChange={(e) => handleFormDateChange(e)}
-              />
+                value={formCourse}
+                onChange={(e) => handleFormCourseChange(e)}
+              >
+                {selectedBatch?.courses?.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.name}
+                  </option>
+                ))}
+              </Select>
             </FormControl>
-            <Button
-              size="icon"
-              p={4}
+          )}
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <Input
+              type="date"
+              size="lg"
               borderRadius="xl"
-              onClick={(e) => handleClearFilters(e)}
-            >
-              <FilterX className="h-4 w-4" />
-            </Button>
-            {!viewOnly && (
+              value={formDate}
+              onChange={(e) => handleFormDateChange(e)}
+            />
+          </FormControl>
+          <Button
+            size="icon"
+            p={4}
+            borderRadius="xl"
+            onClick={(e) => handleClearFilters(e)}
+          >
+            <FilterX className="h-4 w-4" />
+          </Button>
+          {!viewOnly && (
             <button
-              className="whitespace-nowrap bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+              className="w-full sm:w-auto whitespace-nowrap bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
               onClick={handleDownloadExcel}
             >
               <Download size={20} />
               Excel File
             </button>
-            )}
-          </HStack>
-        </div>
-      </div>
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+          )}
+        </FilterStack>
+      </PageHeader>
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -278,7 +270,7 @@ function Attendance() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {status === "succeeded" && (
         <TablePagination
           pagination={pagination}

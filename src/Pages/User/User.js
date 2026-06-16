@@ -26,6 +26,7 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 const defaultAvatar =
   "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9";
@@ -58,28 +59,25 @@ function User() {
 
   return (
     <div>
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">
-          {viewOnly ? "My Account" : "All Users"}
-        </h1>
-        <div className="w-full flex justify-end gap-3">
-          {!viewOnly && (
-          <div>
-            <TableSearch setQueryFilter={setQueryFilter} method={fetchUsers} />
-          </div>
-          )}
-          {!viewOnly && hasPermission(["Add_User"]) && (
-            <button
-              className="min-w-max bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
-              onClick={onAddOpen}
-            >
-              <Plus size={24} />
-              Add User
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+      <PageHeader title={viewOnly ? "My Account" : "All Users"}>
+        {!viewOnly && (
+          <FilterStack>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch setQueryFilter={setQueryFilter} method={fetchUsers} />
+            </div>
+            {hasPermission(["Add_User"]) && (
+              <button
+                className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                onClick={onAddOpen}
+              >
+                <Plus size={24} />
+                Add User
+              </button>
+            )}
+          </FilterStack>
+        )}
+      </PageHeader>
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -139,7 +137,7 @@ function User() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {fetchStatus !== "loading" && (
         <TablePagination
           pagination={pagination}

@@ -26,6 +26,7 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import SearchableCourseSelect from "../../Components/SearchableCourseSelect";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 const truncateText = (text, maxLength = 60) => {
   if (!text) return "";
@@ -71,24 +72,21 @@ function Mcq() {
 
   return (
     <>
-      <div className="flex flex-col gap-3 lg:flex-row lg:justify-between lg:items-center">
-        <div>
-          <h1 className="text-xl font-semibold ml-6 text-nowrap">All MCQs</h1>
-          <p className="text-sm text-gray-500 ml-6 mt-1">
-            Read-only MCQ bank. Use the Quiz module to attempt quizzes.
-          </p>
-        </div>
-        <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 px-6 lg:px-0">
+      <PageHeader
+        title="All MCQs"
+        subtitle="Read-only MCQ bank. Use the Quiz module to attempt quizzes."
+      >
+        <FilterStack>
           <div className="w-full sm:max-w-xs">
             <TableSearch setQueryFilter={setQueryFilter} method={fetchMcqs} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <SearchableCourseSelect
               courses={courses}
               value={filters.course_id}
               onChange={handleCourseFilter}
               placeholder="Filter by course"
-              width="14rem"
+              width="100%"
             />
             {filters.course_id && (
               <IconButton
@@ -101,9 +99,9 @@ function Mcq() {
               />
             )}
           </div>
-        </div>
-      </div>
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+        </FilterStack>
+      </PageHeader>
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -151,7 +149,7 @@ function Mcq() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {fetchStatus !== "loading" && (
         <TablePagination
           pagination={pagination}

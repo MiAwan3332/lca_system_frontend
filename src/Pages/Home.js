@@ -4,7 +4,6 @@ import {
   StatHelpText,
   StatLabel,
   StatNumber,
-  HStack,
   FormControl,
   Input,
   Button,
@@ -39,6 +38,7 @@ import {
   setLimitFilter,
 } from "../Features/batchSlice";
 import { isStudentViewOnly } from "../utlls/studentAccess";
+import PageHeader, { FilterStack } from "../Components/PageHeader";
 
 function Home() {
   const viewOnly = isStudentViewOnly();
@@ -253,35 +253,32 @@ function Home() {
 
   return (
     <>
-      <div className="flex justify-between items-start gap-4 flex-wrap">
-        <div className="ml-6 mb-5">
-          <h1 className="text-xl font-semibold">
-            {viewOnly
-              ? `Welcome, ${statistics.student_name || "Student"}`
-              : "Welcome to LCA System"}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {viewOnly
-              ? "Your personal dashboard"
-              : "Analytics dashboard with charts and key statistics"}
-          </p>
-        </div>
+      <PageHeader
+        title={
+          viewOnly
+            ? `Welcome, ${statistics.student_name || "Student"}`
+            : "Welcome to LCA System"
+        }
+        subtitle={
+          viewOnly
+            ? "Your personal dashboard"
+            : "Analytics dashboard with charts and key statistics"
+        }
+      >
         {!viewOnly && (
-        <div className="flex items-center gap-3 mr-6 mb-5 flex-wrap justify-end">
-          <HStack spacing={3}>
-            <FormControl>
+          <FilterStack>
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
               <SearchableBatchSelect
                 batches={batches}
                 value={formBatch}
                 onChange={handleFormBatchChange}
                 placeholder="Search or select batch"
-                width="12rem"
+                width="100%"
               />
             </FormControl>
-            <FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
               <Input
                 type="date"
-                w={48}
                 size="lg"
                 borderRadius="xl"
                 placeholder="Start Date"
@@ -289,10 +286,9 @@ function Home() {
                 onChange={handleFormStartDateChange}
               />
             </FormControl>
-            <FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
               <Input
                 type="date"
-                w={48}
                 size="lg"
                 borderRadius="xl"
                 placeholder="End Date"
@@ -315,12 +311,11 @@ function Home() {
                 status === "loading" ? "animate-spin" : ""
               }`}
             />
-          </HStack>
-        </div>
+          </FilterStack>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {dashboardCards.map((item, index) => (
           (viewOnly || hasPermission(item.permissions)) && (
             <div className="w-full" key={index}>
@@ -343,7 +338,7 @@ function Home() {
 
       {!viewOnly && (
       <>
-      <div className="mt-6 mb-2 ml-2">
+      <div className="mt-6 mb-2">
         <h2 className="text-lg font-semibold">Graphical Overview</h2>
       </div>
 

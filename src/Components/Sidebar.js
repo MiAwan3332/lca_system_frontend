@@ -36,9 +36,9 @@ export default function Sidebar({ onClose, ...rest }) {
       h="full"
       {...rest}
     >
-      <Flex alignItems="center" mx="8" my="0" justifyContent="space-between">
-        <Box boxSize="sm" h={32} className="flex justify-center items-center">
-          <Image src="./logo_dark.svg" alt="Dan Abramov" className="w-40 mx-auto" />
+      <Flex alignItems="center" mx={{ base: 4, md: 8 }} my={0} justifyContent="space-between">
+        <Box boxSize="sm" h={{ base: 20, md: 32 }} className="flex justify-center items-center">
+          <Image src="./logo_dark.svg" alt="LCA Logo" className="w-28 sm:w-40 mx-auto" />
         </Box>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>

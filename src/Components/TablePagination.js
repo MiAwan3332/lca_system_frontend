@@ -107,7 +107,7 @@ export default function TablePagination({
 
   return (
     <>
-      <div className="flex flex-wrap justify-between items-center gap-5 my-5 pl-8 w-full overflow-auto">
+      <div className="flex flex-wrap justify-between items-center gap-4 my-5 px-2 sm:px-4 lg:px-8 w-full max-w-full overflow-x-auto">
         <div className="flex items-center gap-4">
           <p className="text-md">
             {`${page * limit - limit + 1} - ${

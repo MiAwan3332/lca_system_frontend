@@ -28,6 +28,10 @@ import { View } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchStudents, updateStudentInfo } from "../../Features/studentSlice";
 import { isStudentViewOnly, setProfileUpdatedOnce } from "../../utlls/studentAccess";
+import {
+  responsiveModalContentProps,
+  getResponsiveModalSize,
+} from "../../utlls/responsiveModal";
 
 function ViewModal({ student, forced = false, onComplete }) {
   const [isOpen, setIsOpen] = useState(forced);
@@ -232,12 +236,12 @@ function ViewModal({ student, forced = false, onComplete }) {
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        size="6xl"
+        {...getResponsiveModalSize("6xl")}
         closeOnOverlayClick={!isForcedCompletion}
         closeOnEsc={!isForcedCompletion}
       >
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             {canEditProfile ? "Complete Your Profile" : "View Student"}
           </ModalHeader>
@@ -276,7 +280,7 @@ function ViewModal({ student, forced = false, onComplete }) {
                 </Box>
               )}
 
-              <Grid templateColumns="repeat(2, 1fr)" gap={6}>
+              <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6}>
                 <GridItem colSpan={1}>
                   <VStack spacing={4}>
                     <FormControl id="name">

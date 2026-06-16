@@ -5,6 +5,14 @@ const theme = extendTheme({
   fonts: {
     body: `'Inter', sans-serif`,
   },
+  components: {
+    Modal: {
+      defaultProps: {
+        scrollBehavior: 'inside',
+        blockScrollOnMount: true,
+      },
+    },
+  },
 })
 
 export default theme

@@ -199,6 +199,7 @@ export default function TimetableCalendar() {
           <Spinner />
         </div>
       ) : (
+        <div className="w-full h-full min-h-[300px]">
         <Calendar
           defaultDate={defaultDate}
           defaultView={Views.MONTH}
@@ -230,6 +231,7 @@ export default function TimetableCalendar() {
             },
           }}
         />
+        </div>
       )}
 
       {!viewOnly && (
@@ -403,14 +405,14 @@ export default function TimetableCalendar() {
             <TabPanels>
               <TabPanel>
                 <ModalBody className="!p-0 flex flex-col gap-3">
-                  <div className="flex justify-between items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
                     <Text as="b" className="min-w-max" fontSize="md">
                       Course
                     </Text>
                     <Divider />
                     <Text className="min-w-max">{eventDetails.courseName}</Text>
                   </div>
-                  <div className="flex justify-between items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
                     <Text as="b" className="min-w-max" fontSize="md">
                       Teacher
                     </Text>
@@ -419,14 +421,14 @@ export default function TimetableCalendar() {
                       {eventDetails.teacherName}
                     </Text>
                   </div>
-                  <div className="flex justify-between items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
                     <Text as="b" className="min-w-max" fontSize="md">
                       Batch
                     </Text>
                     <Divider />
                     <Text className="min-w-max">{eventDetails.batchName}</Text>
                   </div>
-                  <div className="flex justify-between items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
                     <Text as="b" className="min-w-max" fontSize="md">
                       Start Time
                     </Text>
@@ -435,7 +437,7 @@ export default function TimetableCalendar() {
                       {moment(eventDetails.start).format("hh:mm a")}
                     </Text>
                   </div>
-                  <div className="flex justify-between items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
                     <Text as="b" className="min-w-max" fontSize="md">
                       End Time
                     </Text>
@@ -444,7 +446,7 @@ export default function TimetableCalendar() {
                       {moment(eventDetails.end).format("hh:mm a")}
                     </Text>
                   </div>
-                  <div className="flex justify-between items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
                     <Text as="b" className="min-w-max" fontSize="md">
                       Date
                     </Text>

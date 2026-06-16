@@ -11,7 +11,6 @@ import {
   Badge,
   ButtonGroup,
   useDisclosure,
-  HStack,
   FormControl,
   Input,
   Select,
@@ -33,6 +32,7 @@ import PayFeeModal from "./PayFeeModal";
 import DeleteFeeModal from "./DeleteFeeModal";
 import DiscountFeeModal from "./DiscountFeeModal";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Fees() {
   const viewOnly = isStudentViewOnly();
@@ -56,45 +56,38 @@ function Fees() {
 
   return (
     <>
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">
-          {viewOnly ? "My Fees" : "Student Fees"}
-        </h1>
-        <div className="w-full flex items-center justify-end gap-3">
+      <PageHeader title={viewOnly ? "My Fees" : "Student Fees"}>
+        <FilterStack>
           {!viewOnly && (
-          <div>
-            <TableSearch setQueryFilter={setQueryFilter} method={fetchFees} />
-          </div>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch setQueryFilter={setQueryFilter} method={fetchFees} />
+            </div>
           )}
-          <HStack spacing={3}>
-            <FormControl>
-              <Input
-                type="date"
-                w={48}
-                size={"lg"}
-                borderRadius="xl"
-                value={formDate}
-                onChange={(e) => handleFormDateChange(e)}
-              />
-            </FormControl>
-            <FormControl>
-              <Select
-                w={48}
-                size={"lg"}
-                borderRadius="xl"
-                onChange={(e) => {
-                  dispatch(fetchFees({ authToken, status: e.target.value }));
-                }}
-              >
-                <option value="">All Statuses</option>
-                <option value="Paid">Paid</option>
-                <option value="Pending">Pending</option>
-              </Select>
-            </FormControl>
-          </HStack>
-        </div>
-      </div>
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={formDate}
+              onChange={(e) => handleFormDateChange(e)}
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              onChange={(e) => {
+                dispatch(fetchFees({ authToken, status: e.target.value }));
+              }}
+            >
+              <option value="">All Statuses</option>
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+            </Select>
+          </FormControl>
+        </FilterStack>
+      </PageHeader>
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -151,7 +144,7 @@ function Fees() {
                     </Td>
                     {!viewOnly && (
                     <Td className="space-x-3" isNumeric>
-                      <div className="flex flex-nowrap justify-end items-center gap-2">
+                      <div className="action-cell">
                         <PayFeeModal
                           fee={fee}
                           isDisabled={fee.amount === 0 || fee.status === "Paid"}
@@ -179,7 +172,7 @@ function Fees() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {fetchStatus !== "loading" && (
         <TablePagination
           pagination={pagination}
