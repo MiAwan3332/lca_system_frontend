@@ -2,9 +2,7 @@ import moment from "moment";
 
 export const VOUCHER_COPY_LABELS = [
   "Student Copy",
-  "Admin Office Copy",
-  "Finance Team Copy",
-  "LCA Copy",
+  "Admin Copy",
 ];
 
 export const PAYMENT_INSTRUCTIONS =

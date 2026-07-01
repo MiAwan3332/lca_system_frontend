@@ -240,7 +240,7 @@
     min-height: 297mm;
     max-height: 297mm;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
     background: #fff;
     color: #111;
@@ -268,14 +268,7 @@
     break-inside: avoid;
   }
 
-  .voucher-slip:nth-child(1),
-  .voucher-slip:nth-child(3) {
-    border-right-style: dashed;
-    border-right-color: #888;
-  }
-
-  .voucher-slip:nth-child(1),
-  .voucher-slip:nth-child(2) {
+  .voucher-slip:nth-child(1) {
     border-bottom-style: dashed;
     border-bottom-color: #888;
   }

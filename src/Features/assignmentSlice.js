@@ -13,7 +13,11 @@ const initialState = {
   submissions: [],
   batchCourses: [],
   selectedAssignment: null,
-  filters: TABLE_FILTERS,
+  filters: {
+    ...TABLE_FILTERS,
+    batch_id: "",
+    course_id: "",
+  },
   pagination: TABLE_PAGINATION,
   submissionsPagination: TABLE_PAGINATION,
   fetchStatus: "idle",
@@ -131,16 +135,26 @@ export const submitAssignment = createAsyncThunk(
 
 export const fetchAssignmentSubmissions = createAsyncThunk(
   "assignments/fetchSubmissions",
-  async (payload, { getState }) => {
-    const { authToken, assignment_id, status } = payload;
-    const state = getState();
+  async (payload) => {
+    const {
+      authToken,
+      assignment_id,
+      batch_id,
+      course_id,
+      status,
+      page = 1,
+      limit = 50,
+    } = payload;
+
     const response = await axios.get(`${BASE_URL}/assignments/submissions/list`, {
       headers: { Authorization: `Bearer ${authToken}` },
       params: {
         assignment_id,
+        batch_id,
+        course_id,
         status,
-        page: state.assignments.filters.page,
-        limit: state.assignments.filters.limit,
+        page,
+        limit,
       },
     });
     return response.data;
@@ -177,6 +191,21 @@ const assignmentSlice = createSlice({
     setLimitFilter(state, action) {
       state.filters.page = 1;
       state.filters.limit = action.payload;
+    },
+    setBatchFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.batch_id = action.payload;
+      state.filters.course_id = "";
+    },
+    setCourseFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.course_id = action.payload;
+    },
+    clearAssignmentFilters(state) {
+      state.filters.batch_id = "";
+      state.filters.course_id = "";
+      state.filters.query = "";
+      state.filters.page = 1;
     },
     clearSelectedAssignment(state) {
       state.selectedAssignment = null;
@@ -267,7 +296,7 @@ const assignmentSlice = createSlice({
   },
 });
 
-export const { setQueryFilter, setPageFilter, setLimitFilter, clearSelectedAssignment } =
+export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setCourseFilter, clearAssignmentFilters, clearSelectedAssignment } =
   assignmentSlice.actions;
 
 export const selectAllAssignments = createSelector(

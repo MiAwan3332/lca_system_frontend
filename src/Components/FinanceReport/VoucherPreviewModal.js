@@ -206,7 +206,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
         <ModalBody className="voucher-preview-modal__body">
           <HStack justify="space-between" mb={4} flexWrap="wrap" gap={2}>
             <Text fontSize="sm" color="gray.600">
-              A4 sheet with 4 voucher slips — {Math.round(zoom * 100)}% zoom
+              A4 sheet with 2 voucher slips — {Math.round(zoom * 100)}% zoom
               {isPreparingOutput ? " · Syncing print output..." : ""}
             </Text>
             <ButtonGroup size="sm" variant="outline" isAttached>
