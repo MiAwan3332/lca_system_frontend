@@ -8,14 +8,14 @@ export function PageHeader({ title, subtitle, children, className = "" }) {
     <div className={`page-header ${className}`.trim()}>
       <div className="page-header__title min-w-0">
         {typeof title === "string" ? (
-          <h1 className="text-lg sm:text-xl font-semibold break-words">
+          <h1 className="text-lg sm:text-xl font-semibold break-words dash-text">
             {title}
           </h1>
         ) : (
           title
         )}
         {subtitle && (
-          <p className="text-sm text-gray-500 mt-1 break-words">{subtitle}</p>
+          <p className="text-sm dash-text-muted mt-1 break-words">{subtitle}</p>
         )}
       </div>
       {children ? <div className="page-header__actions">{children}</div> : null}

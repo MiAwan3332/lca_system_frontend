@@ -81,12 +81,16 @@ const Login = () => {
           !profileUpdatedOnce &&
           !skipProfileCompletion;
 
+        const teacherId =
+          response.data.teacherId || response.data.teacherData?._id;
+
         Cookies.set("authToken", authToken, { expires: 7, secure: true });
         storeAuthSession({
           authToken,
           permissions,
           role,
           studentId,
+          teacherId,
           profileUpdatedOnce,
           skipProfileCompletion,
         });

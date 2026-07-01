@@ -21,10 +21,13 @@ export const setupGlobalErrorHandlers = () => {
 
   const handleUnhandledRejection = (event) => {
     event.preventDefault();
+    const reason = event.reason;
     const message =
-      event.reason?.message ||
-      event.reason?.response?.data?.message ||
-      (typeof event.reason === "string" ? event.reason : "Request failed.");
+      reason?.message ||
+      reason?.response?.data?.message ||
+      (typeof reason === "string" ? reason : null) ||
+      (reason && typeof reason === "object" ? JSON.stringify(reason) : null) ||
+      "Request failed.";
     showErrorPopup("Request Error", message);
   };
 

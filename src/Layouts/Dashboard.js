@@ -51,7 +51,7 @@ function Dashboard() {
 
   return (
     <Box minH="100vh" bg={useColorModeValue('#F9FBFC', 'gray.900')}>
-      <Sidebar onClose={onClose} display={{ base: 'none', md: 'block' }} />
+      <Sidebar onClose={onClose} />
       <Drawer
         autoFocus={false}
         isOpen={isOpen}
@@ -60,8 +60,8 @@ function Dashboard() {
         returnFocusOnClose={false}
         onOverlayClick={onClose}
         size="full">
-        <DrawerContent>
-          <Sidebar onClose={onClose} />
+        <DrawerContent h="100dvh" maxH="100dvh" overflow="hidden">
+          <Sidebar onClose={onClose} isMobileDrawer />
         </DrawerContent>
       </Drawer>
       <MobileNav onOpen={onOpen} />

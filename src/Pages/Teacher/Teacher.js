@@ -25,6 +25,7 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 const defaultAvatar =
@@ -32,6 +33,8 @@ const defaultAvatar =
 
 function Teacher() {
   const viewOnly = isStudentViewOnly();
+  const isTeacher = isTeacherRole();
+  const canManageInstitution = isInstitutionAdmin();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
@@ -58,8 +61,8 @@ function Teacher() {
 
   return (
     <>
-      <PageHeader title="All Teachers">
-        {!viewOnly && (
+      <PageHeader title={isTeacher ? "My Profile" : "All Teachers"}>
+        {canManageInstitution && (
           <FilterStack>
             <div className="w-full sm:max-w-xs">
               <TableSearch setQueryFilter={setQueryFilter} method={fetchTeachers} />
@@ -131,7 +134,7 @@ function Teacher() {
                       </a>
                     </Td>
                     )}
-                    {!viewOnly && (
+                    {!viewOnly && canManageInstitution && (
                     <Td className="space-x-3" isNumeric>
                       {hasPermission(["Update_Teacher"]) && (
                         <UpdateModal teacher={teacher} />
@@ -156,7 +159,7 @@ function Teacher() {
           method={fetchTeachers}
         />
       )}
-      {!viewOnly && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
+      {!viewOnly && canManageInstitution && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
     </>
   );
 }

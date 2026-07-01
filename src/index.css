@@ -17,6 +17,11 @@
     max-width: 100%;
     height: auto;
   }
+
+  .chakra-ui-dark .chakra-table th,
+  .chakra-ui-dark .chakra-table td {
+    color: var(--dash-text);
+  }
 }
 
 @layer components {
@@ -33,7 +38,9 @@
   }
 
   .data-table-shell {
-    @apply w-full mt-3 bg-white rounded-xl border border-[#E0E8EC] overflow-x-auto -mx-0;
+    @apply w-full mt-3 rounded-xl overflow-x-auto -mx-0;
+    background: var(--dash-surface);
+    border: 1px solid var(--dash-border);
   }
 
   .data-table-shell .chakra-table__container {
@@ -87,6 +94,359 @@
 
     .rbc-event {
       font-size: 0.65rem;
+    }
+  }
+
+  .sidebar-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #888888 #2a2a2a;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 9999px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background-color: #888888;
+    border-radius: 9999px;
+    border: 2px solid #2a2a2a;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: #aaaaaa;
+  }
+
+  /* ── Dashboard (LCA palette + dark mode) ── */
+  :root {
+    --dash-surface: #ffffff;
+    --dash-surface-2: #F9FBFC;
+    --dash-border: #E0E8EC;
+    --dash-text: #263238;
+    --dash-muted: #6E879C;
+    --dash-accent: #85652D;
+    --dash-accent-soft: #FFCB82;
+    --dash-icon: #d69e2e;
+    --dash-shadow: 0 1px 3px rgba(38, 50, 56, 0.06);
+    --dash-shadow-hover: 0 4px 16px rgba(214, 158, 46, 0.12);
+  }
+
+  .chakra-ui-dark {
+    --dash-surface: #1e293b;
+    --dash-surface-2: #0f172a;
+    --dash-border: #334155;
+    --dash-text: #f1f5f9;
+    --dash-muted: #94a3b8;
+    --dash-accent: #FFCB82;
+    --dash-accent-soft: #d69e2e;
+    --dash-icon: #FFCB82;
+  }
+
+  .dash-surface-card {
+    background-color: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--dash-shadow);
+  }
+
+  .dash-surface-subtle {
+    background-color: var(--dash-surface-2);
+  }
+
+  .dash-text {
+    color: var(--dash-text);
+  }
+
+  .dash-text-muted {
+    color: var(--dash-muted);
+  }
+
+  .dash-text-accent {
+    color: var(--dash-accent);
+  }
+
+  .dash-border {
+    border-color: var(--dash-border);
+  }
+
+  .dash-hover-row:hover {
+    background-color: var(--dash-surface-2);
+    border-color: var(--dash-border);
+  }
+
+  .dash-action-btn {
+    background-color: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    color: var(--dash-text);
+  }
+
+  .dash-action-btn:hover {
+    background-color: var(--dash-accent-soft);
+    border-color: var(--dash-accent-soft);
+    color: #222222;
+  }
+
+  .chakra-ui-dark .dash-action-btn:hover {
+    color: #1e293b;
+  }
+
+  .dash-page {
+    @apply w-full max-w-[1600px] mx-auto;
+  }
+
+  .kpi-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4;
+  }
+
+  .chart-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4;
+  }
+
+  .analytics-grid {
+    @apply grid grid-cols-1 xl:grid-cols-2 gap-4;
+  }
+
+  /* Finance voucher — screen preview */
+  .voucher-preview-stage {
+    @apply w-full overflow-auto rounded-xl border border-[#E0E8EC] bg-gray-100 p-4;
+    min-height: 420px;
+  }
+
+  .voucher-preview-canvas {
+    @apply mx-auto origin-top;
+    width: fit-content;
+  }
+
+  .voucher-preview-canvas--capture {
+    transform: none !important;
+  }
+
+  .voucher-sheet--capture {
+    box-shadow: none !important;
+  }
+
+  .voucher-print-sheet {
+    width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
+    max-height: 297mm;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    background: #fff;
+    color: #111;
+    box-sizing: border-box;
+    font-family: "Inter", Arial, sans-serif;
+    overflow: hidden;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .voucher-slip {
+    padding: 5mm;
+    border: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+    gap: 2mm;
+    min-height: 0;
+    height: 100%;
+    font-size: 8pt;
+    line-height: 1.3;
+    box-sizing: border-box;
+    background: #fff;
+    overflow: hidden;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .voucher-slip:nth-child(1),
+  .voucher-slip:nth-child(3) {
+    border-right-style: dashed;
+    border-right-color: #888;
+  }
+
+  .voucher-slip:nth-child(1),
+  .voucher-slip:nth-child(2) {
+    border-bottom-style: dashed;
+    border-bottom-color: #888;
+  }
+
+  .voucher-slip__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 4mm;
+    border-bottom: 1px solid #222;
+    padding-bottom: 2mm;
+  }
+
+  .voucher-slip__org {
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+    color: #444;
+  }
+
+  .voucher-slip__title {
+    margin: 1mm 0 0;
+    font-size: 10pt;
+    font-weight: 700;
+    color: #111;
+  }
+
+  .voucher-slip__copy-badge {
+    border: 1px solid #222;
+    padding: 1.5mm 3mm;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .voucher-slip__body {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 3mm;
+    flex: 1;
+  }
+
+  .voucher-slip__fields {
+    display: grid;
+    gap: 1.5mm;
+  }
+
+  .voucher-slip__field {
+    display: grid;
+    grid-template-columns: 28mm 1fr;
+    gap: 2mm;
+    align-items: start;
+  }
+
+  .voucher-slip__label {
+    font-weight: 700;
+    color: #333;
+  }
+
+  .voucher-slip__value {
+    color: #111;
+    word-break: break-word;
+  }
+
+  .voucher-slip__qr-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1mm;
+  }
+
+  .voucher-slip__qr-caption {
+    font-size: 6.5pt;
+    color: #555;
+  }
+
+  .voucher-slip__qr-meta {
+    font-size: 6.5pt;
+    color: #111;
+    font-weight: 600;
+    text-align: center;
+    max-width: 22mm;
+    word-break: break-word;
+    line-height: 1.2;
+  }
+
+  .voucher-slip__instructions {
+    font-size: 7pt;
+    color: #222;
+    border-top: 1px dashed #aaa;
+    padding-top: 2mm;
+  }
+
+  .voucher-slip__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 4mm;
+    margin-top: auto;
+  }
+
+  .voucher-slip__signature {
+    flex: 1;
+    font-size: 7pt;
+  }
+
+  .voucher-slip__signature-line {
+    margin-top: 6mm;
+    border-bottom: 1px solid #222;
+    width: 38mm;
+  }
+
+  .voucher-slip__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1mm;
+    font-size: 6.5pt;
+    color: #444;
+    text-align: right;
+  }
+
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    html,
+    body {
+      width: 210mm !important;
+      height: 297mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      background: #fff !important;
+    }
+
+    body > *:not(#voucher-print-page) {
+      display: none !important;
+    }
+
+    #voucher-print-page {
+      display: block !important;
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      background: #fff !important;
+      page-break-before: avoid !important;
+      page-break-after: avoid !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    #voucher-print-page img {
+      display: block !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      max-width: 210mm !important;
+      max-height: 297mm !important;
+      object-fit: fill !important;
+      page-break-before: avoid !important;
+      page-break-after: avoid !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
   }
 }

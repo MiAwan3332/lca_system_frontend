@@ -51,6 +51,7 @@ import ViewModal from "./ViewModal";
 import ExportModal from "./ExportModal";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
+import { isTeacherRole } from "../../utlls/teacherAccess";
 import { useNavigate } from "react-router-dom";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
@@ -121,7 +122,13 @@ function Student() {
 
   const handleClearFilters = () => {
     tableSearchRef.current?.clearSearch?.();
-    dispatch(clearStudentFilters());
+    if (isTeacher) {
+      dispatch(setBatchFilter(""));
+      dispatch(setQueryFilter(""));
+      dispatch(setSearchFieldFilter("name"));
+    } else {
+      dispatch(clearStudentFilters());
+    }
     loadStudents();
   };
 
@@ -137,8 +144,14 @@ function Student() {
 
   const viewOnly = isStudentViewOnly();
   const profileIncomplete = isStudentProfileIncomplete();
+  const isTeacher = isTeacherRole();
+  const showAdminControls = !viewOnly && !isTeacher;
+  const tableColumnCount = viewOnly ? 7 : isTeacher ? 6 : 8;
 
   useEffect(() => {
+    if (isTeacher) {
+      dispatch(setSearchFieldFilter("name"));
+    }
     dispatch(setBatchLimitFilter(100));
     dispatch(fetchBatches({ authToken }));
     dispatch(fetchStudents({ authToken }));
@@ -171,8 +184,13 @@ function Student() {
         </Box>
       )}
 
-      <PageHeader title={viewOnly ? "My Profile" : "All Students"}>
-        {!viewOnly && (
+      <PageHeader
+        title={viewOnly ? "My Profile" : "All Students"}
+        subtitle={
+          isTeacher ? "Students from your assigned batches only." : undefined
+        }
+      >
+        {showAdminControls && (
           <FilterStack>
             <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
               <Select
@@ -207,9 +225,35 @@ function Student() {
             <ExportModal />
           </FilterStack>
         )}
+        {isTeacher && (
+          <FilterStack>
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+              <SearchableBatchSelect
+                batches={batches}
+                value={filters.batch_id}
+                onChange={handleBatchChange}
+                placeholder="All Assigned Batches"
+                width="100%"
+              />
+            </FormControl>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchStudents}
+                placeholder="Search by student name..."
+              />
+            </div>
+            {(filters.batch_id || filters.query) && (
+              <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+                <FilterX className="h-4 w-4" />
+              </Button>
+            )}
+          </FilterStack>
+        )}
       </PageHeader>
 
-      {!viewOnly && (
+      {showAdminControls && (
       <FilterStack className="mt-3">
           <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
             <SearchableBatchSelect
@@ -275,24 +319,26 @@ function Student() {
             <Thead>
               <Tr>
                 <Th>No</Th>
-                <Th>{viewOnly ? "View" : "View | QR | Card"}</Th>
+                {(showAdminControls || viewOnly) && (
+                  <Th>{viewOnly ? "View" : "View | QR | Card"}</Th>
+                )}
                 <Th data-searchable>Name</Th>
                 <Th data-searchable>Email</Th>
                 <Th data-searchable>Phone</Th>
                 <Th>City</Th>
                 <Th>Last Active Batch</Th>
-                {!viewOnly && <Th isNumeric>Actions</Th>}
+                {showAdminControls && <Th isNumeric>Actions</Th>}
               </Tr>
             </Thead>
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={8}
-                  actions={["w-10", "w-10", "w-20"]}
+                  nOfColumns={tableColumnCount}
+                  actions={showAdminControls ? ["w-10", "w-10", "w-20"] : viewOnly ? ["w-10"] : []}
                 />
               ) : students.length === 0 ? (
                 <Tr>
-                  <Td colSpan={8}>
+                  <Td colSpan={tableColumnCount}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No student records found
@@ -302,22 +348,26 @@ function Student() {
               ) : (
                 students.map((student, index) => (
                   <Tr key={student._id}>
-                    <Td>{index + 1}</Td>
+                    <Td>
+                      {(pagination.page - 1) * pagination.limit + index + 1}
+                    </Td>
+                    {(showAdminControls || viewOnly) && (
                     <Td>
                       <ButtonGroup variant="outline">
                         {(!viewOnly || !profileIncomplete) && (
                           <ViewModal student={student} />
                         )}
-                        {!viewOnly && <QrCodeModal student={student} />}
-                        {!viewOnly && <StudentCardModal student={student} />}
+                        {showAdminControls && <QrCodeModal student={student} />}
+                        {showAdminControls && <StudentCardModal student={student} />}
                       </ButtonGroup>
                     </Td>
+                    )}
                     <Td>{student.name}</Td>
                     <Td>{student.email}</Td>
                     <Td>{student.phone}</Td>
                     <Td>{student.city || "-"}</Td>
                     <Td>{student.batch ? student.batch.name : "No Batch"}</Td>
-                    {!viewOnly && (
+                    {showAdminControls && (
                     <Td className="space-x-3" isNumeric>
                       <div className="action-cell">
                         {hasPermission(["Update_Student"]) && (
@@ -348,7 +398,7 @@ function Student() {
           method={fetchStudents}
         />
       )}
-      <AddModel isOpen={isAddOpen} onClose={onAddClose} />
+      <AddModel isOpen={isAddOpen && showAdminControls} onClose={onAddClose} />
     </>
   );
 }

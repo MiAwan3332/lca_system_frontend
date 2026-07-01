@@ -31,9 +31,7 @@ import { Select } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTeachers, selectAllTeachers } from "../Features/teacherSlice";
-import { fetchCourses, selectAllCourses } from "../Features/courseSlice";
-import { fetchBatches, selectAllBatches } from "../Features/batchSlice";
+import { fetchBatches, selectAllBatches, setLimitFilter } from "../Features/batchSlice";
 import Cookies from "js-cookie";
 import {
   addTimeTableEvent,
@@ -76,8 +74,6 @@ export default function TimetableCalendar() {
   );
 
   const timeTableEvents = useSelector(selectTimeTableEvents);
-  const teachers = useSelector(selectAllTeachers);
-  const courses = useSelector(selectAllCourses);
   const batches = useSelector(selectAllBatches);
   const dispatch = useDispatch();
 
@@ -96,10 +92,62 @@ export default function TimetableCalendar() {
   );
 
   const handleSelectEvent = useCallback((event) => {
-    if (viewOnly) return;
     setEventDetails(event);
     onEditModalOpen();
-  }, [viewOnly]);
+  }, [onEditModalOpen]);
+
+  const renderEventDetails = () => (
+    <ModalBody className="!p-0 flex flex-col gap-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Course
+        </Text>
+        <Divider />
+        <Text className="min-w-max">{eventDetails.courseName}</Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Teacher
+        </Text>
+        <Divider />
+        <Text className="min-w-max">{eventDetails.teacherName}</Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Batch
+        </Text>
+        <Divider />
+        <Text className="min-w-max">{eventDetails.batchName}</Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Start Time
+        </Text>
+        <Divider />
+        <Text className="min-w-max">
+          {moment(eventDetails.start).format("hh:mm a")}
+        </Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          End Time
+        </Text>
+        <Divider />
+        <Text className="min-w-max">
+          {moment(eventDetails.end).format("hh:mm a")}
+        </Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Date
+        </Text>
+        <Divider />
+        <Text className="min-w-max">
+          {moment(eventDetails.start).format("DD dddd, MMMM YYYY")}
+        </Text>
+      </div>
+    </ModalBody>
+  );
 
   const { defaultDate, scrollToTime } = useMemo(
     () => ({
@@ -172,12 +220,11 @@ export default function TimetableCalendar() {
   };
 
   useEffect(() => {
+    dispatch(setLimitFilter(100));
+    dispatch(fetchBatches({ authToken }));
     dispatch(fetchTimeTableEvents({ authToken }))
       .unwrap()
       .then((data) => {
-        // dispatch(fetchTeachers({ authToken }));
-        // dispatch(fetchCourses({ authToken }));
-        dispatch(fetchBatches({ authToken }));
         const formattedDateTime = data.map((event) => formateDateTime(event));
         const formattedData = data.map((event, index) => ({
           ...event,
@@ -204,7 +251,7 @@ export default function TimetableCalendar() {
           defaultDate={defaultDate}
           defaultView={Views.MONTH}
           events={events}
-          onSelectEvent={viewOnly ? undefined : handleSelectEvent}
+          onSelectEvent={handleSelectEvent}
           onSelectSlot={viewOnly ? undefined : handleSelectSlot}
           selectable={!viewOnly}
           scrollToTime={scrollToTime}
@@ -232,6 +279,27 @@ export default function TimetableCalendar() {
           }}
         />
         </div>
+      )}
+
+      {viewOnly && (
+        <Modal isOpen={isEditModalOpen} onClose={onEditModalClose} isCentered>
+          <ModalOverlay />
+          <ModalContent className="p-4">
+            <ModalHeader className="text-xl font-semibold">
+              Class Details
+            </ModalHeader>
+            <ModalCloseButton />
+            {renderEventDetails()}
+            <ModalFooter>
+              <Button
+                borderRadius="0.75rem"
+                onClick={onEditModalClose}
+              >
+                Close
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       )}
 
       {!viewOnly && (
@@ -404,64 +472,11 @@ export default function TimetableCalendar() {
             </TabList>
             <TabPanels>
               <TabPanel>
-                <ModalBody className="!p-0 flex flex-col gap-3">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Course
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">{eventDetails.courseName}</Text>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Teacher
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {eventDetails.teacherName}
-                    </Text>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Batch
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">{eventDetails.batchName}</Text>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Start Time
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {moment(eventDetails.start).format("hh:mm a")}
-                    </Text>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      End Time
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {moment(eventDetails.end).format("hh:mm a")}
-                    </Text>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Date
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {moment(eventDetails.start).format("DD dddd, MMMM YYYY")}
-                    </Text>
-                  </div>
-                </ModalBody>
+                {renderEventDetails()}
               </TabPanel>
               <TabPanel>
                 <TimeTableEventEditForm
                   event={eventDetails}
-                  teachers={teachers}
-                  courses={courses}
                   batches={batches}
                   onClose={onEditModalClose}
                 />

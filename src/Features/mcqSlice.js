@@ -21,6 +21,7 @@ const initialState = {
   addStatus: "idle",
   updateStatus: "idle",
   deleteStatus: "idle",
+  importStatus: "idle",
   error: null,
 };
 
@@ -92,6 +93,22 @@ const deleteMcq = createAsyncThunk(
       throw new Error(data.message || "Failed to delete MCQ");
     }
     return { _id: data._id || mcqId };
+  }
+);
+
+const bulkImportMcqs = createAsyncThunk(
+  "mcqs/bulkImportMcqs",
+  async ({ authToken, mcqs }) => {
+    const response = await axios.post(
+      `${BASE_URL}/mcqs/bulk-import`,
+      { mcqs },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+    return response.data;
   }
 );
 
@@ -194,13 +211,42 @@ const mcqSlice = createSlice({
       .addCase(deleteMcq.rejected, (state, action) => {
         state.deleteStatus = "failed";
         state.error = action.error.message;
+      })
+
+      .addCase(bulkImportMcqs.pending, (state) => {
+        state.importStatus = "loading";
+      })
+      .addCase(bulkImportMcqs.fulfilled, (state, action) => {
+        state.importStatus = "succeeded";
+        const { imported, failed } = action.payload;
+        toast({
+          title: "MCQ import completed",
+          description:
+            failed?.length > 0
+              ? `Imported ${imported} MCQs. ${failed.length} row(s) failed.`
+              : `Successfully imported ${imported} MCQs.`,
+          status: failed?.length > 0 ? "warning" : "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+      .addCase(bulkImportMcqs.rejected, (state, action) => {
+        state.importStatus = "failed";
+        state.error = action.error.message;
+        toast({
+          title: "Import failed",
+          description: action.error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       });
   },
 });
 
 export const selectAllMcqs = (state) => state.mcqs.mcqs;
 
-export { fetchMcqs, addMcq, updateMcq, deleteMcq };
+export { fetchMcqs, addMcq, updateMcq, deleteMcq, bulkImportMcqs };
 export const { setQueryFilter, setPageFilter, setLimitFilter, setCourseFilter } = mcqSlice.actions;
 
 export default mcqSlice.reducer;

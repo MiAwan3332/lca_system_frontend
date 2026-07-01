@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import moment from "moment";
 import {
@@ -6,7 +6,11 @@ import {
   Button,
   ButtonGroup,
   FormControl,
+  IconButton,
   Input,
+  InputGroup,
+  InputLeftElement,
+  Select,
   Stat,
   StatHelpText,
   StatLabel,
@@ -31,6 +35,8 @@ import {
   Receipt,
   Wallet,
   Clock,
+  Search,
+  FileText,
 } from "lucide-react";
 import { fetchFinanceReport } from "../../Features/financeReportSlice";
 import {
@@ -48,6 +54,22 @@ import SearchableUserSelect from "../../Components/SearchableUserSelect";
 import FinanceReportChart from "../../Components/FinanceReportChart";
 import TableRowLoading from "../../Components/TableRowLoading";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import VoucherPreviewModal from "../../Components/FinanceReport/VoucherPreviewModal";
+
+const TRANSACTION_TYPE_OPTIONS = [
+  { value: "", label: "All Types" },
+  { value: "fee", label: "Fee" },
+  { value: "expense", label: "Expense" },
+];
+
+const ACTION_TYPE_OPTIONS = [
+  { value: "", label: "All Actions" },
+  { value: "Paid", label: "Paid" },
+  { value: "Created", label: "Created" },
+  { value: "Discounted", label: "Discounted" },
+  { value: "Deleted", label: "Deleted" },
+  { value: "Expense", label: "Expense" },
+];
 
 const PERIOD_OPTIONS = [
   { value: "daily", label: "Daily" },
@@ -119,6 +141,11 @@ function FinanceReport() {
   const [reportDate, setReportDate] = useState(moment().format("YYYY-MM-DD"));
   const [formBatch, setFormBatch] = useState("");
   const [formChangedBy, setFormChangedBy] = useState("");
+  const [txnTypeFilter, setTxnTypeFilter] = useState("");
+  const [txnActionFilter, setTxnActionFilter] = useState("");
+  const [txnSearch, setTxnSearch] = useState("");
+  const [previewTransaction, setPreviewTransaction] = useState(null);
+  const [isVoucherPreviewOpen, setIsVoucherPreviewOpen] = useState(false);
 
   const dispatch = useDispatch();
   const { report, status } = useSelector((state) => state.financeReport);
@@ -164,12 +191,31 @@ function FinanceReport() {
     setReportDate(today);
     setFormBatch("");
     setFormChangedBy("");
+    setTxnTypeFilter("");
+    setTxnActionFilter("");
+    setTxnSearch("");
     loadReport({
       period: "daily",
       date: today,
       batch_id: "",
       changed_by: "",
     });
+  };
+
+  const handleClearTxnFilters = () => {
+    setTxnTypeFilter("");
+    setTxnActionFilter("");
+    setTxnSearch("");
+  };
+
+  const handleGenerateVoucher = (transaction) => {
+    setPreviewTransaction(transaction);
+    setIsVoucherPreviewOpen(true);
+  };
+
+  const handleCloseVoucherPreview = () => {
+    setIsVoucherPreviewOpen(false);
+    setPreviewTransaction(null);
   };
 
   useEffect(() => {
@@ -189,6 +235,36 @@ function FinanceReport() {
   const periodLabel = PERIOD_OPTIONS.find((item) => item.value === period)?.label;
   const reportSubtitle =
     report && `${periodLabel} report: ${report.start_date} to ${report.end_date}`;
+
+  const filteredTransactions = useMemo(() => {
+    const list = report?.transactions || [];
+    const query = txnSearch.trim().toLowerCase();
+
+    return list.filter((transaction) => {
+      if (txnTypeFilter && transaction.type !== txnTypeFilter) {
+        return false;
+      }
+      if (txnActionFilter && transaction.action_type !== txnActionFilter) {
+        return false;
+      }
+      if (!query) return true;
+
+      const haystack = [
+        transaction.student_name,
+        transaction.title,
+        transaction.batch_name,
+        transaction.category,
+        transaction.action_by,
+        transaction.action_type,
+        transaction.type,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [report?.transactions, txnTypeFilter, txnActionFilter, txnSearch]);
 
   return (
     <>
@@ -285,10 +361,65 @@ function FinanceReport() {
 
       <DataTableShell className="mt-3">
         <div className="px-4 sm:px-6 py-4 border-b border-[#E0E8EC]">
-          <h2 className="text-lg font-semibold">Finance Transactions</h2>
-          <p className="text-sm text-gray-500">
-            Includes fee income and approved expense deductions
-          </p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold dash-text">Finance Transactions</h2>
+              <p className="text-sm dash-text-muted">
+                Includes fee income and approved expense deductions
+              </p>
+            </div>
+            <FilterStack className="mt-0">
+              <FormControl className="responsive-input" w={{ base: "full", sm: "9rem" }}>
+                <Select
+                  size="md"
+                  borderRadius="xl"
+                  value={txnTypeFilter}
+                  onChange={(e) => setTxnTypeFilter(e.target.value)}
+                  placeholder="All Types"
+                >
+                  {TRANSACTION_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value || "all"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
+                <Select
+                  size="md"
+                  borderRadius="xl"
+                  value={txnActionFilter}
+                  onChange={(e) => setTxnActionFilter(e.target.value)}
+                  placeholder="All Actions"
+                >
+                  {ACTION_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value || "all"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl className="responsive-input" w={{ base: "full", sm: "12rem" }}>
+                <InputGroup size="md">
+                  <InputLeftElement pointerEvents="none">
+                    <Search size={16} color="#94a3b8" />
+                  </InputLeftElement>
+                  <Input
+                    borderRadius="xl"
+                    placeholder="Search transactions..."
+                    value={txnSearch}
+                    onChange={(e) => setTxnSearch(e.target.value)}
+                  />
+                </InputGroup>
+              </FormControl>
+              {(txnTypeFilter || txnActionFilter || txnSearch) && (
+                <Button size="sm" borderRadius="xl" variant="outline" onClick={handleClearTxnFilters}>
+                  <FilterX size={16} className="mr-1" />
+                  Clear
+                </Button>
+              )}
+            </FilterStack>
+          </div>
         </div>
         <TableContainer>
           <Table variant="simple">
@@ -300,18 +431,19 @@ function FinanceReport() {
                 <Th>Details</Th>
                 <Th>Category / Batch</Th>
                 <Th>Action</Th>
-                <Th>Amount</Th>
+                <Th isNumeric>Amount</Th>
                 <Th>By</Th>
+                <Th isNumeric>Voucher</Th>
               </Tr>
             </Thead>
             <Tbody>
               {status === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={8}
-                  actions={["w-10", "w-24", "w-16", "w-24", "w-24", "w-20", "w-20", "w-24"]}
+                  nOfColumns={9}
+                  actions={["w-10", "w-24", "w-16", "w-24", "w-24", "w-20", "w-20", "w-24", "w-16"]}
                 />
-              ) : report?.transactions?.length > 0 ? (
-                report.transactions.map((transaction, index) => (
+              ) : filteredTransactions.length > 0 ? (
+                filteredTransactions.map((transaction, index) => (
                   <Tr key={`${transaction.type}-${transaction._id}`}>
                     <Td>{index + 1}</Td>
                     <Td>
@@ -357,13 +489,27 @@ function FinanceReport() {
                       </span>
                     </Td>
                     <Td>{transaction.action_by}</Td>
+                    <Td isNumeric>
+                      <IconButton
+                        aria-label="Generate voucher"
+                        icon={<FileText size={18} />}
+                        size="sm"
+                        borderRadius="xl"
+                        variant="outline"
+                        title="Generate voucher"
+                        onClick={() => handleGenerateVoucher(transaction)}
+                        _hover={{ bg: "#FFCB82", borderColor: "#FFCB82", color: "#85652D" }}
+                      />
+                    </Td>
                   </Tr>
                 ))
               ) : (
                 <Tr>
-                  <Td colSpan={8}>
+                  <Td colSpan={9}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1] py-6">
-                      No transactions found for this period
+                      {report?.transactions?.length > 0
+                        ? "No transactions match the selected filters"
+                        : "No transactions found for this period"}
                     </span>
                   </Td>
                 </Tr>
@@ -372,6 +518,12 @@ function FinanceReport() {
           </Table>
         </TableContainer>
       </DataTableShell>
+
+      <VoucherPreviewModal
+        isOpen={isVoucherPreviewOpen}
+        onClose={handleCloseVoucherPreview}
+        transaction={previewTransaction}
+      />
     </>
   );
 }

@@ -10,6 +10,7 @@ import {
   TableContainer,
   IconButton,
   Badge,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { FileX, FilterX } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -27,6 +28,14 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import SearchableCourseSelect from "../../Components/SearchableCourseSelect";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import McqImportModal from "./McqImportModal";
+import McqAddMethods from "./McqAddMethods";
+import AddModel from "./AddModel";
+import UpdateModal from "./UpdateModal";
+import DeleteModal from "./DeleteModal";
+import { downloadMcqTemplate } from "../../utlls/mcqExcel";
+import { hasPermission } from "../../utlls/useful";
+import { isTeacherRole } from "../../utlls/teacherAccess";
 
 const truncateText = (text, maxLength = 60) => {
   if (!text) return "";
@@ -47,6 +56,21 @@ const getCorrectOptionLabel = (correctOption) => {
 
 function Mcq() {
   const [authToken] = useState(Cookies.get("authToken"));
+  const {
+    isOpen: isImportOpen,
+    onOpen: onImportOpen,
+    onClose: onImportClose,
+  } = useDisclosure();
+  const {
+    isOpen: isAddOpen,
+    onOpen: onAddOpen,
+    onClose: onAddClose,
+  } = useDisclosure();
+  const isTeacher = isTeacherRole();
+  const canAdd = hasPermission(["Add_Mcq"]) || isTeacher;
+  const canEdit = hasPermission(["Update_Mcq"]) || isTeacher;
+  const canDelete = hasPermission(["Delete_Mcq"]) || isTeacher;
+  const showActions = canEdit || canDelete;
 
   const mcqs = useSelector(selectAllMcqs);
   const courses = useSelector(selectAllCourses);
@@ -70,12 +94,20 @@ function Mcq() {
     dispatch(fetchMcqs({ authToken }));
   };
 
+  const handleDownloadTemplate = () => {
+    downloadMcqTemplate(courses[0]?.name || "Sample Course");
+  };
+
+  const pageTitle = isTeacher ? "My MCQs" : "All MCQs";
+  const pageSubtitle = isTeacher
+    ? "Add and manage MCQs for your assigned courses only."
+    : canAdd
+      ? "Manage your MCQ bank using manual entry, Excel import, or the Quiz module."
+      : "Read-only MCQ bank. Use the Quiz module to attempt quizzes.";
+
   return (
     <>
-      <PageHeader
-        title="All MCQs"
-        subtitle="Read-only MCQ bank. Use the Quiz module to attempt quizzes."
-      >
+      <PageHeader title={pageTitle} subtitle={pageSubtitle}>
         <FilterStack>
           <div className="w-full sm:max-w-xs">
             <TableSearch setQueryFilter={setQueryFilter} method={fetchMcqs} />
@@ -85,7 +117,7 @@ function Mcq() {
               courses={courses}
               value={filters.course_id}
               onChange={handleCourseFilter}
-              placeholder="Filter by course"
+              placeholder={isTeacher ? "Filter by assigned course" : "Filter by course"}
               width="100%"
             />
             {filters.course_id && (
@@ -101,6 +133,15 @@ function Mcq() {
           </div>
         </FilterStack>
       </PageHeader>
+
+      {canAdd && (
+        <McqAddMethods
+          onAddManual={onAddOpen}
+          onImportExcel={onImportOpen}
+          onDownloadTemplate={handleDownloadTemplate}
+        />
+      )}
+
       <DataTableShell>
         <TableContainer>
           <Table variant="simple">
@@ -114,14 +155,18 @@ function Mcq() {
                 <Th>Option-C</Th>
                 <Th>Option-D</Th>
                 <Th>Correct</Th>
+                {showActions && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
               {fetchStatus === "loading" ? (
-                <TableRowLoading nOfColumns={8} actions={[]} />
+                <TableRowLoading
+                  nOfColumns={8}
+                  actions={showActions ? ["w-10", "w-10"] : []}
+                />
               ) : mcqs?.length === 0 ? (
                 <Tr>
-                  <Td colSpan={8}>
+                  <Td colSpan={showActions ? 9 : 8}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No mcq records found
@@ -143,6 +188,12 @@ function Mcq() {
                         {getCorrectOptionLabel(mcq.correct_option)}
                       </Badge>
                     </Td>
+                    {showActions && (
+                      <Td className="space-x-3" isNumeric>
+                        {canEdit && <UpdateModal mcq={mcq} />}
+                        {canDelete && <DeleteModal mcqId={mcq._id} />}
+                      </Td>
+                    )}
                   </Tr>
                 ))
               )}
@@ -157,6 +208,20 @@ function Mcq() {
           setPageFilter={setPageFilter}
           method={fetchMcqs}
         />
+      )}
+      {canAdd && (
+        <>
+          <AddModel
+            isOpen={isAddOpen}
+            onClose={onAddClose}
+            stayOpenOnSubmit
+          />
+          <McqImportModal
+            isOpen={isImportOpen}
+            onClose={onImportClose}
+            courses={courses}
+          />
+        </>
       )}
     </>
   );

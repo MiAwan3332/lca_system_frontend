@@ -15,6 +15,7 @@ const initialState = {
   batches: [],
   batchCourses: [],
   batchTeachers: [],
+  batchTeacherAssignments: [],
   filters: TABLE_FILTERS,
   pagination: TABLE_PAGINATION,
   fetchStatus: "idle",
@@ -25,6 +26,8 @@ const initialState = {
   fetchBatchCoursesStatus: "idle",
   assignTeachersStatus: "idle",
   fetchBatchTeachersStatus: "idle",
+  assignTeacherCoursesStatus: "idle",
+  fetchBatchTeacherAssignmentsStatus: "idle",
   error: [],
 };
 
@@ -144,6 +147,44 @@ const fetchBatchTeachers = createAsyncThunk(
       },
     });
     const data = await response.json();
+    return data;
+  }
+);
+
+const fetchBatchTeacherAssignments = createAsyncThunk(
+  "batches/fetchBatchTeacherAssignments",
+  async (payload) => {
+    const { authToken, batchId } = payload;
+    const response = await fetch(`${BASE_URL}/batches/teacher-assignments/${batchId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch teacher assignments");
+    }
+    return data;
+  }
+);
+
+const assignTeacherCoursesToBatch = createAsyncThunk(
+  "batches/assignTeacherCoursesToBatch",
+  async (payload) => {
+    const { authToken, batchId, assignments } = payload;
+    const response = await fetch(`${BASE_URL}/batches/assignTeacherCourses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ batchId, assignments }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to assign teachers");
+    }
     return data;
   }
 );
@@ -334,6 +375,42 @@ const batchSlice = createSlice({
       .addCase(fetchBatchTeachers.rejected, (state, action) => {
         state.fetchBatchTeachersStatus = "failure";
         state.error.push(action.error.message);
+      })
+
+      .addCase(fetchBatchTeacherAssignments.pending, (state) => {
+        state.fetchBatchTeacherAssignmentsStatus = "loading";
+      })
+      .addCase(fetchBatchTeacherAssignments.fulfilled, (state, action) => {
+        state.fetchBatchTeacherAssignmentsStatus = "success";
+        state.batchTeacherAssignments = action.payload;
+      })
+      .addCase(fetchBatchTeacherAssignments.rejected, (state, action) => {
+        state.fetchBatchTeacherAssignmentsStatus = "failure";
+        state.error.push(action.error.message);
+      })
+
+      .addCase(assignTeacherCoursesToBatch.pending, (state) => {
+        state.assignTeacherCoursesStatus = "loading";
+      })
+      .addCase(assignTeacherCoursesToBatch.fulfilled, (state, action) => {
+        state.assignTeacherCoursesStatus = "success";
+        state.batchTeacherAssignments = action.payload;
+        toast({
+          title: "Teachers assigned to courses successfully",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+      .addCase(assignTeacherCoursesToBatch.rejected, (state, action) => {
+        state.assignTeacherCoursesStatus = "failure";
+        state.error.push(action.error.message);
+        toast({
+          title: action.error.message || "Teacher assignment failed",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       });
   },
 });
@@ -341,6 +418,8 @@ const batchSlice = createSlice({
 export const selectAllBatches = (state) => state.batches.batches;
 export const selectBatchCourses = (state) => state.batches.batchCourses;
 export const selectBatchTeachers = (state) => state.batches.batchTeachers;
+export const selectBatchTeacherAssignments = (state) =>
+  state.batches.batchTeacherAssignments;
 
 export const selectCurrentActiveBatch = (state) => {
   const batches = state.batches.batches;
@@ -357,6 +436,8 @@ export {
   fetchBatchCourses,
   assignTeachersToBatch,
   fetchBatchTeachers,
+  fetchBatchTeacherAssignments,
+  assignTeacherCoursesToBatch,
 };
 export const { setQueryFilter, setPageFilter, setLimitFilter } = batchSlice.actions;
 

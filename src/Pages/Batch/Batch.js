@@ -28,10 +28,12 @@ import AssignTeachersModal from "./AssignTeachersModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import { isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Batch() {
   const viewOnly = isStudentViewOnly();
+  const canManageInstitution = isInstitutionAdmin();
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -59,8 +61,8 @@ function Batch() {
 
   return (
     <>
-      <PageHeader title={viewOnly ? "My Batch" : "All Batchs"}>
-        {!viewOnly && (
+      <PageHeader title={viewOnly ? "My Batch" : canManageInstitution ? "All Batchs" : "My Assigned Batches"}>
+        {canManageInstitution && (
           <FilterStack>
             <div className="w-full sm:max-w-xs">
               <TableSearch setQueryFilter={setQueryFilter} method={fetchBatches} />
@@ -88,7 +90,7 @@ function Batch() {
                 <Th data-searchable>Batch Type</Th>
                 <Th>Start Date</Th>
                 <Th>End Date</Th>
-                {!viewOnly && <Th isNumeric>Action</Th>}
+                {!viewOnly && canManageInstitution && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -122,16 +124,16 @@ function Batch() {
                     <Td>{batch.enddate}</Td>
                     {!viewOnly && (
                     <Td className="space-x-3 flex justify-end" isNumeric>
-                      {hasPermission(["Update_Batch"]) && (
+                      {canManageInstitution && hasPermission(["Update_Batch"]) && (
                         <UpdateModal batch={batch} />
                       )}
-                      {hasPermission(["Delete_Batch"]) && (
+                      {canManageInstitution && hasPermission(["Delete_Batch"]) && (
                         <DeleteModal batchId={batch._id} />
                       )}
-                      {hasPermission(["Delete_Batch"]) && (
+                      {canManageInstitution && hasPermission(["Update_Batch"]) && (
                         <AssignCoursesModal batchId={batch._id} />
                       )}
-                      {hasPermission(["Delete_Batch"]) && (
+                      {canManageInstitution && hasPermission(["Update_Batch"]) && (
                         <AssignTeachersModal batchId={batch._id} />
                       )}
                     </Td>
@@ -151,7 +153,7 @@ function Batch() {
           method={fetchBatches}
         />
       )}
-      {!viewOnly && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
+      {!viewOnly && canManageInstitution && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
     </>
   );
 }

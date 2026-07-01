@@ -33,13 +33,14 @@ function UpdateModal({ mcq }) {
   const dispatch = useDispatch();
 
   const courses = useSelector(selectAllCourses);
-  const fetchStatus = useSelector((state) => state.courses.fetchStatus);
 
   useEffect(() => {
-    if (fetchStatus === "idle") {
-      dispatch(fetchCourses({ authToken }));
+    if (isOpen) {
+      dispatch(
+        fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+      );
     }
-  }, [dispatch, fetchStatus, authToken]);
+  }, [dispatch, isOpen, authToken]);
 
   const formik = useFormik({
     enableReinitialize: true, // This allows the form to reinitialize with new values when `mcq` changes.

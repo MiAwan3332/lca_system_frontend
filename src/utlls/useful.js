@@ -44,6 +44,11 @@ const extractStudentIdFromToken = (token) => {
   return jwtPayload.user?.studentId || null;
 };
 
+const extractTeacherIdFromToken = (token) => {
+  const jwtPayload = parseJwtPayload(token);
+  return jwtPayload.user?.teacherId || null;
+};
+
 const parseStoredPermissions = (storedPermissions) => {
   if (!storedPermissions) return [];
   const trimmed = storedPermissions.trim();
@@ -90,14 +95,17 @@ const hasFullAccess = () => {
   return false;
 };
 
-const hasPermission = (permissionsToCheck = []) => {
+const hasPermission = (permissionsToCheck) => {
   if (hasFullAccess()) return true;
+
+  const checks = Array.isArray(permissionsToCheck) ? permissionsToCheck : [];
+  if (!checks.length) return false;
 
   const permissionsArray = parseStoredPermissions(
     sessionStorage.getItem("permissions")
   );
 
-  return permissionsToCheck.some((permission) => {
+  return checks.some((permission) => {
     const aliases = PERMISSION_ALIASES[permission] || [permission];
     return aliases.some((alias) => permissionsArray.includes(alias));
   });
@@ -108,6 +116,7 @@ const storeAuthSession = ({
   permissions,
   role,
   studentId,
+  teacherId,
   profileUpdatedOnce,
   skipProfileCompletion,
 }) => {
@@ -131,6 +140,14 @@ const storeAuthSession = ({
       sessionStorage.setItem("studentId", tokenStudentId);
     }
   }
+  if (teacherId) {
+    sessionStorage.setItem("teacherId", teacherId);
+  } else if (authToken) {
+    const tokenTeacherId = extractTeacherIdFromToken(authToken);
+    if (tokenTeacherId) {
+      sessionStorage.setItem("teacherId", tokenTeacherId);
+    }
+  }
   if (profileUpdatedOnce !== undefined) {
     sessionStorage.setItem(
       "profileUpdatedOnce",
@@ -150,6 +167,7 @@ export {
   extractRoleFromToken,
   extractPermissionsFromToken,
   extractStudentIdFromToken,
+  extractTeacherIdFromToken,
   hasPermission,
   hasFullAccess,
   storeAuthSession,

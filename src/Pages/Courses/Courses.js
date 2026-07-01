@@ -25,10 +25,14 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Course() {
   const viewOnly = isStudentViewOnly();
+  const isTeacher = isTeacherRole();
+  const canManageInstitution = isInstitutionAdmin();
+  const showFeeAndActions = canManageInstitution;
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
@@ -54,8 +58,8 @@ function Course() {
   }, []);
   return (
     <>
-      <PageHeader title={viewOnly ? "My Courses" : "All Courses"}>
-        {!viewOnly && (
+      <PageHeader title={viewOnly || isTeacher ? "My Courses" : "All Courses"}>
+        {canManageInstitution && (
           <FilterStack>
             <div className="w-full sm:max-w-xs">
               <TableSearch setQueryFilter={setQueryFilter} method={fetchCourses} />
@@ -80,19 +84,19 @@ function Course() {
                 <Th>No</Th>
                 <Th data-searchable>Name</Th>
                 <Th data-searchable>Description</Th>
-                {!viewOnly && <Th>Course Fee</Th>}
-                {!viewOnly && <Th isNumeric>Action</Th>}
+                {showFeeAndActions && <Th>Course Fee</Th>}
+                {showFeeAndActions && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={viewOnly ? 3 : 4}
-                  actions={viewOnly ? [] : ["w-10", "w-10"]}
+                  nOfColumns={showFeeAndActions ? 5 : 3}
+                  actions={showFeeAndActions ? ["w-10", "w-10"] : []}
                 />
               ) : courses.length === 0 ? (
                 <Tr>
-                  <Td colSpan={viewOnly ? 3 : 5}>
+                  <Td colSpan={showFeeAndActions ? 5 : 3}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No course records found
@@ -105,8 +109,8 @@ function Course() {
                     <Td>{courses.indexOf(course) + 1}</Td>
                     <Td>{course.name}</Td>
                     <Td>{course.description}</Td>
-                    {!viewOnly && <Td>{course.fee || "N/A"}</Td>}
-                    {!viewOnly && (
+                    {showFeeAndActions && <Td>{course.fee || "N/A"}</Td>}
+                    {showFeeAndActions && (
                     <Td className="space-x-3" isNumeric>
                       {hasPermission(["Update_Course"]) && (
                         <UpdateModal course={course} />
@@ -131,7 +135,7 @@ function Course() {
           method={fetchCourses}
         />
       )}
-      {!viewOnly && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
+      {canManageInstitution && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
     </>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 import axios from 'axios';
+import { useColorModeValue } from '@chakra-ui/react';
 import { config } from '../utlls/config';
 
 const buildChartParams = (filters = {}) => {
@@ -16,6 +17,10 @@ const buildChartParams = (filters = {}) => {
 };
 
 const MonthlyColumnChart = ({ chartTitle, filters = {} }) => {
+  const titleColor = useColorModeValue('#263238', '#f1f5f9');
+  const labelColor = useColorModeValue('#6E879C', '#94a3b8');
+  const dataLabelColor = useColorModeValue('#263238', '#f1f5f9');
+
   const [chartOptions, setChartOptions] = useState({
     chart: {
       id: 'monthly-column-chart',
@@ -49,6 +54,28 @@ const MonthlyColumnChart = ({ chartTitle, filters = {} }) => {
     data: []
   }]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setChartOptions((prev) => ({
+      ...prev,
+      title: {
+        ...prev.title,
+        text: chartTitle,
+        style: { fontSize: '20px', color: titleColor },
+      },
+      xaxis: {
+        ...prev.xaxis,
+        labels: { style: { colors: labelColor } },
+      },
+      yaxis: {
+        labels: { style: { colors: labelColor } },
+      },
+      dataLabels: {
+        enabled: true,
+        style: { colors: [dataLabelColor] },
+      },
+    }));
+  }, [chartTitle, titleColor, labelColor, dataLabelColor]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,7 +127,7 @@ const MonthlyColumnChart = ({ chartTitle, filters = {} }) => {
   }, [filters.batch_id, filters.start_date, filters.end_date, chartTitle]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="my-8 text-center dash-text-muted">Loading...</div>;
   }
 
   return (

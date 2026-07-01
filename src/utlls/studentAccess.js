@@ -2,6 +2,11 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import { config } from "./config";
 import { extractRoleFromToken } from "./useful";
+import {
+  isTeacherRole,
+  canAccessTeacherRoute,
+  getTeacherVisibleRoutes,
+} from "./teacherAccess";
 
 export const STUDENT_ROUTE_PATHS = [
   "/dashboard",
@@ -14,6 +19,8 @@ export const STUDENT_ROUTE_PATHS = [
   "/timetable",
   "/attendance",
   "/quiz",
+  "/assignments",
+  "/course-quizzes",
 ];
 
 export const isStudentRole = () => {
@@ -87,6 +94,9 @@ export const syncStudentProfileStatus = async () => {
 };
 
 export const canAccessRoute = (path) => {
+  if (isTeacherRole()) {
+    return canAccessTeacherRoute(path);
+  }
   if (!isStudentRole()) {
     return true;
   }
@@ -97,6 +107,9 @@ export const canAccessRoute = (path) => {
 };
 
 export const getVisibleRoutes = (allRoutes) => {
+  if (isTeacherRole()) {
+    return getTeacherVisibleRoutes(allRoutes);
+  }
   if (!isStudentRole()) {
     return allRoutes;
   }
