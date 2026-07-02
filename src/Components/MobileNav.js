@@ -22,9 +22,9 @@ import {
 import { useSelector } from "react-redux";
 import { selectUser } from "../Features/authSlice.js";
 import { useDispatch } from "react-redux";
-import { setUser } from "../Features/authSlice.js";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
+import { setUser } from "../Features/authSlice.js";
+import { clearAuthSession } from "../utlls/authSession";
 import ChangeAvatarModal from "./Modals/User/ChangeAvatarModal";
 import NotificationBell from "./NotificationBell";
 import GlobalSearch from "./Dashboard/GlobalSearch";
@@ -39,14 +39,7 @@ export default function MobileNav({ onOpen, ...rest }) {
   const toast = useToast();
 
   const handleLogout = () => {
-    sessionStorage.removeItem("authToken");
-    sessionStorage.removeItem("permissions");
-    sessionStorage.removeItem("role");
-    sessionStorage.removeItem("studentId");
-    sessionStorage.removeItem("teacherId");
-    sessionStorage.removeItem("profileUpdatedOnce");
-    sessionStorage.removeItem("skipProfileCompletion");
-    Cookies.remove("authToken");
+    clearAuthSession();
     dispatch(setUser(null));
 
     toast({

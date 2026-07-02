@@ -16,7 +16,7 @@ import Roles from "./Pages/Roles/Roles.js";
 import Permissions from "./Pages/Permissions/Permissions.js";
 import Seminars from "./Pages/Seminar/seminar.js";
 import { FaQuestionCircle } from "react-icons/fa";
-import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck } from "lucide-react";
+import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning } from "lucide-react";
 import Timetable from "./Pages/Timetable/Timetable.js";
 import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
@@ -25,6 +25,7 @@ import Expense from "./Pages/Expense/Expense.js";
 import Quiz from "./Pages/Quiz/Quiz.js";
 import Assignments from "./Pages/Assignments/Assignments.js";
 import CourseQuizzes from "./Pages/CourseQuizzes/CourseQuizzes.js";
+import Complaints from "./Pages/Complaints/Complaints.js";
 
 export const routes = [
   { name: "Dashboard", icon: LayoutDashboard, component: <Home />, path: "/dashboard" },
@@ -37,6 +38,7 @@ export const routes = [
   },
   {
     name: "Fees",
+    studentName: "My Finance",
     icon: CircleDollarSign,
     component: <Fees />,
     path: "/fees",
@@ -112,6 +114,12 @@ export const routes = [
     icon: BookOpenCheck,
     component: <CourseQuizzes />,
     path: "/course-quizzes",
+  },
+  {
+    name: "Complaints",
+    icon: MessageSquareWarning,
+    component: <Complaints />,
+    path: "/complaints",
   },
   {
     name: "Roles",

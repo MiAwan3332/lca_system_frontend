@@ -31,7 +31,7 @@ import { downloadExcel } from "react-export-table-to-excel";
 import TablePagination from "../../Components/TablePagination";
 import { fetchBatches } from "../../Features/batchSlice";
 import { Select, FormControl } from "@chakra-ui/react";
-import { selectAllBatches } from "../../Features/batchSlice";
+import { selectActiveBatches } from "../../Features/batchSlice";
 import { fetchStudentsByBatch } from "../../Features/studentSlice";
 
 const ExportModal = () => {
@@ -67,7 +67,7 @@ const ExportModal = () => {
   const [loading, setLoading] = useState(false);
 
   const { fetchStatus, pagination } = useSelector((state) => state.students);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const students = useSelector(selectAllStudents);
   const dispatch = useDispatch();
 

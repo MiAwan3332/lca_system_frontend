@@ -27,6 +27,7 @@ import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
 
 function Course() {
   const viewOnly = isStudentViewOnly();
@@ -112,12 +113,14 @@ function Course() {
                     {showFeeAndActions && <Td>{course.fee || "N/A"}</Td>}
                     {showFeeAndActions && (
                     <Td className="space-x-3" isNumeric>
-                      {hasPermission(["Update_Course"]) && (
-                        <UpdateModal course={course} />
-                      )}
-                      {hasPermission(["Delete_Course"]) && (
-                        <DeleteModal courseId={course._id} />
-                      )}
+                      <ActionMenu>
+                        {hasPermission(["Update_Course"]) && (
+                          <UpdateModal course={course} />
+                        )}
+                        {hasPermission(["Delete_Course"]) && (
+                          <DeleteModal courseId={course._id} />
+                        )}
+                      </ActionMenu>
                     </Td>
                     )}
                   </Tr>

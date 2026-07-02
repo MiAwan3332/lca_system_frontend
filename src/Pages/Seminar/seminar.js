@@ -27,6 +27,7 @@ import AttendeesModal from "./AttendeesModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
 
 function Seminar() {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -115,13 +116,15 @@ function Seminar() {
                     <Td>{moment(seminar.date).format("DD MMM YYYY")}</Td>
 
                     <Td className="space-x-3" isNumeric>
-                      <AttendeesModal seminar={seminar} />
-                      {hasPermission(["Update_Seminar"]) && (
-                        <UpdateModal seminar={seminar} />
-                      )}
-                      {hasPermission(["Delete_Seminar"]) && (
-                        <DeleteModal seminarId={seminar._id} />
-                      )}
+                      <ActionMenu>
+                        <AttendeesModal seminar={seminar} />
+                        {hasPermission(["Update_Seminar"]) && (
+                          <UpdateModal seminar={seminar} />
+                        )}
+                        {hasPermission(["Delete_Seminar"]) && (
+                          <DeleteModal seminarId={seminar._id} />
+                        )}
+                      </ActionMenu>
                     </Td>
                   </Tr>
                 ))

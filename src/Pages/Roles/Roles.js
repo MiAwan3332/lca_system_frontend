@@ -26,6 +26,7 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
 
 function Roles() {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -104,15 +105,17 @@ function Roles() {
                     <Td>{role.name}</Td>
                     <Td>{role.description}</Td>
                     <Td className="space-x-3 flex justify-end" isNumeric>
-                      {hasPermission(["Update_Role"]) && (
-                        <UpdateModal role={role} />
-                      )}
-                      {hasPermission(["Delete_Role"]) && (
-                        <DeleteModal roleId={role._id} />
-                      )}
-                      {hasPermission(["Assign_Permissions"]) && (
-                        <AssignPermissions roleId={role._id} />
-                      )}
+                      <ActionMenu>
+                        {hasPermission(["Update_Role"]) && (
+                          <UpdateModal role={role} />
+                        )}
+                        {hasPermission(["Delete_Role"]) && (
+                          <DeleteModal roleId={role._id} />
+                        )}
+                        {hasPermission(["Assign_Permissions"]) && (
+                          <AssignPermissions roleId={role._id} />
+                        )}
+                      </ActionMenu>
                     </Td>
                   </Tr>
                 ))

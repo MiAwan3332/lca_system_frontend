@@ -28,6 +28,7 @@ const initialState = {
   fetchBatchTeachersStatus: "idle",
   assignTeacherCoursesStatus: "idle",
   fetchBatchTeacherAssignmentsStatus: "idle",
+  toggleBatchStatusStatus: "idle",
   error: [],
 };
 
@@ -86,6 +87,26 @@ const deleteBatch = createAsyncThunk("batches/deleteBatch", async (payload) => {
   const data = await response.json();
   return data;
 });
+
+const toggleBatchStatus = createAsyncThunk(
+  "batches/toggleBatchStatus",
+  async (payload) => {
+    const { authToken, id, is_active } = payload;
+    const response = await fetch(`${BASE_URL}/batches/toggle-status/${id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ is_active }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update batch status");
+    }
+    return data;
+  }
+);
 
 const assignCoursesToBatch = createAsyncThunk(
   "batches/assignCoursesToBatch",
@@ -279,6 +300,40 @@ const batchSlice = createSlice({
         });
       })
 
+      .addCase(toggleBatchStatus.pending, (state) => {
+        state.toggleBatchStatusStatus = "loading";
+      })
+      .addCase(toggleBatchStatus.fulfilled, (state, action) => {
+        state.toggleBatchStatusStatus = "success";
+        const index = state.batches.findIndex(
+          (batch) => batch._id === action.payload._id
+        );
+        if (index !== -1) {
+          state.batches[index] = {
+            ...state.batches[index],
+            ...action.payload,
+          };
+        }
+        toast({
+          title: action.payload.is_active !== false
+            ? "Batch activated successfully"
+            : "Batch deactivated successfully",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+      .addCase(toggleBatchStatus.rejected, (state, action) => {
+        state.toggleBatchStatusStatus = "failure";
+        state.error.push(action.error.message);
+        toast({
+          title: action.error.message || "Failed to update batch status",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+
       // Delete Batch
       .addCase(deleteBatch.pending, (state) => {
         state.deleteStatus = "loading";
@@ -416,6 +471,11 @@ const batchSlice = createSlice({
 });
 
 export const selectAllBatches = (state) => state.batches.batches;
+export const selectActiveBatches = (state) =>
+  state.batches.batches.filter((batch) => batch.is_active !== false);
+
+export const filterActiveBatches = (batches = []) =>
+  batches.filter((batch) => batch?.is_active !== false);
 export const selectBatchCourses = (state) => state.batches.batchCourses;
 export const selectBatchTeachers = (state) => state.batches.batchTeachers;
 export const selectBatchTeacherAssignments = (state) =>
@@ -432,6 +492,7 @@ export {
   addBatch,
   updateBatch,
   deleteBatch,
+  toggleBatchStatus,
   assignCoursesToBatch,
   fetchBatchCourses,
   assignTeachersToBatch,

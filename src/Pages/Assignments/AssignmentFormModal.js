@@ -24,7 +24,7 @@ import {
   updateAssignment,
   fetchBatchCoursesForAssignment,
 } from "../../Features/assignmentSlice";
-import { fetchBatches, selectAllBatches } from "../../Features/batchSlice";
+import { fetchBatches, selectActiveBatches } from "../../Features/batchSlice";
 import { isTeacherRole } from "../../utlls/teacherAccess";
 import {
   responsiveModalProps,
@@ -53,7 +53,7 @@ const defaultForm = {
 
 function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
   const dispatch = useDispatch();
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const batchCourses = useSelector((state) => state.assignments.batchCourses);
   const [form, setForm] = useState(defaultForm);
   const [files, setFiles] = useState([]);

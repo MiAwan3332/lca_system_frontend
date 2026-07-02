@@ -31,7 +31,7 @@ import { Select } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchBatches, selectAllBatches, setLimitFilter } from "../Features/batchSlice";
+import { fetchBatches, selectActiveBatches, setLimitFilter } from "../Features/batchSlice";
 import Cookies from "js-cookie";
 import {
   addTimeTableEvent,
@@ -74,7 +74,7 @@ export default function TimetableCalendar() {
   );
 
   const timeTableEvents = useSelector(selectTimeTableEvents);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const dispatch = useDispatch();
 
   const handleSelectSlot = useCallback(

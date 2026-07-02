@@ -31,10 +31,11 @@ import TablePagination from "../../Components/TablePagination";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import SearchableCourseSelect from "../../Components/SearchableCourseSelect";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
 import { hasPermission } from "../../utlls/useful";
-import { fetchBatches, selectAllBatches } from "../../Features/batchSlice";
+import { fetchBatches, selectActiveBatches } from "../../Features/batchSlice";
 import {
   fetchAssignments,
   selectAllAssignments,
@@ -76,7 +77,7 @@ function Assignments() {
   );
   const assignments = useSelector(selectAllAssignments);
   const submissions = useSelector((state) => state.assignments.submissions);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
 
   const formDisclosure = useDisclosure();
   const detailDisclosure = useDisclosure();
@@ -211,7 +212,7 @@ function Assignments() {
         </Badge>
       </Td>
       <Td>
-        <ButtonGroup size="sm" variant="outline" className="action-cell">
+        <ActionMenu>
           <Button leftIcon={<Eye size={14} />} onClick={() => openDetail(item)}>
             View
           </Button>
@@ -248,7 +249,7 @@ function Assignments() {
               </Button>
             </>
           )}
-        </ButtonGroup>
+        </ActionMenu>
       </Td>
     </Tr>
   );

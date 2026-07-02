@@ -8,6 +8,9 @@ import {
   Th,
   Td,
   TableContainer,
+  Switch,
+  Badge,
+  HStack,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
@@ -21,6 +24,7 @@ import {
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
+  toggleBatchStatus,
 } from "../../Features/batchSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import AssignCoursesModal from "./AssignCoursesModal";
@@ -30,6 +34,7 @@ import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
 
 function Batch() {
   const viewOnly = isStudentViewOnly();
@@ -58,6 +63,20 @@ function Batch() {
   useEffect(() => {
     dispatch(fetchBatches({ authToken }));
   }, []);
+
+  const handleToggleStatus = (batch) => {
+    const nextStatus = batch.is_active === false;
+    dispatch(
+      toggleBatchStatus({
+        authToken,
+        id: batch._id,
+        is_active: nextStatus,
+      })
+    );
+  };
+
+  const actionColumnCount = canManageInstitution ? 2 : 0;
+  const tableColumnCount = viewOnly ? 7 : 7 + actionColumnCount;
 
   return (
     <>
@@ -88,20 +107,22 @@ function Batch() {
                 <Th data-searchable>Name</Th>
                 <Th data-searchable>Description</Th>
                 <Th data-searchable>Batch Type</Th>
+                <Th>Batch Fee</Th>
                 <Th>Start Date</Th>
                 <Th>End Date</Th>
+                {!viewOnly && canManageInstitution && <Th>Status</Th>}
                 {!viewOnly && canManageInstitution && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={6}
+                  nOfColumns={tableColumnCount}
                   actions={["w-10", "w-10", "w-20", "w-20"]}
                 />
               ) : batches.length === 0 ? (
                 <Tr>
-                  <Td colSpan={7}>
+                  <Td colSpan={tableColumnCount}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No batch records found
@@ -109,37 +130,68 @@ function Batch() {
                   </Td>
                 </Tr>
               ) : (
-                batches.map((batch) => (
+                batches.map((batch) => {
+                  const isActive = batch.is_active !== false;
+                  return (
                   <Tr
                     key={batch._id}
                     className={
-                      activeBatch?._id === batch._id ? "bg-[#FFCB82]/20" : ""
+                      activeBatch?._id === batch._id
+                        ? "bg-[#FFCB82]/20"
+                        : !isActive
+                          ? "opacity-70"
+                          : ""
                     }
                   >
                     <Td>{batches.indexOf(batch) + 1}</Td>
                     <Td>{batch.name}</Td>
                     <Td>{batch.description}</Td>
                     <Td>{batch.batch_type ? batch.batch_type : "N/A"}</Td>
+                    <Td>
+                      {batch.batch_fee != null && batch.batch_fee !== ""
+                        ? `${batch.batch_fee} Rs.`
+                        : "N/A"}
+                    </Td>
                     <Td>{batch.startdate}</Td>
                     <Td>{batch.enddate}</Td>
+                    {!viewOnly && canManageInstitution && (
+                      <Td>
+                        <HStack spacing={2}>
+                          <Badge colorScheme={isActive ? "green" : "gray"}>
+                            {isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          {hasPermission(["Update_Batch"]) && (
+                            <Switch
+                              isChecked={isActive}
+                              onChange={() => handleToggleStatus(batch)}
+                              colorScheme="yellow"
+                              size="sm"
+                            />
+                          )}
+                        </HStack>
+                      </Td>
+                    )}
                     {!viewOnly && (
                     <Td className="space-x-3 flex justify-end" isNumeric>
-                      {canManageInstitution && hasPermission(["Update_Batch"]) && (
-                        <UpdateModal batch={batch} />
-                      )}
-                      {canManageInstitution && hasPermission(["Delete_Batch"]) && (
-                        <DeleteModal batchId={batch._id} />
-                      )}
-                      {canManageInstitution && hasPermission(["Update_Batch"]) && (
-                        <AssignCoursesModal batchId={batch._id} />
-                      )}
-                      {canManageInstitution && hasPermission(["Update_Batch"]) && (
-                        <AssignTeachersModal batchId={batch._id} />
-                      )}
+                      <ActionMenu>
+                        {canManageInstitution && hasPermission(["Update_Batch"]) && (
+                          <UpdateModal batch={batch} />
+                        )}
+                        {canManageInstitution && hasPermission(["Delete_Batch"]) && (
+                          <DeleteModal batchId={batch._id} />
+                        )}
+                        {canManageInstitution && hasPermission(["Update_Batch"]) && (
+                          <AssignCoursesModal batchId={batch._id} />
+                        )}
+                        {canManageInstitution && hasPermission(["Update_Batch"]) && (
+                          <AssignTeachersModal batchId={batch._id} />
+                        )}
+                      </ActionMenu>
                     </Td>
                     )}
                   </Tr>
-                ))
+                  );
+                })
               )}
             </Tbody>
           </Table>

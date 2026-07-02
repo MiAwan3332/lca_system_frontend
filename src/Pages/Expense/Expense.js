@@ -28,6 +28,7 @@ import AddModal from "./AddModal";
 import UpdateModal from "./UpdateModal";
 import DeleteModal from "./DeleteModal";
 import ApprovalActions from "./ApprovalActions";
+import ActionMenu from "../../Components/ActionMenu";
 import {
   fetchExpenses,
   selectAllExpenses,
@@ -267,14 +268,12 @@ function Expense() {
                     <Td isNumeric>
                       <div className="flex flex-col items-end gap-2">
                         <ApprovalActions expense={expense} onUpdated={loadExpenses} />
-                        <div className="flex items-center gap-1">
-                          {(expense.status === "Pending" || !expense.status) && (
-                            <>
-                              <UpdateModal expense={expense} onUpdated={loadExpenses} />
-                              <DeleteModal expenseId={expense._id} onDeleted={loadExpenses} />
-                            </>
-                          )}
-                        </div>
+                        {(expense.status === "Pending" || !expense.status) && (
+                          <ActionMenu>
+                            <UpdateModal expense={expense} onUpdated={loadExpenses} />
+                            <DeleteModal expenseId={expense._id} onDeleted={loadExpenses} />
+                          </ActionMenu>
+                        )}
                       </div>
                     </Td>
                   </Tr>

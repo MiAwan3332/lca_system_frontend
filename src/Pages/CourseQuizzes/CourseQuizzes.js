@@ -25,6 +25,7 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import ActionMenu from "../../Components/ActionMenu";
 import {
   fetchCourseQuizzes,
   selectAllCourseQuizzes,
@@ -194,7 +195,7 @@ function CourseQuizzes() {
                         </Badge>
                       </Td>
                       <Td>
-                        <ButtonGroup size="sm" variant="outline" className="action-cell">
+                        <ActionMenu>
                           {viewOnly && (item.runtime_status === "Active" || item.status === "Active") && (
                             <Button
                               leftIcon={<Play size={14} />}
@@ -243,7 +244,7 @@ function CourseQuizzes() {
                               </Button>
                             </>
                           )}
-                        </ButtonGroup>
+                        </ActionMenu>
                       </Td>
                     </Tr>
                   ))

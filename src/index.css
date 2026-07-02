@@ -66,6 +66,16 @@
   .period-toggle {
     @apply flex flex-wrap gap-2 w-full sm:w-auto;
   }
+
+  .fees-page {
+    @apply w-full;
+  }
+
+  .fees-page .chakra-table thead th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 }
 
 @layer utilities {

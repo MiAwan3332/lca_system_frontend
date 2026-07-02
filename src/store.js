@@ -22,6 +22,7 @@ import quizReducer from './Features/quizSlice';
 import assignmentReducer from './Features/assignmentSlice';
 import courseQuizReducer from './Features/courseQuizSlice';
 import notificationReducer from './Features/notificationSlice';
+import complaintReducer from './Features/complaintSlice';
 
 export const store = configureStore({
   reducer: {
@@ -47,5 +48,6 @@ export const store = configureStore({
     assignments: assignmentReducer,
     courseQuizzes: courseQuizReducer,
     notifications: notificationReducer,
+    complaints: complaintReducer,
   },
 });

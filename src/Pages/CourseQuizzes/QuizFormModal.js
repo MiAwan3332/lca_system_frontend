@@ -23,7 +23,7 @@ import {
   updateCourseQuiz,
   fetchBatchCoursesForQuiz,
 } from "../../Features/courseQuizSlice";
-import { fetchBatches, selectAllBatches } from "../../Features/batchSlice";
+import { fetchBatches, selectActiveBatches } from "../../Features/batchSlice";
 import {
   responsiveModalProps,
   responsiveModalContentProps,
@@ -55,7 +55,7 @@ const defaultForm = {
 
 function QuizFormModal({ isOpen, onClose, authToken, quiz }) {
   const dispatch = useDispatch();
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const batchCourses = useSelector((state) => state.courseQuizzes.batchCourses);
   const [form, setForm] = useState(defaultForm);
 

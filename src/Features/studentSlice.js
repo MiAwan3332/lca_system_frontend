@@ -27,6 +27,8 @@ const initialState = {
     updateStatus: 'idle',
     deleteStatus: 'idle',
     changePasswordStatus: 'idle',
+    myFinance: null,
+    fetchMyFinanceStatus: 'idle',
     error: null,
 };
 
@@ -54,18 +56,36 @@ const fetchStudentsByBatch = createAsyncThunk('students/fetchStudentsByBatch', a
     return response.data;
 });
 
-const addStudent = createAsyncThunk('students/addStudent', async (payload) => {
-    const { authToken, student } = payload;
-    const response = await fetch(`${BASE_URL}/students/add`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(student),
-    });
-    const data = await response.json();
-    return data;
+const addStudent = createAsyncThunk('students/addStudent', async (payload, { rejectWithValue }) => {
+    const { authToken, student, formData } = payload;
+    try {
+        if (formData) {
+            const response = await axios.post(`${BASE_URL}/students/add`, formData, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            });
+            return response.data;
+        }
+
+        const response = await fetch(`${BASE_URL}/students/add`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify(student),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return rejectWithValue(data.message || 'Failed to add student');
+        }
+        return data;
+    } catch (error) {
+        return rejectWithValue(
+            error.response?.data?.message || error.message || 'Failed to add student'
+        );
+    }
 });
 
 const updateStudent = createAsyncThunk('students/updateStudent', async (payload) => {
@@ -82,18 +102,40 @@ const updateStudent = createAsyncThunk('students/updateStudent', async (payload)
     return data;
 });
 
-const basicUpdate = createAsyncThunk('students/basicUpdate', async (payload) => {
-    const { authToken, studentId, student } = payload;
-    const response = await fetch(`${BASE_URL}/students/basic-update/${studentId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(student),
-    });
-    const data = await response.json();
-    return data;
+const basicUpdate = createAsyncThunk('students/basicUpdate', async (payload, { rejectWithValue }) => {
+    const { authToken, studentId, student, formData } = payload;
+    try {
+        if (formData) {
+            const response = await axios.post(
+                `${BASE_URL}/students/basic-update/${studentId}`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        }
+
+        const response = await fetch(`${BASE_URL}/students/basic-update/${studentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify(student),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return rejectWithValue(data.message || 'Failed to update student');
+        }
+        return data;
+    } catch (error) {
+        return rejectWithValue(
+            error.response?.data?.message || error.message || 'Failed to update student'
+        );
+    }
 });
 
 const updateStudentInfo = createAsyncThunk(
@@ -146,6 +188,28 @@ const changeStudentPassword = createAsyncThunk(
             }
         );
         return response.data;
+    }
+);
+
+const fetchMyFinance = createAsyncThunk(
+    'students/fetchMyFinance',
+    async (payload, { rejectWithValue }) => {
+        const { authToken, studentId } = payload;
+        try {
+            const response = await axios.get(
+                `${BASE_URL}/students/payment-logs/${studentId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to load finance log'
+            );
+        }
     }
 );
 
@@ -265,7 +329,13 @@ const studentSlice = createSlice({
             })
             .addCase(addStudent.rejected, (state, action) => {
                 state.addStatus = 'failure';
-                state.error = action.error.message;
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: action.payload || action.error.message || "Failed to add student",
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
             })
 
             // Update student
@@ -301,7 +371,13 @@ const studentSlice = createSlice({
             })
             .addCase(basicUpdate.rejected, (state, action) => {
                 state.updateStatus = 'failure';
-                state.error = action.error.message;
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: action.payload || 'Failed to update student',
+                    status: 'error',
+                    duration: 4000,
+                    isClosable: true,
+                });
             })
 
             .addCase(updateStudentInfo.pending, (state) => {
@@ -371,12 +447,25 @@ const studentSlice = createSlice({
                     isClosable: true,
                 });
             })
+
+            .addCase(fetchMyFinance.pending, (state) => {
+                state.fetchMyFinanceStatus = 'loading';
+            })
+            .addCase(fetchMyFinance.fulfilled, (state, action) => {
+                state.fetchMyFinanceStatus = 'success';
+                state.myFinance = action.payload;
+            })
+            .addCase(fetchMyFinance.rejected, (state, action) => {
+                state.fetchMyFinanceStatus = 'failure';
+                state.error = action.payload || action.error.message;
+            })
     }
 });
 
 export const selectAllStudents = (state) => state.students.students;
 
-export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword };
+export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword, fetchMyFinance };
+export const selectMyFinance = (state) => state.students.myFinance;
 export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, clearStudentFilters } = studentSlice.actions;
 
 export default studentSlice.reducer;

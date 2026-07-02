@@ -22,7 +22,7 @@ import UpdateModal from "./UpdateModal";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
-  selectAllBatches,
+  selectActiveBatches,
   setLimitFilter as setBatchLimitFilter,
 } from "../../Features/batchSlice";
 import QrCodeModal from "../../Components/Modals/Student/QrCodeModal";
@@ -42,7 +42,6 @@ import {
   clearStudentFilters,
 } from "../../Features/studentSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
-import EnrollmentModal from "./EnrollmentModal";
 import ChangePasswordModal from "./ChangePasswordModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
@@ -54,6 +53,7 @@ import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/stude
 import { isTeacherRole } from "../../utlls/teacherAccess";
 import { useNavigate } from "react-router-dom";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
 
 function Student() {
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ function Student() {
     (state) => state.students
   );
   const students = useSelector(selectAllStudents);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const dispatch = useDispatch();
 
   const loadStudents = () => {
@@ -370,16 +370,17 @@ function Student() {
                     {showAdminControls && (
                     <Td className="space-x-3" isNumeric>
                       <div className="action-cell">
-                        {hasPermission(["Update_Student"]) && (
-                          <>
-                            <UpdateModal student={student} />
-                            <ChangePasswordModal student={student} />
-                          </>
-                        )}
-                        {hasPermission(["Delete_Student"]) && (
-                          <DeleteModal studentId={student._id} />
-                        )}
-                        <EnrollmentModal studentId={student._id} />
+                        <ActionMenu>
+                          {hasPermission(["Update_Student"]) && (
+                            <>
+                              <UpdateModal student={student} />
+                              <ChangePasswordModal student={student} />
+                            </>
+                          )}
+                          {hasPermission(["Delete_Student"]) && (
+                            <DeleteModal studentId={student._id} />
+                          )}
+                        </ActionMenu>
                       </div>
                     </Td>
                     )}

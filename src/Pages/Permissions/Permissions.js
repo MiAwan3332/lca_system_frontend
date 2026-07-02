@@ -25,6 +25,7 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
 
 function Permissions() {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -99,12 +100,14 @@ function Permissions() {
                     <Td>{perm.name}</Td>
                     <Td>{perm.description}</Td>
                     <Td className="space-x-3" isNumeric>
-                      {hasPermission(["Update_Permission"]) && (
-                        <UpdateModal perm={perm} />
-                      )}
-                      {hasPermission(["Delete_Permission"]) && (
-                        <DeleteModal permId={perm._id} />
-                      )}
+                      <ActionMenu>
+                        {hasPermission(["Update_Permission"]) && (
+                          <UpdateModal perm={perm} />
+                        )}
+                        {hasPermission(["Delete_Permission"]) && (
+                          <DeleteModal permId={perm._id} />
+                        )}
+                      </ActionMenu>
                     </Td>
                   </Tr>
                 ))

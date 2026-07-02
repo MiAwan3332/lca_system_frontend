@@ -22,14 +22,18 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import Cookies from "js-cookie";
+import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { View } from "lucide-react";
+import { LogOut, View } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchStudents, updateStudentInfo } from "../../Features/studentSlice";
+import { setUser } from "../../Features/authSlice";
 import { isStudentViewOnly, setProfileUpdatedOnce } from "../../utlls/studentAccess";
+import { clearAuthSession } from "../../utlls/authSession";
 import {
   responsiveModalContentProps,
+  responsiveModalProps,
   getResponsiveModalSize,
 } from "../../utlls/responsiveModal";
 
@@ -44,6 +48,7 @@ function ViewModal({ student, forced = false, onComplete }) {
   });
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const toast = useToast();
   const { updateStatus } = useSelector((state) => state.students);
 
@@ -71,6 +76,19 @@ function ViewModal({ student, forced = false, onComplete }) {
   const onClose = () => {
     if (isForcedCompletion) return;
     setIsOpen(false);
+  };
+
+  const handleLogout = () => {
+    clearAuthSession();
+    dispatch(setUser(null));
+    setIsOpen(false);
+    toast({
+      title: "Logged out",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+    navigate("/login");
   };
 
   const formik = useFormik({
@@ -236,18 +254,25 @@ function ViewModal({ student, forced = false, onComplete }) {
       <Modal
         isOpen={isOpen}
         onClose={onClose}
+        {...responsiveModalProps}
         {...getResponsiveModalSize("6xl")}
         closeOnOverlayClick={!isForcedCompletion}
         closeOnEsc={!isForcedCompletion}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
-          <ModalHeader className="text-xl font-semibold">
+        <ModalContent
+          {...responsiveModalContentProps}
+          as="form"
+          onSubmit={formik.handleSubmit}
+          display="flex"
+          flexDirection="column"
+          maxH={{ base: "100dvh", sm: "92vh" }}
+        >
+          <ModalHeader className="text-xl font-semibold" flexShrink={0}>
             {canEditProfile ? "Complete Your Profile" : "View Student"}
           </ModalHeader>
           {!isForcedCompletion && <ModalCloseButton />}
-          <form onSubmit={formik.handleSubmit}>
-            <ModalBody>
+            <ModalBody flex="1" overflowY="auto" py={4}>
               {canEditProfile && (
                 <Box
                   mb={4}
@@ -336,11 +361,31 @@ function ViewModal({ student, forced = false, onComplete }) {
               </Grid>
             </ModalBody>
 
-            <ModalFooter>
+            <ModalFooter
+              flexShrink={0}
+              borderTopWidth="1px"
+              borderColor="gray.100"
+              justifyContent="space-between"
+              gap={3}
+              flexWrap="wrap"
+            >
+              <div>
+                {(isForcedCompletion || canEditProfile) && (
+                  <Button
+                    leftIcon={<LogOut size={16} />}
+                    variant="outline"
+                    colorScheme="red"
+                    borderRadius="0.75rem"
+                    onClick={handleLogout}
+                  >
+                    Sign out
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-3 flex-wrap">
               {!isForcedCompletion && (
               <Button
                 variant="ghost"
-                mr={3}
                 borderRadius="0.75rem"
                 onClick={onClose}
               >
@@ -364,8 +409,8 @@ function ViewModal({ student, forced = false, onComplete }) {
                   Save Profile
                 </Button>
               )}
+              </div>
             </ModalFooter>
-          </form>
         </ModalContent>
       </Modal>
     </>

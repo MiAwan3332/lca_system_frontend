@@ -36,6 +36,7 @@ import DeleteModal from "./DeleteModal";
 import { downloadMcqTemplate } from "../../utlls/mcqExcel";
 import { hasPermission } from "../../utlls/useful";
 import { isTeacherRole } from "../../utlls/teacherAccess";
+import ActionMenu from "../../Components/ActionMenu";
 
 const truncateText = (text, maxLength = 60) => {
   if (!text) return "";
@@ -190,8 +191,10 @@ function Mcq() {
                     </Td>
                     {showActions && (
                       <Td className="space-x-3" isNumeric>
-                        {canEdit && <UpdateModal mcq={mcq} />}
-                        {canDelete && <DeleteModal mcqId={mcq._id} />}
+                        <ActionMenu>
+                          {canEdit && <UpdateModal mcq={mcq} />}
+                          {canDelete && <DeleteModal mcqId={mcq._id} />}
+                        </ActionMenu>
                       </Td>
                     )}
                   </Tr>

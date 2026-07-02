@@ -37,11 +37,12 @@ import {
   Clock,
   Search,
   FileText,
+  FileDown,
 } from "lucide-react";
 import { fetchFinanceReport } from "../../Features/financeReportSlice";
 import {
   fetchBatches,
-  selectAllBatches,
+  selectActiveBatches,
   setLimitFilter,
 } from "../../Features/batchSlice";
 import {
@@ -55,6 +56,8 @@ import FinanceReportChart from "../../Components/FinanceReportChart";
 import TableRowLoading from "../../Components/TableRowLoading";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import VoucherPreviewModal from "../../Components/FinanceReport/VoucherPreviewModal";
+import { exportFinanceTransactionsExcel } from "../../utlls/generateFinanceTransactionsReport";
+import { exportFinanceTransactionsPdf } from "../../utlls/generateFinanceTransactionsPdf";
 
 const TRANSACTION_TYPE_OPTIONS = [
   { value: "", label: "All Types" },
@@ -149,7 +152,7 @@ function FinanceReport() {
 
   const dispatch = useDispatch();
   const { report, status } = useSelector((state) => state.financeReport);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const users = useSelector(selectAllUsers);
 
   const loadReport = (filters = {}) => {
@@ -206,6 +209,24 @@ function FinanceReport() {
     setTxnTypeFilter("");
     setTxnActionFilter("");
     setTxnSearch("");
+  };
+
+  const handleExportTransactions = () => {
+    exportFinanceTransactionsExcel({
+      transactions: filteredTransactions,
+      period,
+      date: reportDate,
+      batchName: batches?.find((b) => b._id === formBatch)?.name,
+    });
+  };
+
+  const handleExportTransactionsPdf = async () => {
+    await exportFinanceTransactionsPdf({
+      transactions: filteredTransactions,
+      period,
+      date: reportDate,
+      batchName: batches?.find((b) => b._id === formBatch)?.name,
+    });
   };
 
   const handleGenerateVoucher = (transaction) => {
@@ -369,6 +390,26 @@ function FinanceReport() {
               </p>
             </div>
             <FilterStack className="mt-0">
+              <Button
+                size="sm"
+                borderRadius="xl"
+                variant="outline"
+                onClick={handleExportTransactionsPdf}
+                isDisabled={status === "loading" || filteredTransactions.length === 0}
+              >
+                <FileText size={16} className="mr-1" />
+                Export PDF
+              </Button>
+              <Button
+                size="sm"
+                borderRadius="xl"
+                variant="outline"
+                onClick={handleExportTransactions}
+                isDisabled={status === "loading" || filteredTransactions.length === 0}
+              >
+                <FileDown size={16} className="mr-1" />
+                Export {period === "daily" ? "Daily" : "Report"}
+              </Button>
               <FormControl className="responsive-input" w={{ base: "full", sm: "9rem" }}>
                 <Select
                   size="md"

@@ -23,7 +23,7 @@ import {
   setPageFilter,
   setQueryFilter,
 } from "../../Features/attendanceSlice";
-import { fetchBatches, selectAllBatches } from "../../Features/batchSlice";
+import { fetchBatches, selectActiveBatches } from "../../Features/batchSlice";
 import { fetchCourses, selectAllCourses } from "../../Features/courseSlice";
 import TableSearch from "../../Components/TableSearch";
 import TableRowLoading from "../../Components/TableRowLoading";
@@ -47,7 +47,7 @@ function Attendance() {
   const [loading, setLoading] = useState(false);
 
   const attendances = useSelector(selectAttendances);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const { status, pagination } = useSelector((state) => state.attendance);
   const dispatch = useDispatch();
 

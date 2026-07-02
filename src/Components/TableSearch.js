@@ -11,20 +11,23 @@ import { useDispatch } from "react-redux";
 import Cookies from "js-cookie";
 
 
-const TableSearch = forwardRef(({ setQueryFilter, method, placeholder = "Search..." }, ref) => {
+const TableSearch = forwardRef(({ setQueryFilter, method, placeholder = "Search...", payload = {} }, ref) => {
   const [authToken] = useState(Cookies.get("authToken"));
   const [searchQuery, setSearchQuery] = useState("");
   const dispatch = useDispatch();
 
-  const handleSearch = (e) => {
-    dispatch(setQueryFilter(searchQuery));
-    dispatch(method({ authToken }));
+  const runSearch = (query) => {
+    dispatch(setQueryFilter(query));
+    dispatch(method({ authToken, ...payload }));
+  };
+
+  const handleSearch = () => {
+    runSearch(searchQuery);
   };
 
   const clearSearch = () => {
     setSearchQuery("");
-    dispatch(setQueryFilter(""));
-    dispatch(method({ authToken }));
+    runSearch("");
   };
 
   useEffect(() => {

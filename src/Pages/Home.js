@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchStatistics } from "../Features/statisticsSlice";
 import {
   fetchBatches,
-  selectAllBatches,
+  selectActiveBatches,
   setLimitFilter,
 } from "../Features/batchSlice";
 import { fetchNotifications } from "../Features/notificationSlice";
@@ -34,7 +34,7 @@ function Home() {
   const user = useSelector(selectUser);
   const { status } = useSelector((state) => state.statistics);
   const notifications = useSelector((state) => state.notifications.notifications);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const dispatch = useDispatch();
 
   const [statistics, setStatistics] = useState({});

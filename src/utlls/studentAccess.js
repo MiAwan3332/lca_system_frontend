@@ -21,6 +21,7 @@ export const STUDENT_ROUTE_PATHS = [
   "/quiz",
   "/assignments",
   "/course-quizzes",
+  "/complaints",
 ];
 
 export const isStudentRole = () => {
@@ -116,6 +117,10 @@ export const getVisibleRoutes = (allRoutes) => {
 
   let routes = allRoutes.filter((route) =>
     STUDENT_ROUTE_PATHS.includes(route.path)
+  );
+
+  routes = routes.map((route) =>
+    route.studentName ? { ...route, name: route.studentName } : route
   );
 
   if (isStudentProfileIncomplete()) {

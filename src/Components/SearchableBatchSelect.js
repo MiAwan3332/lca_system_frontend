@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Input, List, ListItem, Text } from "@chakra-ui/react";
+import { filterActiveBatches } from "../Features/batchSlice";
 
 function SearchableBatchSelect({
   batches = [],
@@ -7,17 +8,24 @@ function SearchableBatchSelect({
   onChange,
   placeholder = "Search or select batch",
   width = "12rem",
+  activeOnly = true,
+  size = "lg",
 }) {
   const containerRef = useRef(null);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
+  const visibleBatches = useMemo(
+    () => (activeOnly ? filterActiveBatches(batches) : batches),
+    [batches, activeOnly]
+  );
+
   const sortedBatches = useMemo(
     () =>
-      [...batches].sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+      [...visibleBatches].sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
       ),
-    [batches]
+    [visibleBatches]
   );
 
   const filteredBatches = useMemo(() => {
@@ -25,7 +33,7 @@ function SearchableBatchSelect({
     if (!query) return sortedBatches;
 
     return sortedBatches.filter((batch) =>
-      batch.name.toLowerCase().includes(query)
+      (batch.name || "").toLowerCase().includes(query)
     );
   }, [sortedBatches, search]);
 
@@ -78,32 +86,61 @@ function SearchableBatchSelect({
     onChange(batch._id);
   };
 
+  const handleClearSelection = () => {
+    setSearch("");
+    setIsOpen(false);
+    onChange("");
+  };
+
+  const showEmptySearch =
+    isOpen && search.trim() && filteredBatches.length === 0;
+  const showEmptyList = isOpen && !search.trim() && sortedBatches.length === 0;
+  const showList = isOpen && filteredBatches.length > 0;
+
   return (
-    <Box ref={containerRef} position="relative" w={width}>
+    <Box ref={containerRef} position="relative" w={width} zIndex={isOpen ? 1500 : "auto"}>
       <Input
         value={search}
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
+        onClick={() => setIsOpen(true)}
         placeholder={placeholder}
-        size="lg"
+        size={size}
         borderRadius="xl"
+        borderColor="#E0E8EC"
+        bg="#FAFBFC"
+        _focus={{ borderColor: "#FFCB82", boxShadow: "0 0 0 1px #FFCB82" }}
       />
-      {isOpen && filteredBatches.length > 0 && (
+      {showList && (
         <List
           position="absolute"
-          top="100%"
+          top="calc(100% + 4px)"
           left={0}
           right={0}
-          mt={1}
           bg="white"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
           maxH="240px"
           overflowY="auto"
-          zIndex={10}
-          boxShadow="md"
+          zIndex={1500}
+          boxShadow="lg"
         >
+          {!search.trim() && (
+            <ListItem
+              px={4}
+              py={2}
+              cursor="pointer"
+              color="#718096"
+              fontSize="sm"
+              fontStyle="italic"
+              _hover={{ bg: "#FFFBF5" }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleClearSelection}
+            >
+              All batches
+            </ListItem>
+          )}
           {filteredBatches.map((batch) => (
             <ListItem
               key={batch._id}
@@ -120,24 +157,43 @@ function SearchableBatchSelect({
           ))}
         </List>
       )}
-      {isOpen && search.trim() && filteredBatches.length === 0 && (
+      {showEmptySearch && (
         <Box
           position="absolute"
-          top="100%"
+          top="calc(100% + 4px)"
           left={0}
           right={0}
-          mt={1}
           bg="white"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
           px={4}
           py={3}
-          zIndex={10}
-          boxShadow="md"
+          zIndex={1500}
+          boxShadow="lg"
         >
           <Text fontSize="sm" color="gray.500">
             No batches found
+          </Text>
+        </Box>
+      )}
+      {showEmptyList && (
+        <Box
+          position="absolute"
+          top="calc(100% + 4px)"
+          left={0}
+          right={0}
+          bg="white"
+          border="1px solid"
+          borderColor="#E0E8EC"
+          borderRadius="xl"
+          px={4}
+          py={3}
+          zIndex={1500}
+          boxShadow="lg"
+        >
+          <Text fontSize="sm" color="gray.500">
+            No active batches available
           </Text>
         </Box>
       )}
