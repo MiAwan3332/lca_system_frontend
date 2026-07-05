@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import {
   Table,
@@ -8,11 +8,14 @@ import {
   Th,
   Td,
   TableContainer,
+  FormControl,
+  Input,
+  Button,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
-import { FileX, Plus } from "lucide-react";
+import { FileX, FilterX, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchSeminars,
@@ -20,6 +23,9 @@ import {
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
+  setStartDateFilter,
+  setEndDateFilter,
+  clearSeminarFilters,
 } from "../../Features/seminarSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import moment from "moment";
@@ -30,15 +36,20 @@ import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHe
 import ActionMenu from "../../Components/ActionMenu";
 
 function Seminar() {
+  const tableSearchRef = useRef();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
 
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
 
-  const { fetchStatus, pagination } = useSelector((state) => state.seminars);
+  const { fetchStatus, pagination, filters } = useSelector((state) => state.seminars);
   const { seminars } = useSelector((state) => state.seminars);
   const dispatch = useDispatch();
+
+  const loadSeminars = () => {
+    dispatch(fetchSeminars({ authToken }));
+  };
 
   const hasPermission = (permissionsToCheck) => {
     const storedPermissions = sessionStorage.getItem("permissions");
@@ -51,16 +62,59 @@ function Seminar() {
   };
 
   useEffect(() => {
-    dispatch(fetchSeminars({ authToken }));
+    loadSeminars();
   }, []);
+
+  const handleStartDateChange = (e) => {
+    dispatch(setStartDateFilter(e.target.value));
+    loadSeminars();
+  };
+
+  const handleEndDateChange = (e) => {
+    dispatch(setEndDateFilter(e.target.value));
+    loadSeminars();
+  };
+
+  const handleClearFilters = () => {
+    tableSearchRef.current?.clearSearch?.();
+    dispatch(clearSeminarFilters());
+    loadSeminars();
+  };
 
   return (
     <>
       <PageHeader title="All Seminars">
         <FilterStack>
           <div className="w-full sm:max-w-xs">
-            <TableSearch setQueryFilter={setQueryFilter} method={fetchSeminars} />
+            <TableSearch
+              ref={tableSearchRef}
+              setQueryFilter={setQueryFilter}
+              method={fetchSeminars}
+            />
           </div>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={filters.start_date}
+              onChange={handleStartDateChange}
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={filters.end_date}
+              onChange={handleEndDateChange}
+            />
+          </FormControl>
+          {(filters.start_date || filters.end_date || filters.query) && (
+            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+              <FilterX className="h-4 w-4" />
+            </Button>
+          )}
           {hasPermission(["Add_Seminar"]) && (
             <button
               className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"

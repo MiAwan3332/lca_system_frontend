@@ -27,6 +27,7 @@ import {
 } from "../Components/Dashboard/dashboardConfig";
 import MonthlyColumnChart from "../Components/MonthlyStudentChart";
 import BatchChart from "../Components/BatchChart";
+import OverdueFeeAlert from "../Components/OverdueFeeAlert";
 
 function Home() {
   const viewOnly = isStudentViewOnly();
@@ -154,6 +155,15 @@ function Home() {
         }}
         onReload={() => loadStatistics()}
       />
+
+      {viewOnly && statistics.fee_is_overdue && (
+        <OverdueFeeAlert
+          dueDate={statistics.fee_due_date}
+          amount={statistics.total_fee_pending}
+          status="Pending"
+          mb={6}
+        />
+      )}
 
       <section className="kpi-grid mb-6">
         {visibleKpis.map((item) => (

@@ -16,7 +16,13 @@ const initialState = {
   batchCourses: [],
   batchTeachers: [],
   batchTeacherAssignments: [],
-  filters: TABLE_FILTERS,
+  filters: {
+    ...TABLE_FILTERS,
+    is_active: "",
+    batch_type: "",
+    start_date: "",
+    end_date: "",
+  },
   pagination: TABLE_PAGINATION,
   fetchStatus: "idle",
   addStatus: "idle",
@@ -224,6 +230,30 @@ const batchSlice = createSlice({
         state.filters.page = 1;
         state.filters.limit = action.payload;
       },
+      setStatusFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.is_active = action.payload;
+      },
+      setBatchTypeFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.batch_type = action.payload;
+      },
+      setStartDateFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.start_date = action.payload;
+      },
+      setEndDateFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.end_date = action.payload;
+      },
+      clearBatchFilters(state) {
+        state.filters.page = 1;
+        state.filters.query = "";
+        state.filters.is_active = "";
+        state.filters.batch_type = "";
+        state.filters.start_date = "";
+        state.filters.end_date = "";
+      },
   },
 
   extraReducers: (builder) => {
@@ -282,8 +312,21 @@ const batchSlice = createSlice({
       })
       .addCase(updateBatch.fulfilled, (state, action) => {
         state.updateStatus = "success";
+        const index = state.batches.findIndex(
+          (batch) => batch._id === action.payload._id
+        );
+        if (index !== -1) {
+          state.batches[index] = {
+            ...state.batches[index],
+            ...action.payload,
+          };
+        }
+        const studentsDeactivated = action.payload.students_deactivated_count || 0;
         toast({
-          title: "Batch Updated Successfully",
+          title:
+            studentsDeactivated > 0
+              ? `Batch updated. ${studentsDeactivated} student(s) also deactivated.`
+              : "Batch Updated Successfully",
           status: "success",
           duration: 9000,
           isClosable: true,
@@ -315,9 +358,12 @@ const batchSlice = createSlice({
           };
         }
         toast({
-          title: action.payload.is_active !== false
-            ? "Batch activated successfully"
-            : "Batch deactivated successfully",
+          title:
+            action.payload.is_active !== false
+              ? "Batch activated successfully"
+              : action.payload.students_deactivated_count
+              ? `Batch deactivated. ${action.payload.students_deactivated_count} student(s) also deactivated.`
+              : "Batch deactivated successfully",
           status: "success",
           duration: 5000,
           isClosable: true,
@@ -500,6 +546,6 @@ export {
   fetchBatchTeacherAssignments,
   assignTeacherCoursesToBatch,
 };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = batchSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setStatusFilter, setBatchTypeFilter, setStartDateFilter, setEndDateFilter, clearBatchFilters } = batchSlice.actions;
 
 export default batchSlice.reducer;

@@ -22,6 +22,8 @@ import FeesPageHero from "../../Components/FeesPageHero";
 import FeesFiltersCard from "../../Components/FeesFiltersCard";
 import FeesRecordsTable from "../../Components/FeesRecordsTable";
 import { generateStudentFeesBatchReport } from "../../utlls/generateStudentFeesBatchReport";
+import OverdueFeeAlert from "../../Components/OverdueFeeAlert";
+import { isFeeOverdue } from "../../utlls/feeDueDate";
 
 function AdminFeesPage() {
   const toast = useToast();
@@ -124,6 +126,11 @@ function AdminFeesPage() {
     loadReport();
   };
 
+  const overdueCount = useMemo(
+    () => fees.filter((fee) => isFeeOverdue(fee.status, fee.due_date)).length,
+    [fees]
+  );
+
   const handleGenerateReport = async (mode) => {
     setIsGeneratingReport(true);
     try {
@@ -180,6 +187,8 @@ function AdminFeesPage() {
       {studentFeesReport && (
         <StudentFeesReportPanel report={studentFeesReport} period={period} />
       )}
+
+      <OverdueFeeAlert count={overdueCount} />
 
       <FeesRecordsTable
         fees={fees}

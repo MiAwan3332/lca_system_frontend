@@ -22,6 +22,7 @@ export const STUDENT_ROUTE_PATHS = [
   "/assignments",
   "/course-quizzes",
   "/complaints",
+  "/announcements",
 ];
 
 export const isStudentRole = () => {
@@ -109,7 +110,7 @@ export const canAccessRoute = (path) => {
 
 export const getVisibleRoutes = (allRoutes) => {
   if (isTeacherRole()) {
-    return getTeacherVisibleRoutes(allRoutes);
+    return getTeacherVisibleRoutes(allRoutes).filter((route) => !route.adminOnly);
   }
   if (!isStudentRole()) {
     return allRoutes;

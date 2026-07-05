@@ -17,21 +17,29 @@ import {
   Box,
   Text,
   VStack,
+  IconButton,
 } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
-import { FileX, Plus, Play, Send, Trash2, History, BarChart3 } from "lucide-react";
+import { FileX, Plus, Play, Send, Trash2, History, BarChart3, FilterX } from "lucide-react";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
+import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
+import SearchableCourseSelect from "../../Components/SearchableCourseSelect";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import ActionMenu from "../../Components/ActionMenu";
+import { fetchBatches, selectActiveBatches } from "../../Features/batchSlice";
 import {
   fetchCourseQuizzes,
   selectAllCourseQuizzes,
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
+  setBatchFilter,
+  setCourseFilter,
+  clearCourseQuizFilters,
+  fetchBatchCoursesForQuiz,
   publishCourseQuiz,
   deleteCourseQuiz,
   startCourseQuizAttempt,
@@ -57,7 +65,10 @@ function CourseQuizzes() {
   const viewOnly = isStudentViewOnly();
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
-  const { fetchStatus, pagination } = useSelector((state) => state.courseQuizzes);
+  const { fetchStatus, pagination, filters, batchCourses } = useSelector(
+    (state) => state.courseQuizzes
+  );
+  const batches = useSelector(selectActiveBatches);
   const quizzes = useSelector(selectAllCourseQuizzes);
   const attempts = useSelector((state) => state.courseQuizzes.attempts);
 
@@ -70,9 +81,45 @@ function CourseQuizzes() {
   const [lastResult, setLastResult] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
 
+  const loadQuizzes = () => {
+    dispatch(
+      fetchCourseQuizzes({
+        authToken,
+        status: statusFilter || undefined,
+        batch_id: filters.batch_id || undefined,
+        course_id: filters.course_id || undefined,
+      })
+    );
+  };
+
   useEffect(() => {
-    dispatch(fetchCourseQuizzes({ authToken, status: statusFilter || undefined }));
-  }, [dispatch, authToken, statusFilter]);
+    if (!viewOnly) {
+      dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+    }
+  }, [dispatch, authToken, viewOnly]);
+
+  useEffect(() => {
+    loadQuizzes();
+  }, [dispatch, authToken, statusFilter, filters.batch_id, filters.course_id]);
+
+  useEffect(() => {
+    if (filters.batch_id) {
+      dispatch(fetchBatchCoursesForQuiz({ authToken, batchId: filters.batch_id }));
+    }
+  }, [dispatch, authToken, filters.batch_id]);
+
+  const handleBatchFilter = (batchId) => {
+    dispatch(setBatchFilter(batchId));
+  };
+
+  const handleCourseFilter = (courseId) => {
+    dispatch(setCourseFilter(courseId));
+  };
+
+  const clearFilters = () => {
+    dispatch(clearCourseQuizFilters());
+    setStatusFilter("");
+  };
 
   const handleStart = async (quiz) => {
     const result = await dispatch(startCourseQuizAttempt({ authToken, quizId: quiz._id }));
@@ -106,6 +153,26 @@ function CourseQuizzes() {
           )}
           {screen === "list" && (
             <>
+              {!viewOnly && (
+                <>
+                  <SearchableBatchSelect
+                    batches={batches}
+                    value={filters.batch_id}
+                    onChange={handleBatchFilter}
+                    placeholder="All Batches"
+                    width="100%"
+                  />
+                  {filters.batch_id && (
+                    <SearchableCourseSelect
+                      courses={batchCourses}
+                      value={filters.course_id}
+                      onChange={handleCourseFilter}
+                      placeholder="All Courses"
+                      width="100%"
+                    />
+                  )}
+                </>
+              )}
               <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
                 <Select
                   size="lg"
@@ -121,6 +188,16 @@ function CourseQuizzes() {
                   <option value="Published">Published</option>
                 </Select>
               </FormControl>
+              {(filters.batch_id || filters.course_id || statusFilter) && (
+                <IconButton
+                  aria-label="Clear filters"
+                  icon={<FilterX size={18} />}
+                  size="lg"
+                  borderRadius="xl"
+                  variant="outline"
+                  onClick={clearFilters}
+                />
+              )}
               <Button
                 leftIcon={<History size={18} />}
                 variant="outline"

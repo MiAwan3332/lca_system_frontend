@@ -15,6 +15,7 @@ const initialState = {
   filters: {
     ...TABLE_FILTERS,
     course_id: "",
+    batch_id: "",
   },
   pagination: TABLE_PAGINATION,
   fetchStatus: "idle",
@@ -130,6 +131,17 @@ const mcqSlice = createSlice({
     setCourseFilter(state, action) {
       state.filters.course_id = action.payload;
       state.filters.page = 1;
+    },
+    setBatchFilter(state, action) {
+      state.filters.batch_id = action.payload;
+      state.filters.course_id = "";
+      state.filters.page = 1;
+    },
+    clearMcqFilters(state) {
+      state.filters.page = 1;
+      state.filters.query = "";
+      state.filters.course_id = "";
+      state.filters.batch_id = "";
     },
   },
   extraReducers: (builder) => {
@@ -247,6 +259,6 @@ const mcqSlice = createSlice({
 export const selectAllMcqs = (state) => state.mcqs.mcqs;
 
 export { fetchMcqs, addMcq, updateMcq, deleteMcq, bulkImportMcqs };
-export const { setQueryFilter, setPageFilter, setLimitFilter, setCourseFilter } = mcqSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setCourseFilter, setBatchFilter, clearMcqFilters } = mcqSlice.actions;
 
 export default mcqSlice.reducer;

@@ -1,11 +1,15 @@
 import React, { useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom'; // Import Outlet from react-router-dom
-import Cookies from 'js-cookie';
 import { Box, useColorModeValue, Drawer, DrawerContent } from '@chakra-ui/react';
 import { useDisclosure } from '@chakra-ui/react';
 import Sidebar from '../Components/Sidebar.js';
 import MobileNav from '../Components/MobileNav.js';
 import { extractUserIdFromToken } from '../utlls/useful.js';
+import {
+  expireAuthSession,
+  getAuthToken,
+  isAuthSessionExpired,
+} from '../utlls/authSession.js';
 import { canAccessRoute, isStudentRole, syncStudentProfileStatus } from '../utlls/studentAccess.js';
 import { useDispatch } from 'react-redux';
 import { fetchUserById } from '../Features/authSlice.js';
@@ -18,9 +22,10 @@ function Dashboard() {
   const location = useLocation();
   const { hash, pathname, search } = location;
   useEffect(() => {
-    const authToken = Cookies.get('authToken');
-    if (!authToken) {
-      navigate('/login');
+    const authToken = getAuthToken();
+    if (!authToken || isAuthSessionExpired()) {
+      expireAuthSession();
+      navigate('/login', { replace: true });
       return;
     }
 

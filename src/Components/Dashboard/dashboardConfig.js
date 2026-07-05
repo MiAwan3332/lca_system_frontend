@@ -168,7 +168,7 @@ export const STUDENT_KPI_CONFIG = [
   {
     key: "total_fee_record",
     title: "Total Fee",
-    helpText: "Your total fee amount",
+    helpText: "Your assigned batch fee",
     icon: DollarSign,
     gradient: "purple",
     trend: 0,

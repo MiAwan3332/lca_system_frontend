@@ -21,15 +21,36 @@ import Cookies from "js-cookie";
 import { Pen } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBatches, updateBatch } from "../../Features/batchSlice";
+import BatchDeactivateConfirmModal from "./BatchDeactivateConfirmModal";
 
 function AddModel({ batch }) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = React.useState(false);
+  const [pendingValues, setPendingValues] = React.useState(null);
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const { updateStatus } = useSelector((state) => state.batches);
   const dispatch = useDispatch();
 
   const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
+  const onClose = () => {
+    setIsOpen(false);
+    setShowDeactivateConfirm(false);
+    setPendingValues(null);
+  };
+
+  const submitUpdate = (values) => {
+    const payload = {
+      ...values,
+      batch_fee: String(values.batch_fee),
+      is_active: values.is_active === "true",
+    };
+    dispatch(updateBatch({ authToken, values: payload, id: batch._id }))
+      .unwrap()
+      .then(() => {
+        onClose();
+        dispatch(fetchBatches({ authToken }));
+      });
+  };
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -54,19 +75,28 @@ function AddModel({ batch }) {
       enddate: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      const payload = {
-        ...values,
-        batch_fee: String(values.batch_fee),
-        is_active: values.is_active === "true",
-      };
-      dispatch(updateBatch({ authToken, values: payload, id: batch._id }))
-        .unwrap()
-        .then(() => {
-          onClose();
-          dispatch(fetchBatches({ authToken }));
-        });
+      const deactivating =
+        values.is_active === "false" && batch.is_active !== false;
+      const enrolledCount = batch.enrolled_student_count || 0;
+
+      if (deactivating && enrolledCount > 0) {
+        setPendingValues(values);
+        setShowDeactivateConfirm(true);
+        return;
+      }
+
+      submitUpdate(values);
     },
   });
+
+  const confirmDeactivateUpdate = () => {
+    if (pendingValues) {
+      submitUpdate(pendingValues);
+    }
+    setShowDeactivateConfirm(false);
+    setPendingValues(null);
+  };
+
   return (
     <>
       <button
@@ -228,6 +258,17 @@ function AddModel({ batch }) {
           </form>
         </ModalContent>
       </Modal>
+      <BatchDeactivateConfirmModal
+        isOpen={showDeactivateConfirm}
+        onClose={() => {
+          setShowDeactivateConfirm(false);
+          setPendingValues(null);
+        }}
+        batchName={batch.name}
+        enrolledCount={batch.enrolled_student_count || 0}
+        onConfirm={confirmDeactivateUpdate}
+        isLoading={updateStatus === "loading"}
+      />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import {
   Table,
@@ -11,11 +11,15 @@ import {
   Switch,
   Badge,
   HStack,
+  FormControl,
+  Select,
+  Input,
+  Button,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
-import { FileX, Plus } from "lucide-react";
+import { FileX, FilterX, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -24,11 +28,17 @@ import {
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
+  setStatusFilter,
+  setBatchTypeFilter,
+  setStartDateFilter,
+  setEndDateFilter,
+  clearBatchFilters,
   toggleBatchStatus,
 } from "../../Features/batchSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import AssignCoursesModal from "./AssignCoursesModal";
 import AssignTeachersModal from "./AssignTeachersModal";
+import BatchDeactivateConfirmModal from "./BatchDeactivateConfirmModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
@@ -39,16 +49,24 @@ import ActionMenu from "../../Components/ActionMenu";
 function Batch() {
   const viewOnly = isStudentViewOnly();
   const canManageInstitution = isInstitutionAdmin();
+  const tableSearchRef = useRef();
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [deactivateConfirm, setDeactivateConfirm] = useState(null);
 
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
 
-  const { fetchStatus, pagination } = useSelector((state) => state.batches);
+  const { fetchStatus, pagination, filters, toggleBatchStatusStatus } = useSelector(
+    (state) => state.batches
+  );
   const batches = useSelector(selectAllBatches);
   const activeBatch = useSelector(selectCurrentActiveBatch);
   const dispatch = useDispatch();
+
+  const loadBatches = () => {
+    dispatch(fetchBatches({ authToken }));
+  };
 
   const hasPermission = (permissionsToCheck) => {
     const storedPermissions = sessionStorage.getItem("permissions");
@@ -61,11 +79,51 @@ function Batch() {
   };
 
   useEffect(() => {
-    dispatch(fetchBatches({ authToken }));
+    loadBatches();
   }, []);
+
+  const handleStatusChange = (e) => {
+    dispatch(setStatusFilter(e.target.value));
+    loadBatches();
+  };
+
+  const handleBatchTypeChange = (e) => {
+    dispatch(setBatchTypeFilter(e.target.value));
+    loadBatches();
+  };
+
+  const handleStartDateChange = (e) => {
+    dispatch(setStartDateFilter(e.target.value));
+    loadBatches();
+  };
+
+  const handleEndDateChange = (e) => {
+    dispatch(setEndDateFilter(e.target.value));
+    loadBatches();
+  };
+
+  const handleClearFilters = () => {
+    tableSearchRef.current?.clearSearch?.();
+    dispatch(clearBatchFilters());
+    loadBatches();
+  };
+
+  const hasActiveFilters =
+    filters.is_active ||
+    filters.batch_type ||
+    filters.start_date ||
+    filters.end_date ||
+    filters.query;
 
   const handleToggleStatus = (batch) => {
     const nextStatus = batch.is_active === false;
+    if (!nextStatus && (batch.enrolled_student_count || 0) > 0) {
+      setDeactivateConfirm({
+        batch,
+        enrolledCount: batch.enrolled_student_count,
+      });
+      return;
+    }
     dispatch(
       toggleBatchStatus({
         authToken,
@@ -73,6 +131,20 @@ function Batch() {
         is_active: nextStatus,
       })
     );
+  };
+
+  const confirmBatchDeactivate = () => {
+    if (!deactivateConfirm?.batch) return;
+    dispatch(
+      toggleBatchStatus({
+        authToken,
+        id: deactivateConfirm.batch._id,
+        is_active: false,
+      })
+    )
+      .unwrap()
+      .then(() => setDeactivateConfirm(null))
+      .catch(() => {});
   };
 
   const actionColumnCount = canManageInstitution ? 2 : 0;
@@ -84,8 +156,56 @@ function Batch() {
         {canManageInstitution && (
           <FilterStack>
             <div className="w-full sm:max-w-xs">
-              <TableSearch setQueryFilter={setQueryFilter} method={fetchBatches} />
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchBatches}
+              />
             </div>
+            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+              <Select
+                size="lg"
+                borderRadius="xl"
+                value={filters.is_active}
+                onChange={handleStatusChange}
+              >
+                <option value="">All Statuses</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </Select>
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+              <Input
+                size="lg"
+                borderRadius="xl"
+                placeholder="Batch type"
+                value={filters.batch_type}
+                onChange={handleBatchTypeChange}
+              />
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+              <Input
+                type="date"
+                size="lg"
+                borderRadius="xl"
+                value={filters.start_date}
+                onChange={handleStartDateChange}
+              />
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+              <Input
+                type="date"
+                size="lg"
+                borderRadius="xl"
+                value={filters.end_date}
+                onChange={handleEndDateChange}
+              />
+            </FormControl>
+            {hasActiveFilters && (
+              <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+                <FilterX className="h-4 w-4" />
+              </Button>
+            )}
             {hasPermission(["Add_Batch"]) && (
               <button
                 className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
@@ -206,6 +326,14 @@ function Batch() {
         />
       )}
       {!viewOnly && canManageInstitution && <AddModel isOpen={isAddOpen} onClose={onAddClose} />}
+      <BatchDeactivateConfirmModal
+        isOpen={Boolean(deactivateConfirm)}
+        onClose={() => setDeactivateConfirm(null)}
+        batchName={deactivateConfirm?.batch?.name || ""}
+        enrolledCount={deactivateConfirm?.enrolledCount || 0}
+        onConfirm={confirmBatchDeactivate}
+        isLoading={toggleBatchStatusStatus === "loading"}
+      />
     </>
   );
 }

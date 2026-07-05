@@ -28,6 +28,7 @@ import { fetchMyFinance, selectMyFinance } from "../../Features/studentSlice";
 import { getStudentId } from "../../utlls/studentAccess";
 import FeesPageHero from "../../Components/FeesPageHero";
 import { DataTableShell } from "../../Components/PageHeader";
+import OverdueFeeAlert from "../../Components/OverdueFeeAlert";
 
 const formatRs = (value) =>
   Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 });
@@ -72,6 +73,7 @@ function StudentFinanceLog() {
   const isLoading = fetchMyFinanceStatus === "loading";
   const loadFailed = fetchMyFinanceStatus === "failure";
   const student = financeData?.student;
+  const pendingFeeRecord = financeData?.pending_fee_record;
   const paymentLogs = financeData?.payment_logs || [];
 
   const summaryCards = [
@@ -104,6 +106,12 @@ function StudentFinanceLog() {
   return (
     <Box pb={8}>
       <FeesPageHero viewOnly />
+
+      <OverdueFeeAlert
+        dueDate={pendingFeeRecord?.due_date}
+        amount={pendingFeeRecord?.amount || student?.pending_fee}
+        status={pendingFeeRecord?.status || "Pending"}
+      />
 
       {student?.batch?.name && (
         <Box

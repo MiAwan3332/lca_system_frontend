@@ -43,6 +43,8 @@ const ADMISSION_PAYMENT_METHODS = ["Cash", "Online"];
 function AddStudnet({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [photoFile, setPhotoFile] = useState(null);
+  const [paymentEvidenceFile, setPaymentEvidenceFile] = useState(null);
+  const [paymentEvidenceError, setPaymentEvidenceError] = useState("");
   const [paymentOption, setPaymentOption] = useState("later");
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
   const toast = useToast();
@@ -62,6 +64,8 @@ function AddStudnet({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) {
       setPhotoFile(null);
+      setPaymentEvidenceFile(null);
+      setPaymentEvidenceError("");
       setPaymentOption("later");
     }
   }, [isOpen]);
@@ -99,6 +103,12 @@ function AddStudnet({ isOpen, onClose }) {
               .required("Payment method is required"),
           otherwise: (schema) => schema.notRequired(),
         }),
+        next_installment_date: Yup.string().when([], {
+          is: () => paymentOption === "partial",
+          then: (schema) =>
+            schema.required("Next installment date is required for partial payment"),
+          otherwise: (schema) => schema.notRequired(),
+        }),
         remarks: Yup.string(),
       }),
     [paymentOption, batches]
@@ -113,6 +123,7 @@ function AddStudnet({ isOpen, onClose }) {
       batch: "",
       paying_now: "",
       payment_method: "Cash",
+      next_installment_date: "",
       remarks: "",
     },
     validationSchema,
@@ -141,6 +152,37 @@ function AddStudnet({ isOpen, onClose }) {
         return;
       }
 
+      const isPartialPayment =
+        amountToPay > 0 && fee > 0 && amountToPay < fee;
+
+      if (isPartialPayment && !values.next_installment_date) {
+        formik.setFieldError(
+          "next_installment_date",
+          "Next installment date is required for partial payment"
+        );
+        formik.setFieldTouched("next_installment_date", true, false);
+        toast({
+          title: "Installment date required",
+          description: "Select when the next fee installment is due.",
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      if (amountToPay > 0 && values.payment_method === "Online" && !paymentEvidenceFile) {
+        setPaymentEvidenceError("Please attach online payment evidence");
+        toast({
+          title: "Payment evidence required",
+          description: "Upload a screenshot or receipt for online payment.",
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+
       const formData = new FormData();
       formData.append("name", values.name);
       formData.append("email", values.email);
@@ -149,6 +191,12 @@ function AddStudnet({ isOpen, onClose }) {
       formData.append("paying_now", String(amountToPay));
       if (amountToPay > 0) {
         formData.append("payment_method", values.payment_method);
+        if (values.payment_method === "Online" && paymentEvidenceFile) {
+          formData.append("payment_evidence", paymentEvidenceFile);
+        }
+      }
+      if (isPartialPayment) {
+        formData.append("next_installment_date", values.next_installment_date);
       }
       formData.append("remarks", values.remarks || "");
       if (photoFile) {
@@ -160,6 +208,8 @@ function AddStudnet({ isOpen, onClose }) {
         dispatch(fetchStudents({ authToken }));
         formik.resetForm();
         setPhotoFile(null);
+        setPaymentEvidenceFile(null);
+        setPaymentEvidenceError("");
         setPaymentOption("later");
         onClose();
       } catch (error) {
@@ -170,7 +220,13 @@ function AddStudnet({ isOpen, onClose }) {
         if (/email/i.test(message)) {
           formik.setFieldError("email", message);
           formik.setFieldTouched("email", true, false);
-        } else if (/batch fee|payment amount|paying now/i.test(message)) {
+        } else if (/installment date/i.test(message)) {
+          formik.setFieldError("next_installment_date", message);
+          formik.setFieldTouched("next_installment_date", true, false);
+        } else if (/batch fee|payment amount|paying now|payment evidence/i.test(message)) {
+          if (/evidence/i.test(message)) {
+            setPaymentEvidenceError(message);
+          }
           formik.setFieldError("paying_now", message);
           formik.setFieldTouched("paying_now", true, false);
         }
@@ -214,13 +270,18 @@ function AddStudnet({ isOpen, onClose }) {
 
   const paymentMethodLabel =
     payingNow > 0 ? formik.values.payment_method || "Cash" : "N/A";
+  const todayDate = new Date().toISOString().split("T")[0];
 
   const handlePaymentOptionChange = (option) => {
     setPaymentOption(option);
     if (option === "later") {
       formik.setFieldValue("paying_now", "");
+      formik.setFieldValue("next_installment_date", "");
+      setPaymentEvidenceFile(null);
+      setPaymentEvidenceError("");
     } else if (option === "full") {
       formik.setFieldValue("paying_now", String(batchFee));
+      formik.setFieldValue("next_installment_date", "");
       if (!formik.values.payment_method) {
         formik.setFieldValue("payment_method", "Cash");
       }
@@ -235,6 +296,9 @@ function AddStudnet({ isOpen, onClose }) {
   const handleBatchChange = (batchId) => {
     formik.setFieldValue("batch", batchId);
     formik.setFieldValue("paying_now", "");
+    formik.setFieldValue("next_installment_date", "");
+    setPaymentEvidenceFile(null);
+    setPaymentEvidenceError("");
     setPaymentOption("later");
   };
 
@@ -513,6 +577,16 @@ function AddStudnet({ isOpen, onClose }) {
                         {resolvedPaymentOption === "later" ? "N/A" : formik.values.payment_method}
                       </Text>
                     </Box>
+                    {paymentOption === "partial" && formik.values.next_installment_date && (
+                      <Box gridColumn={{ base: "1 / -1", sm: "span 2" }}>
+                        <Text fontSize="xs" color="gray.500">
+                          Next installment due
+                        </Text>
+                        <Text fontWeight="600" color="#C05621">
+                          {formik.values.next_installment_date}
+                        </Text>
+                      </Box>
+                    )}
                   </Grid>
 
                   <FormControl>
@@ -587,7 +661,13 @@ function AddStudnet({ isOpen, onClose }) {
                                   : "#2D4185"
                                 : "inherit"
                             }
-                            onClick={() => formik.setFieldValue("payment_method", method)}
+                            onClick={() => {
+                              formik.setFieldValue("payment_method", method);
+                              if (method === "Cash") {
+                                setPaymentEvidenceFile(null);
+                                setPaymentEvidenceError("");
+                              }
+                            }}
                             type="button"
                           >
                             {method}
@@ -601,6 +681,37 @@ function AddStudnet({ isOpen, onClose }) {
                       ) : null}
                     </FormControl>
                   )}
+
+                  {resolvedPaymentOption !== "later" &&
+                    formik.values.payment_method === "Online" && (
+                      <FormControl mt={4} isRequired>
+                        <FormLabel fontSize={14}>Online Payment Evidence</FormLabel>
+                        <Input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                          borderRadius="0.5rem"
+                          pt={1}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] || null;
+                            setPaymentEvidenceFile(file);
+                            setPaymentEvidenceError("");
+                          }}
+                        />
+                        <Text fontSize="xs" color="gray.500" mt={2}>
+                          Upload payment screenshot, bank receipt, or transfer proof (image or PDF).
+                        </Text>
+                        {paymentEvidenceFile && (
+                          <Text fontSize="sm" color="green.600" mt={1}>
+                            Selected: {paymentEvidenceFile.name}
+                          </Text>
+                        )}
+                        {paymentEvidenceError ? (
+                          <Box color="red" fontSize="sm" mt={1}>
+                            {paymentEvidenceError}
+                          </Box>
+                        ) : null}
+                      </FormControl>
+                    )}
 
                   <Button
                     mt={4}
@@ -636,6 +747,30 @@ function AddStudnet({ isOpen, onClose }) {
                       {formik.touched.paying_now && formik.errors.paying_now ? (
                         <Box color="red" fontSize="sm" mt={1}>
                           {formik.errors.paying_now}
+                        </Box>
+                      ) : null}
+                    </FormControl>
+                  )}
+
+                  {paymentOption === "partial" && (
+                    <FormControl id="next_installment_date" mt={4} isRequired>
+                      <FormLabel fontSize={14}>Next installment due date</FormLabel>
+                      <Input
+                        type="date"
+                        name="next_installment_date"
+                        min={todayDate}
+                        borderRadius="0.5rem"
+                        value={formik.values.next_installment_date}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                      />
+                      <Text fontSize="xs" color="gray.500" mt={2}>
+                        Student and admin will receive daily reminders starting 1 week before this date.
+                      </Text>
+                      {formik.touched.next_installment_date &&
+                      formik.errors.next_installment_date ? (
+                        <Box color="red" fontSize="sm" mt={1}>
+                          {formik.errors.next_installment_date}
                         </Box>
                       ) : null}
                     </FormControl>

@@ -21,12 +21,16 @@ import {
   setPageFilter,
   setQueryFilter,
   setCourseFilter,
+  setBatchFilter,
+  clearMcqFilters,
 } from "../../Features/mcqSlice";
 import { fetchCourses, selectAllCourses } from "../../Features/courseSlice";
+import { fetchBatches, fetchBatchCourses, selectActiveBatches, selectBatchCourses } from "../../Features/batchSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import SearchableCourseSelect from "../../Components/SearchableCourseSelect";
+import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import McqImportModal from "./McqImportModal";
 import McqAddMethods from "./McqAddMethods";
@@ -75,25 +79,45 @@ function Mcq() {
 
   const mcqs = useSelector(selectAllMcqs);
   const courses = useSelector(selectAllCourses);
+  const batches = useSelector(selectActiveBatches);
+  const batchCourses = useSelector(selectBatchCourses);
   const { fetchStatus, pagination, filters } = useSelector((state) => state.mcqs);
   const dispatch = useDispatch();
 
-  useEffect(() => {
+  const loadMcqs = () => {
     dispatch(fetchMcqs({ authToken }));
+  };
+
+  useEffect(() => {
+    loadMcqs();
     dispatch(
       fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
     );
+    dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
   }, [authToken, dispatch]);
+
+  useEffect(() => {
+    if (filters.batch_id) {
+      dispatch(fetchBatchCourses({ authToken, batchId: filters.batch_id }));
+    }
+  }, [authToken, dispatch, filters.batch_id]);
+
+  const handleBatchFilter = (batchId) => {
+    dispatch(setBatchFilter(batchId));
+    loadMcqs();
+  };
 
   const handleCourseFilter = (courseId) => {
     dispatch(setCourseFilter(courseId));
-    dispatch(fetchMcqs({ authToken }));
+    loadMcqs();
   };
 
-  const clearCourseFilter = () => {
-    dispatch(setCourseFilter(""));
-    dispatch(fetchMcqs({ authToken }));
+  const clearFilters = () => {
+    dispatch(clearMcqFilters());
+    loadMcqs();
   };
+
+  const courseOptions = filters.batch_id ? batchCourses : courses;
 
   const handleDownloadTemplate = () => {
     downloadMcqTemplate(courses[0]?.name || "Sample Course");
@@ -114,21 +138,28 @@ function Mcq() {
             <TableSearch setQueryFilter={setQueryFilter} method={fetchMcqs} />
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <SearchableCourseSelect
-              courses={courses}
-              value={filters.course_id}
-              onChange={handleCourseFilter}
-              placeholder={isTeacher ? "Filter by assigned course" : "Filter by course"}
+            <SearchableBatchSelect
+              batches={batches}
+              value={filters.batch_id}
+              onChange={handleBatchFilter}
+              placeholder="All Batches"
               width="100%"
             />
-            {filters.course_id && (
+            <SearchableCourseSelect
+              courses={courseOptions}
+              value={filters.course_id}
+              onChange={handleCourseFilter}
+              placeholder={isTeacher ? "Filter by assigned course" : "All Courses"}
+              width="100%"
+            />
+            {(filters.batch_id || filters.course_id) && (
               <IconButton
-                aria-label="Clear course filter"
+                aria-label="Clear filters"
                 icon={<FilterX size={18} />}
                 size="lg"
                 borderRadius="xl"
                 variant="outline"
-                onClick={clearCourseFilter}
+                onClick={clearFilters}
               />
             )}
           </div>

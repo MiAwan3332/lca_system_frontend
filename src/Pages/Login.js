@@ -21,6 +21,11 @@ import { Eye, EyeOff } from "lucide-react";
 import { config } from "../utlls/config.js";
 import { storeAuthSession } from "../utlls/useful.js";
 import {
+  getSessionCookieExpiry,
+  isAuthSessionExpired,
+  markSessionStarted,
+} from "../utlls/authSession.js";
+import {
   isStudentRole,
   syncStudentProfileStatus,
 } from "../utlls/studentAccess.js";
@@ -36,7 +41,7 @@ const Login = () => {
   useEffect(() => {
     const redirectIfAuthenticated = async () => {
       const authToken = Cookies.get("authToken");
-      if (!authToken) return;
+      if (!authToken || isAuthSessionExpired()) return;
 
       if (isStudentRole()) {
         const profileComplete = await syncStudentProfileStatus();
@@ -84,7 +89,11 @@ const Login = () => {
         const teacherId =
           response.data.teacherId || response.data.teacherData?._id;
 
-        Cookies.set("authToken", authToken, { expires: 7, secure: true });
+        Cookies.set("authToken", authToken, {
+          expires: getSessionCookieExpiry(),
+          secure: true,
+        });
+        markSessionStarted();
         storeAuthSession({
           authToken,
           permissions,
@@ -132,14 +141,30 @@ const Login = () => {
       w="full"
       maxW="100%"
       overflowX="hidden"
-      className="bg-[#F9FBFC] flex justify-center items-center px-4"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      px={4}
+      position="relative"
+      backgroundImage="url('/lca%20upd.png')"
+      backgroundSize="cover"
+      backgroundPosition="center"
+      backgroundRepeat="no-repeat"
     >
+      <Box
+        position="absolute"
+        inset={0}
+        bg="whiteAlpha.800"
+        pointerEvents="none"
+      />
       <VStack
         spacing={6}
         align="stretch"
         width="100%"
         maxW="500px"
         margin="auto"
+        position="relative"
+        zIndex={1}
       >
         <Image
           h={70}

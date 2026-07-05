@@ -15,6 +15,9 @@ import {
   Button,
   Text,
   Box,
+  Switch,
+  Badge,
+  HStack,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
@@ -40,6 +43,9 @@ import {
   setCityFilter,
   setSearchFieldFilter,
   clearStudentFilters,
+  setStatusFilter,
+  toggleStudentStatus,
+  toggleBatchStudentsStatus,
 } from "../../Features/studentSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import ChangePasswordModal from "./ChangePasswordModal";
@@ -111,6 +117,35 @@ function Student() {
     }
   };
 
+  const handleStatusFilterChange = (e) => {
+    dispatch(setStatusFilter(e.target.value));
+    loadStudents();
+  };
+
+  const handleToggleStudentStatus = (student) => {
+    const nextStatus = student.is_active === false;
+    dispatch(
+      toggleStudentStatus({
+        authToken,
+        id: student._id,
+        is_active: nextStatus,
+      })
+    );
+  };
+
+  const handleBatchStudentsStatus = (is_active) => {
+    if (!filters.batch_id) return;
+    dispatch(
+      toggleBatchStudentsStatus({
+        authToken,
+        batchId: filters.batch_id,
+        is_active,
+      })
+    ).then(() => loadStudents());
+  };
+
+  const selectedBatch = batches.find((b) => b._id === filters.batch_id);
+
   const searchPlaceholder =
     filters.search_field === "name"
       ? "Search by student name..."
@@ -126,6 +161,7 @@ function Student() {
       dispatch(setBatchFilter(""));
       dispatch(setQueryFilter(""));
       dispatch(setSearchFieldFilter("name"));
+      dispatch(setStatusFilter(""));
     } else {
       dispatch(clearStudentFilters());
     }
@@ -146,7 +182,17 @@ function Student() {
   const profileIncomplete = isStudentProfileIncomplete();
   const isTeacher = isTeacherRole();
   const showAdminControls = !viewOnly && !isTeacher;
-  const tableColumnCount = viewOnly ? 7 : isTeacher ? 6 : 8;
+  const canUpdateStudent = hasPermission(["Update_Student"]);
+  const showStatusColumn = !viewOnly && canUpdateStudent;
+  const tableColumnCount = viewOnly
+    ? 7
+    : isTeacher
+    ? showStatusColumn
+      ? 7
+      : 6
+    : showStatusColumn
+    ? 9
+    : 8;
 
   useEffect(() => {
     if (isTeacher) {
@@ -244,10 +290,46 @@ function Student() {
                 placeholder="Search by student name..."
               />
             </div>
-            {(filters.batch_id || filters.query) && (
+            {canUpdateStudent && (
+              <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+                <Select
+                  size="lg"
+                  borderRadius="xl"
+                  placeholder="Account Status"
+                  value={filters.is_active}
+                  onChange={handleStatusFilterChange}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </Select>
+              </FormControl>
+            )}
+            {(filters.batch_id || filters.query || filters.is_active) && (
               <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
                 <FilterX className="h-4 w-4" />
               </Button>
+            )}
+            {canUpdateStudent && filters.batch_id && (
+              <>
+                <Button
+                  size="sm"
+                  colorScheme="green"
+                  borderRadius="xl"
+                  onClick={() => handleBatchStudentsStatus(true)}
+                >
+                  Activate all
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  variant="outline"
+                  borderRadius="xl"
+                  onClick={() => handleBatchStudentsStatus(false)}
+                >
+                  Deactivate all
+                </Button>
+              </>
             )}
           </FilterStack>
         )}
@@ -307,6 +389,40 @@ function Student() {
               onBlur={loadStudents}
             />
           </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              placeholder="Account Status"
+              value={filters.is_active}
+              onChange={handleStatusFilterChange}
+            >
+              <option value="">All Statuses</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </Select>
+          </FormControl>
+          {canUpdateStudent && filters.batch_id && selectedBatch && (
+            <>
+              <Button
+                size="sm"
+                colorScheme="green"
+                borderRadius="xl"
+                onClick={() => handleBatchStudentsStatus(true)}
+              >
+                Activate all in {selectedBatch.name}
+              </Button>
+              <Button
+                size="sm"
+                colorScheme="red"
+                variant="outline"
+                borderRadius="xl"
+                onClick={() => handleBatchStudentsStatus(false)}
+              >
+                Deactivate all in {selectedBatch.name}
+              </Button>
+            </>
+          )}
           <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
             <FilterX className="h-4 w-4" />
           </Button>
@@ -322,11 +438,13 @@ function Student() {
                 {(showAdminControls || viewOnly) && (
                   <Th>{viewOnly ? "View" : "View | QR | Card"}</Th>
                 )}
+                <Th>Roll No</Th>
                 <Th data-searchable>Name</Th>
                 <Th data-searchable>Email</Th>
                 <Th data-searchable>Phone</Th>
                 <Th>City</Th>
                 <Th>Last Active Batch</Th>
+                {showStatusColumn && <Th>Status</Th>}
                 {showAdminControls && <Th isNumeric>Actions</Th>}
               </Tr>
             </Thead>
@@ -346,8 +464,13 @@ function Student() {
                   </Td>
                 </Tr>
               ) : (
-                students.map((student, index) => (
-                  <Tr key={student._id}>
+                students.map((student, index) => {
+                  const isActive = student.is_active !== false;
+                  return (
+                  <Tr
+                    key={student._id}
+                    className={!isActive ? "opacity-70" : ""}
+                  >
                     <Td>
                       {(pagination.page - 1) * pagination.limit + index + 1}
                     </Td>
@@ -362,11 +485,27 @@ function Student() {
                       </ButtonGroup>
                     </Td>
                     )}
+                    <Td>{student.roll_number || "—"}</Td>
                     <Td>{student.name}</Td>
                     <Td>{student.email}</Td>
                     <Td>{student.phone}</Td>
                     <Td>{student.city || "-"}</Td>
                     <Td>{student.batch ? student.batch.name : "No Batch"}</Td>
+                    {showStatusColumn && (
+                      <Td>
+                        <HStack spacing={2}>
+                          <Badge colorScheme={isActive ? "green" : "gray"}>
+                            {isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <Switch
+                            size="sm"
+                            isChecked={isActive}
+                            onChange={() => handleToggleStudentStatus(student)}
+                            colorScheme="green"
+                          />
+                        </HStack>
+                      </Td>
+                    )}
                     {showAdminControls && (
                     <Td className="space-x-3" isNumeric>
                       <div className="action-cell">
@@ -385,7 +524,8 @@ function Student() {
                     </Td>
                     )}
                   </Tr>
-                ))
+                );
+                })
               )}
             </Tbody>
           </Table>

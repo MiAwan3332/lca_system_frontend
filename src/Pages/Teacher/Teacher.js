@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import {
   Table,
@@ -8,22 +8,30 @@ import {
   Th,
   Td,
   TableContainer,
+  FormControl,
+  Select,
+  Button,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
-import { FileDown, FileX, Plus } from "lucide-react";
+import { FileDown, FileX, FilterX, Plus } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchTeachers,
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
+  setSearchFieldFilter,
+  setBatchFilter,
+  clearTeacherFilters,
 } from "../../Features/teacherSlice";
 import { selectAllTeachers } from "../../Features/teacherSlice";
+import { fetchBatches, selectActiveBatches } from "../../Features/batchSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
+import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
@@ -36,6 +44,7 @@ function Teacher() {
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
   const canManageInstitution = isInstitutionAdmin();
+  const tableSearchRef = useRef();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
@@ -43,8 +52,13 @@ function Teacher() {
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
 
   const teachers = useSelector(selectAllTeachers);
-  const { fetchStatus, pagination } = useSelector((state) => state.teachers);
+  const batches = useSelector(selectActiveBatches);
+  const { fetchStatus, pagination, filters } = useSelector((state) => state.teachers);
   const dispatch = useDispatch();
+
+  const loadTeachers = () => {
+    dispatch(fetchTeachers({ authToken }));
+  };
 
   const hasPermission = (permissionsToCheck) => {
     const storedPermissions = sessionStorage.getItem("permissions");
@@ -57,17 +71,77 @@ function Teacher() {
   };
 
   useEffect(() => {
-    dispatch(fetchTeachers({ authToken }));
+    if (canManageInstitution) {
+      dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+    }
+    loadTeachers();
   }, []);
+
+  const handleSearchFieldChange = (e) => {
+    dispatch(setSearchFieldFilter(e.target.value));
+    if (filters.query) {
+      loadTeachers();
+    }
+  };
+
+  const handleBatchChange = (batchId) => {
+    dispatch(setBatchFilter(batchId));
+    loadTeachers();
+  };
+
+  const handleClearFilters = () => {
+    tableSearchRef.current?.clearSearch?.();
+    dispatch(clearTeacherFilters());
+    loadTeachers();
+  };
+
+  const searchPlaceholder =
+    filters.search_field === "name"
+      ? "Search by teacher name..."
+      : filters.search_field === "email"
+      ? "Search by email..."
+      : filters.search_field === "phone"
+      ? "Search by phone..."
+      : "Search by name, email, or phone...";
 
   return (
     <>
       <PageHeader title={isTeacher ? "My Profile" : "All Teachers"}>
         {canManageInstitution && (
           <FilterStack>
+            <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
+              <Select
+                size="lg"
+                borderRadius="xl"
+                value={filters.search_field}
+                onChange={handleSearchFieldChange}
+              >
+                <option value="all">All Fields</option>
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+              </Select>
+            </FormControl>
             <div className="w-full sm:max-w-xs">
-              <TableSearch setQueryFilter={setQueryFilter} method={fetchTeachers} />
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchTeachers}
+                placeholder={searchPlaceholder}
+              />
             </div>
+            <SearchableBatchSelect
+              batches={batches}
+              value={filters.batch_id}
+              onChange={handleBatchChange}
+              placeholder="All Batches"
+              width="100%"
+            />
+            {(filters.batch_id || filters.query || filters.search_field !== "all") && (
+              <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+                <FilterX className="h-4 w-4" />
+              </Button>
+            )}
             {hasPermission(["Add_Teacher"]) && (
               <button
                 className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"

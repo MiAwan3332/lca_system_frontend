@@ -14,6 +14,16 @@ import { MoreVertical } from "lucide-react";
 // Singleton: only one ActionMenu open at a time (across the whole app).
 let activeClose = null;
 
+const isInsideOpenModal = (target) => {
+  if (!target?.closest) return false;
+  return Boolean(
+    target.closest('[role="dialog"]') ||
+      target.closest(".chakra-modal__content-container") ||
+      target.closest(".chakra-modal__overlay") ||
+      target.closest(".chakra-modal__content")
+  );
+};
+
 function ActionMenu({ children, placement = "left-start", width = "220px" }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const triggerRef = useRef(null);
@@ -40,7 +50,6 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
 
   const handleToggle = useCallback(
     (e) => {
-      // Prevent table-row click handlers from interfering
       e?.stopPropagation?.();
       if (isOpen) {
         handleClose();
@@ -51,6 +60,18 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
     [handleClose, handleOpen, isOpen]
   );
 
+  const handleMenuActionClick = useCallback(
+    (e) => {
+      const actionTarget = e.target.closest("button, a, [role='button']");
+      if (!actionTarget || !contentRef.current?.contains(actionTarget)) {
+        return;
+      }
+      // Hide the menu but keep children mounted so modals stay open.
+      handleClose();
+    },
+    [handleClose]
+  );
+
   useEffect(() => {
     return () => {
       if (activeClose === closeSelf) {
@@ -59,7 +80,7 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
     };
   }, [closeSelf]);
 
-  // Close on any click anywhere outside trigger/content (stronger than closeOnBlur).
+  // Close menu on outside click, but never when interacting with an open modal.
   useEffect(() => {
     if (!isOpen) return;
 
@@ -72,7 +93,14 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
       const isInsideContent =
         contentRef.current && contentRef.current.contains(target);
 
-      if (isInsideTrigger || isInsideContent) return;
+      if (
+        isInsideTrigger ||
+        isInsideContent ||
+        isInsideOpenModal(target)
+      ) {
+        return;
+      }
+
       handleClose();
     };
 
@@ -85,10 +113,12 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
   return (
     <Popover
       placement={placement}
-      closeOnBlur
+      closeOnBlur={false}
       isLazy
+      lazyBehavior="keepMounted"
       isOpen={isOpen}
       onClose={handleClose}
+      returnFocusOnClose={false}
     >
       <PopoverTrigger>
         <span ref={triggerRef} style={{ display: "inline-flex" }}>
@@ -109,9 +139,9 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
           bg="white"
           borderColor="#E0E8EC"
           boxShadow="xl"
-          zIndex={2000}
+          zIndex={1400}
         >
-          <PopoverBody>
+          <PopoverBody onClick={handleMenuActionClick}>
             <VStack align="stretch" spacing={2}>
               {children}
             </VStack>

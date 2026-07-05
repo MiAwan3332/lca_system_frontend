@@ -4,11 +4,12 @@ import {
   Flex,
   CloseButton,
   useColorModeValue,
+  Image,
+  Text,
 } from "@chakra-ui/react";
 import { Link, useLocation } from "react-router-dom";
 import { routes } from "../routes";
 import { getVisibleRoutes } from "../utlls/studentAccess";
-import { Image } from "@chakra-ui/react";
 
 export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
   const visibleRoutes = getVisibleRoutes(routes);
@@ -34,14 +35,30 @@ export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
     >
       <Flex
         alignItems="center"
-        mx={{ base: 4, md: 8 }}
+        mx={{ base: 4, md: 6 }}
         my={0}
+        py={2}
         justifyContent="space-between"
         flexShrink={0}
+        gap={2}
       >
-        <Box boxSize="sm" h={{ base: 20, md: 32 }} className="flex justify-center items-center">
-          <Image src="./logo_dark.svg" alt="LCA Logo" className="w-28 sm:w-40 mx-auto" />
-        </Box>
+        <Flex align="center" gap={2} flex="1" minW={0}>
+          <Image
+            src="./logo_dark.svg"
+            alt="LCA Logo"
+            className="w-20 sm:w-24 shrink-0"
+            objectFit="contain"
+          />
+          <Text
+            color="white"
+            fontSize={{ base: "xs", sm: "sm" }}
+            fontWeight="bold"
+            lineHeight="short"
+            noOfLines={2}
+          >
+            Lahore CSS Academy
+          </Text>
+        </Flex>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
       <Box

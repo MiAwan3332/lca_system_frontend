@@ -44,7 +44,11 @@ import { Text } from "@chakra-ui/react";
 import TimeTableEventEditForm from "./TimeTableEventEditForm";
 import { isStudentViewOnly } from "../utlls/studentAccess";
 
-export default function TimetableCalendar() {
+export default function TimetableCalendar({
+  filterBatchId = "",
+  filterCourseId = "",
+  filterTeacherId = "",
+}) {
   const viewOnly = isStudentViewOnly();
   const {
     isOpen: isAddModalOpen,
@@ -222,7 +226,14 @@ export default function TimetableCalendar() {
   useEffect(() => {
     dispatch(setLimitFilter(100));
     dispatch(fetchBatches({ authToken }));
-    dispatch(fetchTimeTableEvents({ authToken }))
+    dispatch(
+      fetchTimeTableEvents({
+        authToken,
+        batch_id: filterBatchId || undefined,
+        course_id: filterCourseId || undefined,
+        teacher_id: filterTeacherId || undefined,
+      })
+    )
       .unwrap()
       .then((data) => {
         const formattedDateTime = data.map((event) => formateDateTime(event));
@@ -237,7 +248,7 @@ export default function TimetableCalendar() {
         }));
         setEvents(formattedData);
       });
-  }, [authToken]);
+  }, [authToken, filterBatchId, filterCourseId, filterTeacherId]);
 
   return (
     <>

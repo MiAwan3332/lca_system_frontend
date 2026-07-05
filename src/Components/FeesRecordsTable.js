@@ -1,5 +1,4 @@
 import React from "react";
-import moment from "moment";
 import {
   Badge,
   Box,
@@ -23,6 +22,8 @@ import PayFeeModal from "../Pages/Fees/PayFeeModal";
 import DeleteFeeModal from "../Pages/Fees/DeleteFeeModal";
 import DiscountFeeModal from "../Pages/Fees/DiscountFeeModal";
 import ActionMenu from "./ActionMenu";
+import { DueDateCell } from "./OverdueFeeAlert";
+import { isFeeOverdue } from "../utlls/feeDueDate";
 
 const formatRs = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 })}`;
@@ -117,11 +118,13 @@ function FeesRecordsTable({ fees, fetchStatus, viewOnly, pagination }) {
               ) : Array.isArray(fees) && fees.length > 0 ? (
                 fees.map((fee, index) => {
                   const isPaid = fee.status === "Paid";
+                  const overdue = isFeeOverdue(fee.status, fee.due_date);
                   const studentName = fee.student?.name || "Unknown";
                   return (
                     <Tr
                       key={fee._id}
-                      _hover={{ bg: "#FFFBF5" }}
+                      bg={overdue ? "#FFF5F5" : undefined}
+                      _hover={{ bg: overdue ? "#FEE2E2" : "#FFFBF5" }}
                       transition="background 0.15s ease"
                     >
                       <Td borderColor="#EDF2F7" color="#718096" fontSize="sm">
@@ -165,20 +168,18 @@ function FeesRecordsTable({ fees, fetchStatus, viewOnly, pagination }) {
                       >
                         {formatRs(fee.amount)}
                       </Td>
-                      <Td borderColor="#EDF2F7" color="#4A5568" fontSize="sm">
-                        {fee.due_date
-                          ? moment(fee.due_date).format("DD MMM YYYY")
-                          : "—"}
+                      <Td borderColor="#EDF2F7">
+                        <DueDateCell status={fee.status} dueDate={fee.due_date} />
                       </Td>
                       <Td borderColor="#EDF2F7">
                         <Badge
                           borderRadius="full"
                           px={3}
                           py={0.5}
-                          colorScheme={isPaid ? "green" : "red"}
-                          variant="subtle"
+                          colorScheme={isPaid ? "green" : overdue ? "red" : "orange"}
+                          variant={overdue && !isPaid ? "solid" : "subtle"}
                         >
-                          {fee.status}
+                          {isPaid ? fee.status : overdue ? "Overdue" : fee.status}
                         </Badge>
                       </Td>
                       {!viewOnly && (

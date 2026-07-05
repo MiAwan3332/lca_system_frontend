@@ -70,6 +70,7 @@ export const exportFinanceTransactionsPdf = async ({
   period = "daily",
   date,
   batchName,
+  mode = "download",
 }) => {
   const safeDate = date ? moment(date).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD");
   const label = period ? String(period).toLowerCase() : "daily";
@@ -93,7 +94,7 @@ export const exportFinanceTransactionsPdf = async ({
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.gray);
     doc.text(
-      "LCA — Learning & Career Academy · Finance Transactions Report",
+      "Lahore CSS Academy · Finance Transactions Report",
       margin,
       pageHeight - 5
     );
@@ -297,7 +298,20 @@ export const exportFinanceTransactionsPdf = async ({
 
   drawFooter();
 
-  doc.save(fileName);
+  if (mode === "print") {
+    const blobUrl = doc.output("bloburl");
+    const printWindow = window.open(blobUrl);
+    if (!printWindow) {
+      throw new Error("Pop-up blocked. Allow pop-ups to print the report.");
+    }
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  } else {
+    doc.save(fileName);
+  }
+
   return fileName;
 };
 

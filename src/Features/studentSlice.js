@@ -20,6 +20,7 @@ const initialState = {
         end_date: "",
         city: "",
         search_field: "all",
+        is_active: "",
     },
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
@@ -213,6 +214,30 @@ const fetchMyFinance = createAsyncThunk(
     }
 );
 
+const toggleStudentStatus = createAsyncThunk(
+    'students/toggleStudentStatus',
+    async ({ authToken, id, is_active }) => {
+        const response = await axios.post(
+            `${BASE_URL}/students/toggle-status/${id}`,
+            { is_active },
+            { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        return response.data;
+    }
+);
+
+const toggleBatchStudentsStatus = createAsyncThunk(
+    'students/toggleBatchStudentsStatus',
+    async ({ authToken, batchId, is_active }) => {
+        const response = await axios.post(
+            `${BASE_URL}/students/batch/${batchId}/toggle-status`,
+            { is_active },
+            { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        return response.data;
+    }
+);
+
 const studentSlice = createSlice({
     name: 'students',
     initialState,
@@ -252,6 +277,10 @@ const studentSlice = createSlice({
             state.filters.page = 1;
             state.filters.search_field = action.payload;
         },
+        setStatusFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.is_active = action.payload;
+        },
         clearStudentFilters(state) {
             state.filters.page = 1;
             state.filters.query = "";
@@ -261,6 +290,7 @@ const studentSlice = createSlice({
             state.filters.start_date = "";
             state.filters.end_date = "";
             state.filters.city = "";
+            state.filters.is_active = "";
         },
     },
 
@@ -459,13 +489,64 @@ const studentSlice = createSlice({
                 state.fetchMyFinanceStatus = 'failure';
                 state.error = action.payload || action.error.message;
             })
+
+            .addCase(toggleStudentStatus.fulfilled, (state, action) => {
+                const idx = state.students.findIndex((s) => s._id === action.payload._id);
+                if (idx !== -1) {
+                    state.students[idx] = action.payload;
+                }
+                toast({
+                    title:
+                        action.payload.is_active !== false
+                            ? "Student activated"
+                            : "Student deactivated",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            })
+            .addCase(toggleStudentStatus.rejected, (state, action) => {
+                toast({
+                    title: "Failed to update student status",
+                    description: action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(toggleBatchStudentsStatus.fulfilled, (state, action) => {
+                const nextStatus = action.payload.is_active;
+                if (state.filters.batch_id === action.payload.batch_id) {
+                    state.students = state.students.map((student) => ({
+                        ...student,
+                        is_active: nextStatus,
+                    }));
+                }
+                toast({
+                    title: nextStatus
+                        ? `Activated ${action.payload.modified_count} student(s) in ${action.payload.batch_name}`
+                        : `Deactivated ${action.payload.modified_count} student(s) in ${action.payload.batch_name}`,
+                    status: "success",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(toggleBatchStudentsStatus.rejected, (state, action) => {
+                toast({
+                    title: "Failed to update batch students",
+                    description: action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
     }
 });
 
 export const selectAllStudents = (state) => state.students.students;
 
-export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword, fetchMyFinance };
+export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword, fetchMyFinance, toggleStudentStatus, toggleBatchStudentsStatus };
 export const selectMyFinance = (state) => state.students.myFinance;
-export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, clearStudentFilters } = studentSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, setStatusFilter, clearStudentFilters } = studentSlice.actions;
 
 export default studentSlice.reducer;

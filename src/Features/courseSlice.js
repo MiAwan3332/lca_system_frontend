@@ -12,7 +12,10 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
     courses: [],
-    filters: TABLE_FILTERS,
+    filters: {
+        ...TABLE_FILTERS,
+        batch_id: "",
+    },
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
     addStatus: 'idle',
@@ -89,6 +92,15 @@ const courseSlice = createSlice({
         setLimitFilter(state, action) {
             state.filters.page = 1;
             state.filters.limit = action.payload;
+        },
+        setBatchFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.batch_id = action.payload;
+        },
+        clearCourseFilters(state) {
+            state.filters.page = 1;
+            state.filters.query = "";
+            state.filters.batch_id = "";
         },
     },
 
@@ -177,6 +189,6 @@ const courseSlice = createSlice({
 export const selectAllCourses = (state) => state.courses.courses;
 
 export { fetchCourses, addCourse, updateCourse, deleteCourse };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = courseSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, clearCourseFilters } = courseSlice.actions;
 
 export default courseSlice.reducer;

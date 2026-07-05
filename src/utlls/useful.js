@@ -1,3 +1,5 @@
+import { markSessionStarted } from "./authSession.js";
+
 const FULL_ACCESS_ROLES = [
   "secrateadmin",
   "superadmin",
@@ -5,7 +7,11 @@ const FULL_ACCESS_ROLES = [
   "super admin",
   "Super Admin",
   "Super_Admin",
+  "super admin development",
+  "Super Admin Development",
   "admin",
+  "ceo",
+  "CEO",
 ];
 
 const PERMISSION_ALIASES = {
@@ -122,6 +128,7 @@ const storeAuthSession = ({
 }) => {
   if (authToken) {
     sessionStorage.setItem("authToken", authToken);
+    markSessionStarted();
   }
   if (role) {
     sessionStorage.setItem("role", role);

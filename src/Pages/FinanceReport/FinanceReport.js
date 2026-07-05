@@ -22,6 +22,7 @@ import {
   Th,
   Thead,
   Tr,
+  useToast,
 } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -38,6 +39,7 @@ import {
   Search,
   FileText,
   FileDown,
+  Printer,
 } from "lucide-react";
 import { fetchFinanceReport } from "../../Features/financeReportSlice";
 import {
@@ -139,6 +141,7 @@ const SUMMARY_CARDS = [
 ];
 
 function FinanceReport() {
+  const toast = useToast();
   const [authToken] = useState(Cookies.get("authToken"));
   const [period, setPeriod] = useState("daily");
   const [reportDate, setReportDate] = useState(moment().format("YYYY-MM-DD"));
@@ -221,12 +224,50 @@ function FinanceReport() {
   };
 
   const handleExportTransactionsPdf = async () => {
-    await exportFinanceTransactionsPdf({
-      transactions: filteredTransactions,
-      period,
-      date: reportDate,
-      batchName: batches?.find((b) => b._id === formBatch)?.name,
-    });
+    try {
+      await exportFinanceTransactionsPdf({
+        transactions: filteredTransactions,
+        period,
+        date: reportDate,
+        batchName: batches?.find((b) => b._id === formBatch)?.name,
+        mode: "download",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not export PDF",
+        description: error.message || "Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handlePrintTransactions = async () => {
+    try {
+      await exportFinanceTransactionsPdf({
+        transactions: filteredTransactions,
+        period,
+        date: reportDate,
+        batchName: batches?.find((b) => b._id === formBatch)?.name,
+        mode: "print",
+      });
+      toast({
+        title: "Report opened for printing",
+        description: "Use your browser print dialog to finish.",
+        status: "success",
+        duration: 4000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Could not print report",
+        description: error.message || "Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleGenerateVoucher = (transaction) => {
@@ -390,6 +431,16 @@ function FinanceReport() {
               </p>
             </div>
             <FilterStack className="mt-0">
+              <Button
+                size="sm"
+                borderRadius="xl"
+                variant="outline"
+                onClick={handlePrintTransactions}
+                isDisabled={status === "loading" || filteredTransactions.length === 0}
+              >
+                <Printer size={16} className="mr-1" />
+                Print
+              </Button>
               <Button
                 size="sm"
                 borderRadius="xl"

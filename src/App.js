@@ -6,15 +6,19 @@ import NoPage from "./Pages/NoPage.js";
 import Dashboard from "./Layouts/Dashboard.js";
 import { routes } from "./routes.js";
 import { useEffect } from "react";
-import Cookies from "js-cookie";
 import { extractPermissionsFromToken, extractRoleFromToken, extractStudentIdFromToken, extractTeacherIdFromToken, storeAuthSession } from "./utlls/useful.js";
 import ErrorBoundary from "./Components/ErrorBoundary.js";
+import SessionGuard from "./Components/SessionGuard.js";
 import { setupGlobalErrorHandlers } from "./utlls/errorHandler.js";
+import {
+  getAuthToken,
+  isAuthSessionExpired,
+} from "./utlls/authSession.js";
 
 function App() {
   useEffect(() => {
-    const authToken = Cookies.get('authToken');
-    if (authToken) {
+    const authToken = getAuthToken();
+    if (authToken && !isAuthSessionExpired()) {
       const permissions = extractPermissionsFromToken(authToken);
       const role = extractRoleFromToken(authToken);
       const studentId = extractStudentIdFromToken(authToken);
@@ -28,21 +32,23 @@ function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Dashboard />}>
-            {routes.map((route) => (
-              <Route
-                key={route.path}
-                element={
-                  <ErrorBoundary>{route.component}</ErrorBoundary>
-                }
-                path={route.path}
-              />
-            ))}
-          </Route>
-          <Route path="*" element={<NoPage />} />
-        </Routes>
+        <SessionGuard>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Dashboard />}>
+              {routes.map((route) => (
+                <Route
+                  key={route.path}
+                  element={
+                    <ErrorBoundary>{route.component}</ErrorBoundary>
+                  }
+                  path={route.path}
+                />
+              ))}
+            </Route>
+            <Route path="*" element={<NoPage />} />
+          </Routes>
+        </SessionGuard>
       </Router>
     </ErrorBoundary>
   );

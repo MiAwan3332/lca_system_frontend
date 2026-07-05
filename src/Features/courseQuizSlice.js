@@ -15,7 +15,11 @@ const initialState = {
   activeAttempt: null,
   activeQuestions: [],
   selectedQuiz: null,
-  filters: TABLE_FILTERS,
+  filters: {
+    ...TABLE_FILTERS,
+    batch_id: "",
+    course_id: "",
+  },
   pagination: TABLE_PAGINATION,
   attemptsPagination: TABLE_PAGINATION,
   fetchStatus: "idle",
@@ -232,6 +236,21 @@ const courseQuizSlice = createSlice({
       state.activeAttempt = null;
       state.activeQuestions = [];
     },
+    setBatchFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.batch_id = action.payload;
+      state.filters.course_id = "";
+    },
+    setCourseFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.course_id = action.payload;
+    },
+    clearCourseQuizFilters(state) {
+      state.filters.page = 1;
+      state.filters.query = "";
+      state.filters.batch_id = "";
+      state.filters.course_id = "";
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -317,7 +336,7 @@ const courseQuizSlice = createSlice({
   },
 });
 
-export const { setQueryFilter, setPageFilter, setLimitFilter, clearActiveAttempt } =
+export const { setQueryFilter, setPageFilter, setLimitFilter, clearActiveAttempt, setBatchFilter, setCourseFilter, clearCourseQuizFilters } =
   courseQuizSlice.actions;
 
 export const selectAllCourseQuizzes = createSelector(

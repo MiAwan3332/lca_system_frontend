@@ -13,10 +13,22 @@ const initialState = {
 
 export const fetchNotifications = createAsyncThunk(
   "notifications/fetchNotifications",
-  async ({ authToken, page = 1, unread_only = false }) => {
+  async ({ authToken, page = 1, limit = 20, unread_only, read_filter, type }) => {
+    const params = { page, limit };
+
+    if (read_filter === "unread" || unread_only === true) {
+      params.unread_only = "true";
+    } else if (read_filter === "read") {
+      params.read_only = "true";
+    }
+
+    if (type && type !== "all") {
+      params.type = type;
+    }
+
     const response = await axios.get(`${BASE_URL}/notifications`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      params: { page, limit: 20, unread_only },
+      params,
     });
     return response.data;
   }
@@ -54,20 +66,34 @@ const notificationSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(fetchNotifications.pending, (state) => {
+        state.fetchStatus = "loading";
+      })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.fetchStatus = "success";
         state.notifications = action.payload.docs || [];
-        state.unreadCount = state.notifications.filter((n) => !n.is_read).length;
+        state.unreadCount =
+          typeof action.payload.unreadCount === "number"
+            ? action.payload.unreadCount
+            : state.notifications.filter((n) => !n.is_read).length;
         state.pagination = {
           page: action.payload.page,
           totalPages: action.payload.totalPages,
           totalDocs: action.payload.totalDocs,
         };
       })
+      .addCase(fetchNotifications.rejected, (state) => {
+        state.fetchStatus = "failed";
+      })
       .addCase(markNotificationRead.fulfilled, (state, action) => {
         const idx = state.notifications.findIndex((n) => n._id === action.payload._id);
-        if (idx !== -1) state.notifications[idx] = action.payload;
-        state.unreadCount = state.notifications.filter((n) => !n.is_read).length;
+        if (idx !== -1) {
+          const wasUnread = !state.notifications[idx].is_read;
+          state.notifications[idx] = action.payload;
+          if (wasUnread && state.unreadCount > 0) {
+            state.unreadCount -= 1;
+          }
+        }
       })
       .addCase(markAllNotificationsRead.fulfilled, (state) => {
         state.notifications = state.notifications.map((n) => ({
