@@ -63,7 +63,10 @@ const Login = () => {
           // Save authToken to cookies securely
           const authToken = response.data.authToken;
           const permissions = response.data.permissions;
-          Cookies.set("authToken", authToken, { expires: 7, secure: true }); // Expires in 7 days and secure flag set to true
+          Cookies.set("authToken", authToken, {
+            expires: 7,
+            secure: window.location.protocol === "https:",
+          });
           sessionStorage.setItem("authToken", authToken);
           sessionStorage.setItem("permissions", permissions);
           // Redirect to dashboard with react router
