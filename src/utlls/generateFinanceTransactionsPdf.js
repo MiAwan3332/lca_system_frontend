@@ -26,7 +26,7 @@ const blobToDataUrl = (blob) =>
     reader.readAsDataURL(blob);
   });
 
-const svgUrlToPngDataUrl = async (svgUrl, widthPx = 420) => {
+const svgIconToPngDataUrl = async (svgUrl, widthPx = 140) => {
   const res = await fetch(svgUrl);
   if (!res.ok) {
     throw new Error("Could not load LCA logo.");
@@ -45,10 +45,13 @@ const svgUrlToPngDataUrl = async (svgUrl, widthPx = 420) => {
     img.onerror = () => reject(new Error("Could not render LCA logo."));
   });
 
+  const iconFraction = 27 / 138;
+  const srcWidth = img.width * iconFraction;
+  const scale = widthPx / srcWidth;
+
   const canvas = document.createElement("canvas");
-  const scale = widthPx / (img.width || 1);
   canvas.width = widthPx;
-  canvas.height = Math.round((img.height || 1) * scale);
+  canvas.height = Math.round(img.height * scale);
 
   const ctx = canvas.getContext("2d");
   if (!ctx) {
@@ -57,7 +60,7 @@ const svgUrlToPngDataUrl = async (svgUrl, widthPx = 420) => {
 
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, srcWidth, img.height, 0, 0, canvas.width, canvas.height);
 
   return canvas.toDataURL("image/png");
 };
@@ -82,11 +85,11 @@ export const exportFinanceTransactionsPdf = async ({
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
 
-  let logoPng;
+  let iconPng;
   try {
-    logoPng = await svgUrlToPngDataUrl("/logo_dark.svg", 360);
+    iconPng = await svgIconToPngDataUrl("/logo_dark.svg", 140);
   } catch {
-    logoPng = null;
+    iconPng = null;
   }
 
   const drawFooter = () => {
@@ -104,33 +107,59 @@ export const exportFinanceTransactionsPdf = async ({
   };
 
   const drawHeader = () => {
+    const headerH = 24;
     doc.setFillColor(...COLORS.gold);
-    doc.rect(0, 0, pageWidth, 24, "F");
+    doc.rect(0, 0, pageWidth, headerH, "F");
 
-    if (logoPng) {
-      doc.addImage(logoPng, "PNG", margin, 6, 46, 12, undefined, "FAST");
-    } else {
-      doc.setFillColor(...COLORS.goldDark);
-      doc.roundedRect(margin, 7, 16, 10, 2, 2, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(...COLORS.white);
-      doc.text("LCA", margin + 8, 13.5, { align: "center" });
-    }
+    const academyLabel = "Lahore CSS Academy";
+    const iconW = 10;
+    const iconH = 9;
+    const boxPad = 2;
+    const iconTextGap = 2;
+    const logoBoxH = 12;
+    const logoBoxX = margin;
+    const logoBoxY = 6;
+    const titleY = logoBoxY + logoBoxH / 2 + 1;
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Finance Transactions", margin + 52, 13);
+    doc.setFontSize(10);
+    const academyTextW = doc.getTextWidth(academyLabel);
+    const logoBoxW = boxPad + iconW + iconTextGap + academyTextW + boxPad;
 
+    doc.setFillColor(...COLORS.white);
+    doc.roundedRect(logoBoxX, logoBoxY, logoBoxW, logoBoxH, 1.5, 1.5, "F");
+
+    const iconX = logoBoxX + boxPad;
+    const iconY = logoBoxY + (logoBoxH - iconH) / 2;
+
+    if (iconPng) {
+      doc.addImage(iconPng, "PNG", iconX, iconY, iconW, iconH, undefined, "FAST");
+    } else {
+      doc.setFillColor(...COLORS.goldDark);
+      doc.roundedRect(iconX, iconY, iconW, iconH, 1.5, 1.5, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(...COLORS.white);
+      doc.text("LCA", iconX + iconW / 2, iconY + iconH / 2 + 1, { align: "center" });
+    }
+
+    const academyX = iconX + iconW + iconTextGap;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.goldDark);
+    doc.text(academyLabel, academyX, titleY);
+
+    const reportX = logoBoxX + logoBoxW + 5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(...COLORS.text);
+    doc.text("Finance Transactions", reportX, titleY);
+
+    const metaText = `${label.toUpperCase()} report · ${safeDate} · Batch: ${batchName || "All"}`;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...COLORS.gray);
-    doc.text(
-      `${label.toUpperCase()} report · ${safeDate} · Batch: ${batchName || "All"}`,
-      margin + 52,
-      18
-    );
+    doc.text(metaText, pageWidth - margin, titleY, { align: "right" });
   };
 
   const drawSummaryRow = (y, totalCount, totalFee, totalExpense, net) => {

@@ -28,6 +28,7 @@ const initialState = {
     updateStatus: 'idle',
     deleteStatus: 'idle',
     changePasswordStatus: 'idle',
+    importStatus: 'idle',
     myFinance: null,
     fetchMyFinanceStatus: 'idle',
     error: null,
@@ -138,6 +139,28 @@ const basicUpdate = createAsyncThunk('students/basicUpdate', async (payload, { r
         );
     }
 });
+
+const bulkImportStudents = createAsyncThunk(
+    'students/bulkImportStudents',
+    async ({ authToken, batch_id, students }, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/students/bulk-import`,
+                { batch_id, students },
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || error.message || 'Failed to import students'
+            );
+        }
+    }
+);
 
 const updateStudentInfo = createAsyncThunk(
     'students/updateStudentInfo',
@@ -540,12 +563,35 @@ const studentSlice = createSlice({
                     isClosable: true,
                 });
             })
+            .addCase(bulkImportStudents.pending, (state) => {
+                state.importStatus = 'loading';
+            })
+            .addCase(bulkImportStudents.fulfilled, (state, action) => {
+                state.importStatus = 'succeeded';
+                toast({
+                    title: "Student import completed",
+                    description: action.payload?.message || "Import finished",
+                    status: action.payload?.failed?.length ? "warning" : "success",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
+            .addCase(bulkImportStudents.rejected, (state, action) => {
+                state.importStatus = 'failed';
+                toast({
+                    title: "Student import failed",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
     }
 });
 
 export const selectAllStudents = (state) => state.students.students;
 
-export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword, fetchMyFinance, toggleStudentStatus, toggleBatchStudentsStatus };
+export { fetchStudents, fetchStudentsByBatch, addStudent, bulkImportStudents, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword, fetchMyFinance, toggleStudentStatus, toggleBatchStudentsStatus };
 export const selectMyFinance = (state) => state.students.myFinance;
 export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, setStatusFilter, clearStudentFilters } = studentSlice.actions;
 

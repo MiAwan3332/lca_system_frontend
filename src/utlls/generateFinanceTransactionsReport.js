@@ -35,6 +35,7 @@ export const exportFinanceTransactionsExcel = ({
   });
 
   const metaSheet = XLSX.utils.aoa_to_sheet([
+    ["Lahore CSS Academy"],
     ["Finance Transactions Report"],
     ["Period", label],
     ["Date", safeDate],

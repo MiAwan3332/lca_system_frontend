@@ -6,11 +6,13 @@ import {
   Input,
   VStack,
   Box,
+  Flex,
   useToast,
   Image,
   InputGroup,
   InputRightElement,
   IconButton,
+  Text,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -166,23 +168,36 @@ const Login = () => {
         position="relative"
         zIndex={1}
       >
-        <Image
-          h={70}
-          src="./logo_light.svg"
-          alt="Dan Abramov"
-          className="mx-auto"
-        />
-        {/* <Box textAlign="center" fontSize="2xl" fontWeight="semibold" className="invisible">
-          LCA Dashboard
-        </Box> */}
-        <p className="text-center text-md text-gray-500 -mt-3">
-          Welcome back! Please login to your account.
-        </p>
         <form
           onSubmit={formik.handleSubmit}
-          className="flex flex-col gap-5 mt-3 bg-white shadow-xl rounded-2xl p-5 sm:p-8"
+          className="flex flex-col gap-5 bg-white shadow-xl rounded-2xl p-5 sm:p-8"
         >
-          <h1 className="text-xl font-medium">Login Form</h1>
+          <VStack spacing={0} align="stretch">
+            <Flex align="center" justify="center" gap={3}>
+              <Box overflow="hidden" w="40px" h="48px" flexShrink={0}>
+                <Image
+                  src="/logo_dark.svg"
+                  alt=""
+                  h="48px"
+                  w="180px"
+                  maxW="none"
+                  objectFit="none"
+                  objectPosition="left center"
+                />
+              </Box>
+              <Text
+                fontWeight="bold"
+                fontSize={{ base: "xl", sm: "2xl" }}
+                color="black"
+                lineHeight="short"
+              >
+                Lahore CSS Academy
+              </Text>
+            </Flex>
+            <Text textAlign="center" fontSize="sm" color="gray.500" fontStyle="italic">
+              Welcome back! Please login to your account.
+            </Text>
+          </VStack>
           <FormControl
             id="email"
             isInvalid={formik.touched.email && formik.errors.email}

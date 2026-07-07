@@ -29,7 +29,7 @@ import {
   setLimitFilter as setBatchLimitFilter,
 } from "../../Features/batchSlice";
 import QrCodeModal from "../../Components/Modals/Student/QrCodeModal";
-import { FileX, FilterX, Plus } from "lucide-react";
+import { FileX, FilterX, Plus, FileUp, Download } from "lucide-react";
 import {
   fetchStudents,
   selectAllStudents,
@@ -54,6 +54,8 @@ import TablePagination from "../../Components/TablePagination";
 import StudentCardModal from "../../Components/Modals/Student/StudentCardModal";
 import ViewModal from "./ViewModal";
 import ExportModal from "./ExportModal";
+import StudentImportModal from "./StudentImportModal";
+import { downloadStudentTemplate } from "../../utlls/studentExcel";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
@@ -66,8 +68,11 @@ function Student() {
   const tableSearchRef = useRef();
   const [authToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
+  const onImportOpen = () => setIsImportOpen(true);
+  const onImportClose = () => setIsImportOpen(false);
 
   const { fetchStatus, pagination, filters } = useSelector(
     (state) => state.students
@@ -184,6 +189,13 @@ function Student() {
   const showAdminControls = !viewOnly && !isTeacher;
   const canUpdateStudent = hasPermission(["Update_Student"]);
   const showStatusColumn = !viewOnly && canUpdateStudent;
+
+  const handleDownloadImportTemplate = () => {
+    downloadStudentTemplate({
+      batchName: selectedBatch?.name || "Sample Batch",
+      batchFee: selectedBatch?.batch_fee,
+    });
+  };
   const tableColumnCount = viewOnly
     ? 7
     : isTeacher
@@ -260,13 +272,31 @@ function Student() {
               />
             </div>
             {hasPermission(["Add_Student"]) && (
-              <button
-                className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
-                onClick={onAddOpen}
-              >
-                <Plus size={24} />
-                Add Student
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                  onClick={handleDownloadImportTemplate}
+                >
+                  <Download size={24} />
+                  Download Template
+                </button>
+                <button
+                  type="button"
+                  className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                  onClick={onImportOpen}
+                >
+                  <FileUp size={24} />
+                  Import Excel
+                </button>
+                <button
+                  className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                  onClick={onAddOpen}
+                >
+                  <Plus size={24} />
+                  Add Student
+                </button>
+              </>
             )}
             <ExportModal />
           </FilterStack>
@@ -540,6 +570,11 @@ function Student() {
         />
       )}
       <AddModel isOpen={isAddOpen && showAdminControls} onClose={onAddClose} />
+      <StudentImportModal
+        isOpen={isImportOpen && showAdminControls}
+        onClose={onImportClose}
+        batches={batches}
+      />
     </>
   );
 }
