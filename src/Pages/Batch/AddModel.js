@@ -31,17 +31,30 @@ function AddModel({ isOpen, onClose }) {
       name: "",
       description: "",
       batch_type: "",
+      batch_fee: "",
       startdate: "",
       enddate: "",
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       description: Yup.string().required("Required"),
+      batch_fee: Yup.number()
+        .typeError("Fee must be a number")
+        .min(0, "Fee cannot be negative")
+        .required("Required"),
       startdate: Yup.string().required("Required"),
       enddate: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      dispatch(addBatch({ authToken, values }))
+      dispatch(
+        addBatch({
+          authToken,
+          values: {
+            ...values,
+            batch_fee: String(values.batch_fee),
+          },
+        })
+      )
         .unwrap()
         .then(() => {
           onClose();
@@ -103,6 +116,24 @@ function AddModel({ isOpen, onClose }) {
                 {formik.touched.batch_type && formik.errors.batch_type ? (
                   <Box color="red" fontSize="sm">
                     {formik.errors.batch_type}
+                  </Box>
+                ) : null}
+              </FormControl>
+
+              <FormControl id="batch_fee">
+                <FormLabel fontSize={14}>Batch Fee (Rs.)</FormLabel>
+                <Input
+                  type="number"
+                  name="batch_fee"
+                  min={0}
+                  step="1"
+                  borderRadius={"0.5rem"}
+                  value={formik.values.batch_fee}
+                  onChange={formik.handleChange}
+                />
+                {formik.touched.batch_fee && formik.errors.batch_fee ? (
+                  <Box color="red" fontSize="sm">
+                    {formik.errors.batch_fee}
                   </Box>
                 ) : null}
               </FormControl>

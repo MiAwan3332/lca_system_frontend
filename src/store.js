@@ -16,6 +16,15 @@ import enrollmentReducer from './Features/enrollmentSlice';
 import attendanceReducer from './Features/attendanceSlice';
 import mcqReducer from './Features/mcqSlice';
 import feeReducer from './Features/feeSlice';
+import financeReportReducer from './Features/financeReportSlice';
+import expenseReducer from './Features/expenseSlice';
+import quizReducer from './Features/quizSlice';
+import assignmentReducer from './Features/assignmentSlice';
+import courseQuizReducer from './Features/courseQuizSlice';
+import notificationReducer from './Features/notificationSlice';
+import complaintReducer from './Features/complaintSlice';
+import announcementReducer from './Features/announcementSlice';
+import activityLogReducer from './Features/activityLogSlice';
 
 export const store = configureStore({
   reducer: {
@@ -34,6 +43,15 @@ export const store = configureStore({
     enrollments: enrollmentReducer,
     attendance: attendanceReducer,
     mcqs: mcqReducer,
-    fees: feeReducer
+    fees: feeReducer,
+    financeReport: financeReportReducer,
+    expenses: expenseReducer,
+    quiz: quizReducer,
+    assignments: assignmentReducer,
+    courseQuizzes: courseQuizReducer,
+    notifications: notificationReducer,
+    complaints: complaintReducer,
+    announcements: announcementReducer,
+    activityLogs: activityLogReducer,
   },
 });

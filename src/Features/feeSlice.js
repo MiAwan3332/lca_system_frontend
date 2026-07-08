@@ -17,16 +17,25 @@ const initialState = {
     filters: TABLE_FILTERS,
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
+    fetchFeeByIdStatus: 'idle',
     addStatus: 'idle',
     updateStatus: 'idle',
     deleteStatus: 'idle',
     fetchFeeLogsStatus: 'idle',
+    studentFeesReport: null,
+    studentFeesReportStatus: 'idle',
     error: null,
 };
 
 const fetchFees = createAsyncThunk('fees/fetchFees', async (payload, { getState }) => {
     const state = getState();
-    const { authToken, status = '', date = '' } = payload;
+    const {
+        authToken,
+        status = '',
+        date = '',
+        period = '',
+        batch_id = '',
+    } = payload || {};
     const response = await axios.get(`${BASE_URL}/fees`, {
         headers: {
             Authorization: `Bearer ${authToken}`,
@@ -35,11 +44,38 @@ const fetchFees = createAsyncThunk('fees/fetchFees', async (payload, { getState 
             ...state.fees.filters,
             status,
             date,
+            period,
+            batch_id,
         }
     });
     const data = await response.data;
     return data;
 });
+
+const fetchStudentFeesReport = createAsyncThunk(
+    'fees/fetchStudentFeesReport',
+    async (payload, { rejectWithValue }) => {
+        const { authToken, period, date, batch_id, status } = payload;
+        try {
+            const response = await axios.get(`${BASE_URL}/fees/student-fees-report`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    period,
+                    date,
+                    batch_id,
+                    status,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to generate student fees report'
+            );
+        }
+    }
+);
 
 const fetchFeeById = createAsyncThunk('fees/fetchFeeById', async (payload) => {
     const { authToken, id } = payload;
@@ -67,30 +103,36 @@ const createFee = createAsyncThunk('fees/createFee', async (payload) => {
 });
 
 const payFee = createAsyncThunk('fees/payFee', async (payload) => {
-    const { authToken, id, studentId, amount } = payload;
+    const { authToken, id, studentId, amount, payment_method } = payload;
     const response = await fetch(`${BASE_URL}/fees/pay/${id}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ studentId, amount }),
+        body: JSON.stringify({ student_id: studentId, amount, payment_method }),
     });
     const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Failed to pay fee');
+    }
     return data;
 });
 
 const discountFee = createAsyncThunk('fees/discountFee', async (payload) => {
-    const { authToken, id, studentId, amount } = payload;
+    const { authToken, id, studentId, amount, description } = payload;
     const response = await fetch(`${BASE_URL}/fees/discount/${id}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ studentId, amount }),
+        body: JSON.stringify({ student_id: studentId, amount, description }),
     });
     const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Failed to apply discount');
+    }
     return data;
 });
 
@@ -171,15 +213,14 @@ const feeSlice = createSlice({
             
             // FETCH FEE BY ID
             .addCase(fetchFeeById.pending, (state) => {
-                state.fetchStatus = 'loading';
+                state.fetchFeeByIdStatus = 'loading';
             })
             .addCase(fetchFeeById.fulfilled, (state, action) => {
                 state.fee = action.payload;
-                console.log(action.payload);
-                state.fetchStatus = 'idle';
+                state.fetchFeeByIdStatus = 'idle';
             })
             .addCase(fetchFeeById.rejected, (state) => {
-                state.fetchStatus = 'failed';
+                state.fetchFeeByIdStatus = 'failed';
             })
 
             // CREATE FEE
@@ -233,6 +274,7 @@ const feeSlice = createSlice({
             // FETCH FEE LOGS
             .addCase(fetchFeeLogs.pending, (state) => {
                 state.fetchFeeLogsStatus = 'loading';
+                state.feeLogs = [];
             })
             .addCase(fetchFeeLogs.fulfilled, (state, action) => {
                 state.fetchFeeLogsStatus = 'idle';
@@ -240,6 +282,24 @@ const feeSlice = createSlice({
             })
             .addCase(fetchFeeLogs.rejected, (state) => {
                 state.fetchFeeLogsStatus = 'failed';
+            })
+
+            .addCase(fetchStudentFeesReport.pending, (state) => {
+                state.studentFeesReportStatus = 'loading';
+            })
+            .addCase(fetchStudentFeesReport.fulfilled, (state, action) => {
+                state.studentFeesReportStatus = 'idle';
+                state.studentFeesReport = action.payload;
+            })
+            .addCase(fetchStudentFeesReport.rejected, (state, action) => {
+                state.studentFeesReportStatus = 'failed';
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: action.payload || 'Failed to generate student fees report',
+                    status: 'error',
+                    duration: 5000,
+                    isClosable: true,
+                });
             })
 
             // FETCH FEES BY STUDENT
@@ -260,8 +320,9 @@ export const selectAllFees = (state) => state.fees.fees;
 export const selectFeeById = (state, id) => state.fees.fees.find((fee) => fee._id === id);
 export const selectFeeLogs = (state) => state.fees.feeLogs;
 export const selectFee = (state) => state.fees.fee;
+export const selectStudentFeesReport = (state) => state.fees.studentFeesReport;
 
-export { fetchFees, fetchFeeById, createFee, payFee, discountFee, deleteFee, fetchFeeLogs, fetchFeesByStudent };
+export { fetchFees, fetchFeeById, createFee, payFee, discountFee, deleteFee, fetchFeeLogs, fetchFeesByStudent, fetchStudentFeesReport };
 export const { setQueryFilter, setPageFilter, setLimitFilter } = feeSlice.actions;
 
 export default feeSlice.reducer;

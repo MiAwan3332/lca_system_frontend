@@ -15,8 +15,22 @@ const initialState = {
     filters: TABLE_FILTERS,
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
+    addStatus: 'idle',
     error: null,
 };
+
+const addSeminarAttendee = createAsyncThunk(
+    'seminarAttendees/addSeminarAttendee',
+    async (payload) => {
+        const { authToken, attendee } = payload;
+        const response = await axios.post(`${BASE_URL}/attendees/add`, attendee, {
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+            },
+        });
+        return response.data;
+    }
+);
 
 const fetchAttendeesBySeminar = createAsyncThunk('seminarAttendees/fetchAttendeesBySeminar', async (payload, { getState }) => {
     const state = getState();
@@ -80,13 +94,37 @@ const seminarAttendeeSlice = createSlice({
                     duration: 5000,
                     isClosable: true,
                 });
+            })
+            .addCase(addSeminarAttendee.pending, (state) => {
+                state.addStatus = 'loading';
+            })
+            .addCase(addSeminarAttendee.fulfilled, (state) => {
+                state.addStatus = 'succeeded';
+                toast({
+                    title: "Attendee added",
+                    description: "You can add another attendee or close the modal.",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            })
+            .addCase(addSeminarAttendee.rejected, (state, action) => {
+                state.addStatus = 'failed';
+                state.error = action.error.message;
+                toast({
+                    title: "Error",
+                    description: action.error.message,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
             });
     }
 });
 
 export const selectSeminarAttendees = (state) => state.seminarAttendees.seminarAttendees;
 
-export { fetchAttendeesBySeminar };
+export { fetchAttendeesBySeminar, addSeminarAttendee };
 export const { resetAttendees, setQueryFilter, setPageFilter, setLimitFilter } = seminarAttendeeSlice.actions;
 
 export default seminarAttendeeSlice.reducer;

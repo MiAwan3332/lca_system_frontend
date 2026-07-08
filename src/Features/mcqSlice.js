@@ -1,7 +1,8 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk } from "@reduxjs/toolkit";
 import { createStandaloneToast } from "@chakra-ui/react";
 import { config } from "../utlls/config.js";
+import axios from "axios";
 
 const { toast } = createStandaloneToast();
 
@@ -11,66 +12,106 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
   mcqs: [],
-  filters: TABLE_FILTERS,
+  filters: {
+    ...TABLE_FILTERS,
+    course_id: "",
+    batch_id: "",
+  },
   pagination: TABLE_PAGINATION,
-  fetchStatus: 'idle',
-  addStatus: 'idle',
-  updateStatus: 'idle',
-  deleteStatus: 'idle',
+  fetchStatus: "idle",
+  addStatus: "idle",
+  updateStatus: "idle",
+  deleteStatus: "idle",
+  importStatus: "idle",
   error: null,
 };
 
+const fetchMcqs = createAsyncThunk(
+  "mcqs/fetchMcqs",
+  async (payload, { getState }) => {
+    const state = getState();
+    const { authToken } = payload;
+    const response = await axios.get(`${BASE_URL}/mcqs`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+      params: state.mcqs.filters,
+    });
+    return response.data;
+  }
+);
 
-// Async thunk to fetch MCQs
-const fetchMcqs = createAsyncThunk("mcqs/fetchMcqs", async ({ authToken }) => {
-  const response = await fetch(`${BASE_URL}/mcqs`, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  });
-  const data = await response.json();
-  return data;
-});
+const addMcq = createAsyncThunk(
+  "mcqs/addMcq",
+  async ({ mcqData, authToken }) => {
+    const response = await fetch(`${BASE_URL}/mcqs/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(mcqData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to add MCQ");
+    }
+    return data;
+  }
+);
 
-// Async thunk to add a new MCQ
-const addMcq = createAsyncThunk("mcqs/addMcq", async ({ mcqData, authToken }) => {
-  const response = await fetch(`${BASE_URL}/mcqs/add`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
-    },
-    body: JSON.stringify(mcqData),
-  });
-  const data = await response.json();
-  return data;
-});
+const updateMcq = createAsyncThunk(
+  "mcqs/updateMcq",
+  async ({ mcqId, mcqData, authToken }) => {
+    const { _id, ...updateData } = mcqData;
+    const response = await fetch(`${BASE_URL}/mcqs/update/${mcqId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(updateData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update MCQ");
+    }
+    return data;
+  }
+);
 
-// Async thunk to update an MCQ
-const updateMcq = createAsyncThunk("mcqs/updateMcq", async ({ mcqId, mcqData, authToken }) => {
-  const response = await fetch(`${BASE_URL}/mcqs/update/${mcqData._id}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
-    },
-    body: JSON.stringify(mcqData),
-  });
-  const data = await response.json();
-  return data;
-});
+const deleteMcq = createAsyncThunk(
+  "mcqs/deleteMcq",
+  async ({ mcqId, authToken }) => {
+    const response = await fetch(`${BASE_URL}/mcqs/delete/${mcqId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to delete MCQ");
+    }
+    return { _id: data._id || mcqId };
+  }
+);
 
-// Async thunk to delete an MCQ
-const deleteMcq = createAsyncThunk("mcqs/deleteMcq", async ({ mcqId, authToken }) => {
-  const response = await fetch(`${BASE_URL}/mcqs/delete/${mcqId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  });
-  const data = await response.json();
-  return data;
-});
+const bulkImportMcqs = createAsyncThunk(
+  "mcqs/bulkImportMcqs",
+  async ({ authToken, mcqs }) => {
+    const response = await axios.post(
+      `${BASE_URL}/mcqs/bulk-import`,
+      { mcqs },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+    return response.data;
+  }
+);
 
 const mcqSlice = createSlice({
   name: "mcqs",
@@ -78,6 +119,7 @@ const mcqSlice = createSlice({
   reducers: {
     setQueryFilter(state, action) {
       state.filters.query = action.payload;
+      state.filters.page = 1;
     },
     setPageFilter(state, action) {
       state.filters.page = action.payload;
@@ -86,15 +128,44 @@ const mcqSlice = createSlice({
       state.filters.page = 1;
       state.filters.limit = action.payload;
     },
+    setCourseFilter(state, action) {
+      state.filters.course_id = action.payload;
+      state.filters.page = 1;
+    },
+    setBatchFilter(state, action) {
+      state.filters.batch_id = action.payload;
+      state.filters.course_id = "";
+      state.filters.page = 1;
+    },
+    clearMcqFilters(state) {
+      state.filters.page = 1;
+      state.filters.query = "";
+      state.filters.course_id = "";
+      state.filters.batch_id = "";
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch MCQs
       .addCase(fetchMcqs.pending, (state) => {
         state.fetchStatus = "loading";
       })
       .addCase(fetchMcqs.fulfilled, (state, action) => {
-        state.mcqs = action.payload;
+        if (Array.isArray(action.payload)) {
+          state.mcqs = action.payload;
+        } else {
+          state.mcqs = action.payload.docs || [];
+          state.pagination = {
+            totalDocs: action.payload.totalDocs,
+            limit: action.payload.limit,
+            totalPages: action.payload.totalPages,
+            page: action.payload.page,
+            pagingCounter: action.payload.pagingCounter,
+            hasPrevPage: action.payload.hasPrevPage,
+            hasNextPage: action.payload.hasNextPage,
+            prevPage: action.payload.prevPage,
+            nextPage: action.payload.nextPage,
+          };
+        }
         state.fetchStatus = "succeeded";
       })
       .addCase(fetchMcqs.rejected, (state, action) => {
@@ -102,52 +173,92 @@ const mcqSlice = createSlice({
         state.error = action.error.message;
       })
 
-      // Add MCQ
       .addCase(addMcq.pending, (state) => {
         state.addStatus = "loading";
       })
-      .addCase(addMcq.fulfilled, (state, action) => {
-        state.mcqs.push(action.payload);
+      .addCase(addMcq.fulfilled, (state) => {
         state.addStatus = "succeeded";
+        toast({
+          title: "MCQ added.",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
       })
       .addCase(addMcq.rejected, (state, action) => {
         state.addStatus = "failed";
         state.error = action.error.message;
       })
 
-      // Update MCQ
       .addCase(updateMcq.pending, (state) => {
         state.updateStatus = "loading";
       })
-      .addCase(updateMcq.fulfilled, (state, action) => {
-        state.mcqs = state.mcqs.map((mcq) =>
-          mcq._id === action.payload._id ? action.payload : mcq
-        );
+      .addCase(updateMcq.fulfilled, (state) => {
         state.updateStatus = "succeeded";
+        toast({
+          title: "MCQ updated.",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
       })
       .addCase(updateMcq.rejected, (state, action) => {
         state.updateStatus = "failed";
         state.error = action.error.message;
       })
 
-      // Delete MCQ
       .addCase(deleteMcq.pending, (state) => {
         state.deleteStatus = "loading";
       })
       .addCase(deleteMcq.fulfilled, (state, action) => {
         state.mcqs = state.mcqs.filter((mcq) => mcq._id !== action.payload._id);
         state.deleteStatus = "succeeded";
+        toast({
+          title: "MCQ deleted.",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
       })
       .addCase(deleteMcq.rejected, (state, action) => {
         state.deleteStatus = "failed";
         state.error = action.error.message;
+      })
+
+      .addCase(bulkImportMcqs.pending, (state) => {
+        state.importStatus = "loading";
+      })
+      .addCase(bulkImportMcqs.fulfilled, (state, action) => {
+        state.importStatus = "succeeded";
+        const { imported, failed } = action.payload;
+        toast({
+          title: "MCQ import completed",
+          description:
+            failed?.length > 0
+              ? `Imported ${imported} MCQs. ${failed.length} row(s) failed.`
+              : `Successfully imported ${imported} MCQs.`,
+          status: failed?.length > 0 ? "warning" : "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+      .addCase(bulkImportMcqs.rejected, (state, action) => {
+        state.importStatus = "failed";
+        state.error = action.error.message;
+        toast({
+          title: "Import failed",
+          description: action.error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       });
   },
 });
 
 export const selectAllMcqs = (state) => state.mcqs.mcqs;
 
-export { fetchMcqs, addMcq, updateMcq, deleteMcq };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = mcqSlice.actions;
+export { fetchMcqs, addMcq, updateMcq, deleteMcq, bulkImportMcqs };
+export const { setQueryFilter, setPageFilter, setLimitFilter, setCourseFilter, setBatchFilter, clearMcqFilters } = mcqSlice.actions;
 
 export default mcqSlice.reducer;

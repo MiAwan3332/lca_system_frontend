@@ -13,7 +13,8 @@ import {
   Input,
   VStack,
   Box,
-  Select
+  Select,
+  Text,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -21,8 +22,13 @@ import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchMcqs, addMcq } from "../../Features/mcqSlice";
 import { fetchCourses , selectAllCourses  } from "../../Features/courseSlice";
+import { isTeacherRole } from "../../utlls/teacherAccess";
+import {
+  getResponsiveModalSize,
+  responsiveModalContentProps,
+} from "../../utlls/responsiveModal";
 
-function AddModel({ isOpen, onClose }) {
+function AddModel({ isOpen, onClose, stayOpenOnSubmit = false }) {
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
 
   const { addStatus } = useSelector((state) => state.mcqs);
@@ -30,12 +36,14 @@ function AddModel({ isOpen, onClose }) {
 
   const courses = useSelector(selectAllCourses);
   const fetchStatus = useSelector((state) => state.courses.fetchStatus);
+  const isTeacher = isTeacherRole();
+  const hasAssignedCourses = courses.length > 0;
   
   useEffect(() => {
-    if (fetchStatus === 'idle') {
-      dispatch(fetchCourses({ authToken }));
+    if (isOpen) {
+      dispatch(fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
     }
-  }, [dispatch, fetchStatus, authToken]);
+  }, [dispatch, isOpen, authToken]);
 
   // if (fetchStatus === 'loading') {
   //   return <div>Loading...</div>;
@@ -65,21 +73,40 @@ function AddModel({ isOpen, onClose }) {
       courseId: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      // console.log(values);
-      dispatch(addMcq({mcqData:values,authToken }))
+      dispatch(addMcq({ mcqData: values, authToken }))
         .unwrap()
         .then(() => {
-          onClose();
+          formik.resetForm();
           dispatch(fetchMcqs({ authToken }));
+          if (!stayOpenOnSubmit) {
+            onClose();
+          }
         });
     },
   });
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} {...getResponsiveModalSize("2xl")}>
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader className="text-xl font-semibold">Add Mcq</ModalHeader>
+      <ModalContent {...responsiveModalContentProps}>
+        <ModalHeader className="text-xl font-semibold">Add MCQ</ModalHeader>
         <ModalCloseButton />
+        {stayOpenOnSubmit && (
+          <Box px={6} pt={1} pb={0}>
+            <Text fontSize="sm" color="gray.500">
+              The form stays open after each save so you can add more MCQs. Close
+              manually when finished.
+            </Text>
+          </Box>
+        )}
+        {isTeacher && (
+          <Box px={6} pt={stayOpenOnSubmit ? 0 : 1} pb={0}>
+            <Text fontSize="sm" color="gray.500">
+              {hasAssignedCourses
+                ? "Only courses assigned to you in a batch are available."
+                : "No assigned courses found. Ask an admin to assign you to a batch course first."}
+            </Text>
+          </Box>
+        )}
         {fetchStatus === 'loading' && <div>Loading...</div>}
         {fetchStatus === 'failure' && <div>Error loading courses</div>}
         <form onSubmit={formik.handleSubmit}>
@@ -188,16 +215,18 @@ function AddModel({ isOpen, onClose }) {
                   value={formik.values.courseId}
                   onChange={formik.handleChange}
                 >
-                  {
-                    courses.map((course , index) => (
-                      <option key={index} value={course._id}>{course.name}</option>
-                    ))
-
-                  }
+                  <option value="">
+                    {isTeacher ? "Select assigned course" : "Select course"}
+                  </option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.name}
+                    </option>
+                  ))}
                 </Select>
                 {formik.touched.courseId && formik.errors.courseId ? (
                   <Box color="red" fontSize="sm">
-                    {formik.errors.correct_option}
+                    {formik.errors.courseId}
                   </Box>
                 ) : null}
               </FormControl>
@@ -225,8 +254,9 @@ function AddModel({ isOpen, onClose }) {
               type="submit"
               loadingText="Adding..."
               isLoading={addStatus === "loading"}
+              isDisabled={isTeacher && !hasAssignedCourses}
             >
-              Add
+              Add MCQ
             </Button>
           </ModalFooter>
         </form>

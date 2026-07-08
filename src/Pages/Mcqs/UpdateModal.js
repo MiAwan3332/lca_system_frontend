@@ -33,13 +33,14 @@ function UpdateModal({ mcq }) {
   const dispatch = useDispatch();
 
   const courses = useSelector(selectAllCourses);
-  const fetchStatus = useSelector((state) => state.courses.fetchStatus);
 
   useEffect(() => {
-    if (fetchStatus === "idle") {
-      dispatch(fetchCourses({ authToken }));
+    if (isOpen) {
+      dispatch(
+        fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+      );
     }
-  }, [dispatch, fetchStatus, authToken]);
+  }, [dispatch, isOpen, authToken]);
 
   const formik = useFormik({
     enableReinitialize: true, // This allows the form to reinitialize with new values when `mcq` changes.
@@ -50,8 +51,8 @@ function UpdateModal({ mcq }) {
       option2: mcq?.option2 || "",
       option3: mcq?.option3 || "",
       option4: mcq?.option4 || "",
-      correct_option: mcq?.correct_option || "",
-      courseId: mcq?.courseId || "",
+      correct_option: mcq?.correct_option?.toString() || "",
+      courseId: mcq?.courseId?._id || mcq?.courseId || "",
     },
     validationSchema: Yup.object({
       question: Yup.string().required("Required"),
@@ -193,8 +194,9 @@ function UpdateModal({ mcq }) {
                     value={formik.values.courseId}
                     onChange={formik.handleChange}
                   >
-                    {courses.map((course, index) => (
-                      <option key={index} value={course._id}>
+                    <option value="">Select course</option>
+                    {courses.map((course) => (
+                      <option key={course._id} value={course._id}>
                         {course.name}
                       </option>
                     ))}

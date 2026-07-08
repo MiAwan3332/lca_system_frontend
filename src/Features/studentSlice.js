@@ -12,12 +12,25 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
     students: [],
-    filters: TABLE_FILTERS,
+    filters: {
+        ...TABLE_FILTERS,
+        batch_id: "",
+        enrollment_status: "",
+        start_date: "",
+        end_date: "",
+        city: "",
+        search_field: "all",
+        is_active: "",
+    },
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
     addStatus: 'idle',
     updateStatus: 'idle',
     deleteStatus: 'idle',
+    changePasswordStatus: 'idle',
+    importStatus: 'idle',
+    myFinance: null,
+    fetchMyFinanceStatus: 'idle',
     error: null,
 };
 
@@ -45,18 +58,36 @@ const fetchStudentsByBatch = createAsyncThunk('students/fetchStudentsByBatch', a
     return response.data;
 });
 
-const addStudent = createAsyncThunk('students/addStudent', async (payload) => {
-    const { authToken, student } = payload;
-    const response = await fetch(`${BASE_URL}/students/add`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(student),
-    });
-    const data = await response.json();
-    return data;
+const addStudent = createAsyncThunk('students/addStudent', async (payload, { rejectWithValue }) => {
+    const { authToken, student, formData } = payload;
+    try {
+        if (formData) {
+            const response = await axios.post(`${BASE_URL}/students/add`, formData, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            });
+            return response.data;
+        }
+
+        const response = await fetch(`${BASE_URL}/students/add`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify(student),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return rejectWithValue(data.message || 'Failed to add student');
+        }
+        return data;
+    } catch (error) {
+        return rejectWithValue(
+            error.response?.data?.message || error.message || 'Failed to add student'
+        );
+    }
 });
 
 const updateStudent = createAsyncThunk('students/updateStudent', async (payload) => {
@@ -73,19 +104,87 @@ const updateStudent = createAsyncThunk('students/updateStudent', async (payload)
     return data;
 });
 
-const basicUpdate = createAsyncThunk('students/basicUpdate', async (payload) => {
-    const { authToken, studentId, student } = payload;
-    const response = await fetch(`${BASE_URL}/students/basic-update/${studentId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(student),
-    });
-    const data = await response.json();
-    return data;
+const basicUpdate = createAsyncThunk('students/basicUpdate', async (payload, { rejectWithValue }) => {
+    const { authToken, studentId, student, formData } = payload;
+    try {
+        if (formData) {
+            const response = await axios.post(
+                `${BASE_URL}/students/basic-update/${studentId}`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        }
+
+        const response = await fetch(`${BASE_URL}/students/basic-update/${studentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify(student),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return rejectWithValue(data.message || 'Failed to update student');
+        }
+        return data;
+    } catch (error) {
+        return rejectWithValue(
+            error.response?.data?.message || error.message || 'Failed to update student'
+        );
+    }
 });
+
+const bulkImportStudents = createAsyncThunk(
+    'students/bulkImportStudents',
+    async ({ authToken, batch_id, students }, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/students/bulk-import`,
+                { batch_id, students },
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || error.message || 'Failed to import students'
+            );
+        }
+    }
+);
+
+const updateStudentInfo = createAsyncThunk(
+    'students/updateStudentInfo',
+    async (payload, { rejectWithValue }) => {
+        const { authToken, studentId, formData } = payload;
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/students/studentInfoUpdate/${studentId}`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to update profile'
+            );
+        }
+    }
+);
 
 const deleteStudent = createAsyncThunk('students/deleteStudent', async (payload) => {
     const { authToken, studentId } = payload;
@@ -99,12 +198,76 @@ const deleteStudent = createAsyncThunk('students/deleteStudent', async (payload)
     return data;
 });
 
+const changeStudentPassword = createAsyncThunk(
+    'students/changeStudentPassword',
+    async (payload) => {
+        const { authToken, studentId, password } = payload;
+        const response = await axios.post(
+            `${BASE_URL}/students/change-password/${studentId}`,
+            { password },
+            {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            }
+        );
+        return response.data;
+    }
+);
+
+const fetchMyFinance = createAsyncThunk(
+    'students/fetchMyFinance',
+    async (payload, { rejectWithValue }) => {
+        const { authToken, studentId } = payload;
+        try {
+            const response = await axios.get(
+                `${BASE_URL}/students/payment-logs/${studentId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to load finance log'
+            );
+        }
+    }
+);
+
+const toggleStudentStatus = createAsyncThunk(
+    'students/toggleStudentStatus',
+    async ({ authToken, id, is_active }) => {
+        const response = await axios.post(
+            `${BASE_URL}/students/toggle-status/${id}`,
+            { is_active },
+            { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        return response.data;
+    }
+);
+
+const toggleBatchStudentsStatus = createAsyncThunk(
+    'students/toggleBatchStudentsStatus',
+    async ({ authToken, batchId, is_active }) => {
+        const response = await axios.post(
+            `${BASE_URL}/students/batch/${batchId}/toggle-status`,
+            { is_active },
+            { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        return response.data;
+    }
+);
+
 const studentSlice = createSlice({
     name: 'students',
     initialState,
     reducers: {
         setQueryFilter(state, action) {
             state.filters.query = action.payload;
+            state.filters.page = 1;
         },
         setPageFilter(state, action) {
             state.filters.page = action.payload;
@@ -112,6 +275,45 @@ const studentSlice = createSlice({
         setLimitFilter(state, action) {
             state.filters.page = 1;
             state.filters.limit = action.payload;
+        },
+        setBatchFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.batch_id = action.payload;
+        },
+        setEnrollmentFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.enrollment_status = action.payload;
+        },
+        setStartDateFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.start_date = action.payload;
+        },
+        setEndDateFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.end_date = action.payload;
+        },
+        setCityFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.city = action.payload;
+        },
+        setSearchFieldFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.search_field = action.payload;
+        },
+        setStatusFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.is_active = action.payload;
+        },
+        clearStudentFilters(state) {
+            state.filters.page = 1;
+            state.filters.query = "";
+            state.filters.search_field = "all";
+            state.filters.batch_id = "";
+            state.filters.enrollment_status = "";
+            state.filters.start_date = "";
+            state.filters.end_date = "";
+            state.filters.city = "";
+            state.filters.is_active = "";
         },
     },
 
@@ -180,7 +382,13 @@ const studentSlice = createSlice({
             })
             .addCase(addStudent.rejected, (state, action) => {
                 state.addStatus = 'failure';
-                state.error = action.error.message;
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: action.payload || action.error.message || "Failed to add student",
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
             })
 
             // Update student
@@ -216,7 +424,38 @@ const studentSlice = createSlice({
             })
             .addCase(basicUpdate.rejected, (state, action) => {
                 state.updateStatus = 'failure';
-                state.error = action.error.message;
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: action.payload || 'Failed to update student',
+                    status: 'error',
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+
+            .addCase(updateStudentInfo.pending, (state) => {
+                state.updateStatus = 'loading';
+            })
+            .addCase(updateStudentInfo.fulfilled, (state) => {
+                state.updateStatus = 'success';
+                toast({
+                    title: "Profile updated successfully!",
+                    description: "This was your one-time profile update.",
+                    status: "success",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(updateStudentInfo.rejected, (state, action) => {
+                state.updateStatus = 'failure';
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: "Profile update failed",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
             })
 
             // Delete student
@@ -236,12 +475,124 @@ const studentSlice = createSlice({
                 state.deleteStatus = 'failure';
                 state.error = action.error.message;
             })
+
+            // Change student password
+            .addCase(changeStudentPassword.pending, (state) => {
+                state.changePasswordStatus = 'loading';
+            })
+            .addCase(changeStudentPassword.fulfilled, (state) => {
+                state.changePasswordStatus = 'success';
+                toast({
+                    title: "Student password updated successfully!",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            })
+            .addCase(changeStudentPassword.rejected, (state, action) => {
+                state.changePasswordStatus = 'failure';
+                state.error = action.error.message;
+                toast({
+                    title: "Failed to update password",
+                    description: action.error.message,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
+
+            .addCase(fetchMyFinance.pending, (state) => {
+                state.fetchMyFinanceStatus = 'loading';
+            })
+            .addCase(fetchMyFinance.fulfilled, (state, action) => {
+                state.fetchMyFinanceStatus = 'success';
+                state.myFinance = action.payload;
+            })
+            .addCase(fetchMyFinance.rejected, (state, action) => {
+                state.fetchMyFinanceStatus = 'failure';
+                state.error = action.payload || action.error.message;
+            })
+
+            .addCase(toggleStudentStatus.fulfilled, (state, action) => {
+                const idx = state.students.findIndex((s) => s._id === action.payload._id);
+                if (idx !== -1) {
+                    state.students[idx] = action.payload;
+                }
+                toast({
+                    title:
+                        action.payload.is_active !== false
+                            ? "Student activated"
+                            : "Student deactivated",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            })
+            .addCase(toggleStudentStatus.rejected, (state, action) => {
+                toast({
+                    title: "Failed to update student status",
+                    description: action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(toggleBatchStudentsStatus.fulfilled, (state, action) => {
+                const nextStatus = action.payload.is_active;
+                if (state.filters.batch_id === action.payload.batch_id) {
+                    state.students = state.students.map((student) => ({
+                        ...student,
+                        is_active: nextStatus,
+                    }));
+                }
+                toast({
+                    title: nextStatus
+                        ? `Activated ${action.payload.modified_count} student(s) in ${action.payload.batch_name}`
+                        : `Deactivated ${action.payload.modified_count} student(s) in ${action.payload.batch_name}`,
+                    status: "success",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(toggleBatchStudentsStatus.rejected, (state, action) => {
+                toast({
+                    title: "Failed to update batch students",
+                    description: action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(bulkImportStudents.pending, (state) => {
+                state.importStatus = 'loading';
+            })
+            .addCase(bulkImportStudents.fulfilled, (state, action) => {
+                state.importStatus = 'succeeded';
+                toast({
+                    title: "Student import completed",
+                    description: action.payload?.message || "Import finished",
+                    status: action.payload?.failed?.length ? "warning" : "success",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
+            .addCase(bulkImportStudents.rejected, (state, action) => {
+                state.importStatus = 'failed';
+                toast({
+                    title: "Student import failed",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
     }
 });
 
 export const selectAllStudents = (state) => state.students.students;
 
-export { fetchStudents, fetchStudentsByBatch, addStudent, updateStudent, basicUpdate, deleteStudent };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = studentSlice.actions;
+export { fetchStudents, fetchStudentsByBatch, addStudent, bulkImportStudents, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword, fetchMyFinance, toggleStudentStatus, toggleBatchStudentsStatus };
+export const selectMyFinance = (state) => state.students.myFinance;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, setStatusFilter, clearStudentFilters } = studentSlice.actions;
 
 export default studentSlice.reducer;

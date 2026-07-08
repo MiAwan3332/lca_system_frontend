@@ -12,7 +12,11 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
     seminars: [],
-    filters: TABLE_FILTERS,
+    filters: {
+        ...TABLE_FILTERS,
+        start_date: "",
+        end_date: "",
+    },
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
     addStatus: 'idle',
@@ -86,6 +90,20 @@ const seminarSlice = createSlice({
         setLimitFilter(state, action) {
             state.filters.page = 1;
             state.filters.limit = action.payload;
+        },
+        setStartDateFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.start_date = action.payload;
+        },
+        setEndDateFilter(state, action) {
+            state.filters.page = 1;
+            state.filters.end_date = action.payload;
+        },
+        clearSeminarFilters(state) {
+            state.filters.page = 1;
+            state.filters.query = "";
+            state.filters.start_date = "";
+            state.filters.end_date = "";
         },
     },
 
@@ -174,6 +192,6 @@ const seminarSlice = createSlice({
 export const selectAllSeminars = (state) => state.seminars.seminars;
 
 export { fetchSeminars, addSeminar, updateSeminar, deleteSeminar };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = seminarSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setStartDateFilter, setEndDateFilter, clearSeminarFilters } = seminarSlice.actions;
 
 export default seminarSlice.reducer;

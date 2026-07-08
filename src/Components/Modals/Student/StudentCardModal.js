@@ -7,14 +7,20 @@ import {
   ModalBody,
   ModalCloseButton,
   IconButton,
+  Text,
 } from "@chakra-ui/react";
 import { useDisclosure } from "@chakra-ui/react";
-import {  SquareDashedBottom } from "lucide-react";
+import { SquareDashedBottom } from "lucide-react";
 import StudentCard from "../StudentCard";
+import ErrorBoundary from "../../ErrorBoundary";
 
 function StudentCardModal({ student }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [qrCode, setQrCode] = useState(student.qrcode);
+  const [qrCode] = useState(student?.qrcode || "");
+
+  if (!student) {
+    return null;
+  }
 
   return (
     <>
@@ -25,11 +31,25 @@ function StudentCardModal({ student }) {
         <ModalOverlay />
         <ModalContent maxW="1000px">
           <ModalHeader className="text-xl font-semibold">
-            Student QR Code
+            Student Card
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <StudentCard student={student} qrCode={qrCode} />
+            {!student.batch ? (
+              <Text color="gray.500" py={4}>
+                Student card cannot be generated because batch information is missing.
+              </Text>
+            ) : (
+              <ErrorBoundary
+                fallback={
+                  <Text color="gray.500" py={4}>
+                    Unable to display student card.
+                  </Text>
+                }
+              >
+                <StudentCard student={student} qrCode={qrCode} />
+              </ErrorBoundary>
+            )}
           </ModalBody>
         </ModalContent>
       </Modal>

@@ -13,6 +13,7 @@ import {
   Input,
   VStack,
   Box,
+  Select,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -20,40 +21,82 @@ import Cookies from "js-cookie";
 import { Pen } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBatches, updateBatch } from "../../Features/batchSlice";
+import BatchDeactivateConfirmModal from "./BatchDeactivateConfirmModal";
 
 function AddModel({ batch }) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = React.useState(false);
+  const [pendingValues, setPendingValues] = React.useState(null);
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
-  const { upadateStatus } = useSelector((state) => state.batches);
+  const { updateStatus } = useSelector((state) => state.batches);
   const dispatch = useDispatch();
 
   const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
+  const onClose = () => {
+    setIsOpen(false);
+    setShowDeactivateConfirm(false);
+    setPendingValues(null);
+  };
+
+  const submitUpdate = (values) => {
+    const payload = {
+      ...values,
+      batch_fee: String(values.batch_fee),
+      is_active: values.is_active === "true",
+    };
+    dispatch(updateBatch({ authToken, values: payload, id: batch._id }))
+      .unwrap()
+      .then(() => {
+        onClose();
+        dispatch(fetchBatches({ authToken }));
+      });
+  };
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: {
       name: batch.name,
       description: batch.description,
       batch_type: batch.batch_type,
+      batch_fee: batch.batch_fee ?? "",
       startdate: batch.startdate,
       enddate: batch.enddate,
+      is_active: batch.is_active !== false ? "true" : "false",
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       description: Yup.string().required("Required"),
       batch_type: Yup.string().required("Required"),
+      batch_fee: Yup.number()
+        .typeError("Fee must be a number")
+        .min(0, "Fee cannot be negative")
+        .required("Required"),
       startdate: Yup.string().required("Required"),
       enddate: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      dispatch(updateBatch({ authToken, values, id: batch._id }))
-        .unwrap()
-        .then(() => {
-          onClose();
-          dispatch(fetchBatches({ authToken }));
-        });
+      const deactivating =
+        values.is_active === "false" && batch.is_active !== false;
+      const enrolledCount = batch.enrolled_student_count || 0;
+
+      if (deactivating && enrolledCount > 0) {
+        setPendingValues(values);
+        setShowDeactivateConfirm(true);
+        return;
+      }
+
+      submitUpdate(values);
     },
   });
+
+  const confirmDeactivateUpdate = () => {
+    if (pendingValues) {
+      submitUpdate(pendingValues);
+    }
+    setShowDeactivateConfirm(false);
+    setPendingValues(null);
+  };
+
   return (
     <>
       <button
@@ -117,6 +160,23 @@ function AddModel({ batch }) {
                     </Box>
                   ) : null}
                 </FormControl>
+                <FormControl id="batch_fee">
+                  <FormLabel fontSize={14}>Batch Fee (Rs.)</FormLabel>
+                  <Input
+                    type="number"
+                    name="batch_fee"
+                    min={0}
+                    step="1"
+                    borderRadius={"0.5rem"}
+                    value={formik.values.batch_fee}
+                    onChange={formik.handleChange}
+                  />
+                  {formik.touched.batch_fee && formik.errors.batch_fee ? (
+                    <Box color="red" fontSize="sm">
+                      {formik.errors.batch_fee}
+                    </Box>
+                  ) : null}
+                </FormControl>
                 <FormControl id="startdate">
                   <FormLabel fontSize={14}>Start Date</FormLabel>
                   <Input
@@ -154,6 +214,19 @@ function AddModel({ batch }) {
                     </Box>
                   ) : null}
                 </FormControl>
+
+                <FormControl id="is_active">
+                  <FormLabel fontSize={14}>Status</FormLabel>
+                  <Select
+                    name="is_active"
+                    borderRadius="0.5rem"
+                    value={formik.values.is_active}
+                    onChange={formik.handleChange}
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </Select>
+                </FormControl>
               </VStack>
             </ModalBody>
 
@@ -177,7 +250,7 @@ function AddModel({ batch }) {
                 fontWeight={"500"}
                 type="submit"
                 loadingText="Updating"
-                isLoading={upadateStatus === "loading"}
+                isLoading={updateStatus === "loading"}
               >
                 Update
               </Button>
@@ -185,6 +258,17 @@ function AddModel({ batch }) {
           </form>
         </ModalContent>
       </Modal>
+      <BatchDeactivateConfirmModal
+        isOpen={showDeactivateConfirm}
+        onClose={() => {
+          setShowDeactivateConfirm(false);
+          setPendingValues(null);
+        }}
+        batchName={batch.name}
+        enrolledCount={batch.enrolled_student_count || 0}
+        onConfirm={confirmDeactivateUpdate}
+        isLoading={updateStatus === "loading"}
+      />
     </>
   );
 }

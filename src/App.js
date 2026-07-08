@@ -6,40 +6,51 @@ import NoPage from "./Pages/NoPage.js";
 import Dashboard from "./Layouts/Dashboard.js";
 import { routes } from "./routes.js";
 import { useEffect } from "react";
-import Cookies from "js-cookie";
-import { extractPermissionsFromToken } from "./utlls/useful.js";
+import { extractPermissionsFromToken, extractRoleFromToken, extractStudentIdFromToken, extractTeacherIdFromToken, storeAuthSession } from "./utlls/useful.js";
+import ErrorBoundary from "./Components/ErrorBoundary.js";
+import SessionGuard from "./Components/SessionGuard.js";
+import { setupGlobalErrorHandlers } from "./utlls/errorHandler.js";
+import {
+  getAuthToken,
+  isAuthSessionExpired,
+} from "./utlls/authSession.js";
 
 function App() {
   useEffect(() => {
-    const authToken = Cookies.get('authToken');
-    if (authToken) {
+    const authToken = getAuthToken();
+    if (authToken && !isAuthSessionExpired()) {
       const permissions = extractPermissionsFromToken(authToken);
-      sessionStorage.setItem('permissions', permissions);
+      const role = extractRoleFromToken(authToken);
+      const studentId = extractStudentIdFromToken(authToken);
+      const teacherId = extractTeacherIdFromToken(authToken);
+      storeAuthSession({ permissions, role, studentId, teacherId });
     }
+
+    return setupGlobalErrorHandlers();
   }, []); 
 
   return (
-    <Router>
-      <Routes>
-        {/* Define the Login page route */}
-        <Route path="/login" element={<Login />} />
-        {/* Define the NoPage (404) route */}
-        {/* <Route path="/404" element={<NoPage />} /> */}
-        {/* Define the Dashboard layout route */}
-        <Route path="/" element={<Dashboard />}>
-          {/* Nested child routes will be rendered inside the Dashboard layout */}
-          {routes.map((route) => (
-            <Route
-              key={route.path}
-              element={route.component}
-              path={route.path}
-            />
-          ))}
-        </Route>
-        {/* Redirect any other paths to the 404 page */}
-        <Route path="*" element={<NoPage />} />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <SessionGuard>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Dashboard />}>
+              {routes.map((route) => (
+                <Route
+                  key={route.path}
+                  element={
+                    <ErrorBoundary>{route.component}</ErrorBoundary>
+                  }
+                  path={route.path}
+                />
+              ))}
+            </Route>
+            <Route path="*" element={<NoPage />} />
+          </Routes>
+        </SessionGuard>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

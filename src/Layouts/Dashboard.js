@@ -1,11 +1,16 @@
 import React, { useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom'; // Import Outlet from react-router-dom
-import Cookies from 'js-cookie';
 import { Box, useColorModeValue, Drawer, DrawerContent } from '@chakra-ui/react';
 import { useDisclosure } from '@chakra-ui/react';
 import Sidebar from '../Components/Sidebar.js';
 import MobileNav from '../Components/MobileNav.js';
 import { extractUserIdFromToken } from '../utlls/useful.js';
+import {
+  expireAuthSession,
+  getAuthToken,
+  isAuthSessionExpired,
+} from '../utlls/authSession.js';
+import { canAccessRoute, isStudentRole, syncStudentProfileStatus } from '../utlls/studentAccess.js';
 import { useDispatch } from 'react-redux';
 import { fetchUserById } from '../Features/authSlice.js';
 
@@ -17,24 +22,41 @@ function Dashboard() {
   const location = useLocation();
   const { hash, pathname, search } = location;
   useEffect(() => {
-    // Check if authToken is present in cookies
-    const authToken = Cookies.get('authToken');
-    if (!authToken) {
-      // Redirect to the login page if not authenticated
-      navigate('/login');
-    } else {
-      const userId = extractUserIdFromToken(authToken);
-      dispatch(fetchUserById({ userId, authToken }));
+    const authToken = getAuthToken();
+    if (!authToken || isAuthSessionExpired()) {
+      expireAuthSession();
+      navigate('/login', { replace: true });
+      return;
     }
 
-    if(pathname=='/'){
-      navigate('/dashboard')
+    const userId = extractUserIdFromToken(authToken);
+    dispatch(fetchUserById({ userId, authToken }));
+
+    if (pathname === '/') {
+      navigate('/dashboard');
+      return;
     }
-  }, [pathname]); // Empty dependency array ensures this effect runs only once, similar to componentDidMount
+
+    const enforceStudentAccess = async () => {
+      if (isStudentRole()) {
+        const profileComplete = await syncStudentProfileStatus();
+        if (!profileComplete && pathname !== '/student') {
+          navigate('/student', { replace: true });
+          return;
+        }
+      }
+
+      if (!canAccessRoute(pathname)) {
+        navigate('/dashboard', { replace: true });
+      }
+    };
+
+    enforceStudentAccess();
+  }, [pathname, navigate, dispatch]);
 
   return (
     <Box minH="100vh" bg={useColorModeValue('#F9FBFC', 'gray.900')}>
-      <Sidebar onClose={onClose} display={{ base: 'none', md: 'block' }} />
+      <Sidebar onClose={onClose} />
       <Drawer
         autoFocus={false}
         isOpen={isOpen}
@@ -43,13 +65,19 @@ function Dashboard() {
         returnFocusOnClose={false}
         onOverlayClick={onClose}
         size="full">
-        <DrawerContent>
-          <Sidebar onClose={onClose} />
+        <DrawerContent h="100dvh" maxH="100dvh" overflow="hidden">
+          <Sidebar onClose={onClose} isMobileDrawer />
         </DrawerContent>
       </Drawer>
       <MobileNav onOpen={onOpen} />
-      <Box ml={{ base: 0, md: 60 }} p="6">
-        <Outlet /> {/* This renders nested child routes */}
+      <Box
+        ml={{ base: 0, md: 60 }}
+        px={{ base: 3, sm: 4, md: 6 }}
+        py={{ base: 3, md: 6 }}
+        maxW="100%"
+        overflowX="hidden"
+      >
+        <Outlet />
       </Box>
     </Box>
   );

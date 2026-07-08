@@ -8,11 +8,8 @@ import {
   Th,
   Td,
   TableContainer,
-  HStack,
   FormControl,
-  FormLabel,
   Input,
-  Select,
   Button,
 } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
@@ -24,104 +21,113 @@ import {
   setPageFilter,
   setQueryFilter,
 } from "../../Features/attendanceSlice";
-import { fetchBatches, selectAllBatches } from "../../Features/batchSlice";
-import { fetchCourses, selectAllCourses } from "../../Features/courseSlice";
+import { fetchBatches, selectActiveBatches, fetchBatchCourses, selectBatchCourses } from "../../Features/batchSlice";
 import TableSearch from "../../Components/TableSearch";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TablePagination from "../../Components/TablePagination";
+import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
+import SearchableCourseSelect from "../../Components/SearchableCourseSelect";
 import { downloadExcel } from "react-export-table-to-excel";
 import moment from "moment";
+import { isStudentViewOnly } from "../../utlls/studentAccess";
+import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 
 function Attendance() {
+  const viewOnly = isStudentViewOnly();
   const tableSearchRef = useRef();
 
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
-  const [selectedBatch, setSelectedBatch] = useState("");
-
+  const [authToken] = useState(Cookies.get("authToken"));
   const [formCourse, setFormCourse] = useState("");
   const [formBatch, setFormBatch] = useState("");
   const [formDate, setFormDate] = useState("");
-
+  const [formStartDate, setFormStartDate] = useState("");
+  const [formEndDate, setFormEndDate] = useState("");
   const [loading, setLoading] = useState(false);
 
   const attendances = useSelector(selectAttendances);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
+  const batchCourses = useSelector(selectBatchCourses);
   const { status, pagination } = useSelector((state) => state.attendance);
   const dispatch = useDispatch();
 
-  const handleFormBatchChange = (e) => {
-    setFormCourse("");
-    setFormDate("");
-    setFormBatch(e.target.value);
-    setSelectedBatch(batches.find((batch) => batch._id === e.target.value));
-    dispatch(
-      fetchAttendances({
-        authToken,
-        course_id: formCourse,
-        batch_id: e.target.value,
-        date: formDate,
-      })
-    );
+  const filterPayload = {
+    course_id: formCourse,
+    batch_id: formBatch,
+    date: formStartDate || formEndDate ? "" : formDate,
+    start_date: formStartDate,
+    end_date: formEndDate,
   };
 
-  const handleFormCourseChange = (e) => {
-    setFormCourse(e.target.value);
-    dispatch(
-      fetchAttendances({
-        authToken,
-        course_id: e.target.value,
-        batch_id: formBatch,
-        date: formDate,
-      })
-    );
+  const buildParams = (overrides = {}) => ({
+    authToken,
+    ...filterPayload,
+    ...overrides,
+  });
+
+  const loadAttendances = (overrides = {}) => {
+    dispatch(fetchAttendances(buildParams(overrides)));
+  };
+
+  const handleFormBatchChange = (batchId) => {
+    setFormCourse("");
+    setFormBatch(batchId);
+    loadAttendances({ course_id: "", batch_id: batchId });
+  };
+
+  const handleFormCourseChange = (courseId) => {
+    setFormCourse(courseId);
+    loadAttendances({ course_id: courseId });
   };
 
   const handleFormDateChange = (e) => {
-    setFormDate(e.target.value);
-    dispatch(
-      fetchAttendances({
-        authToken,
-        course_id: formCourse,
-        batch_id: formBatch,
-        date: e.target.value,
-      })
-    );
+    const value = e.target.value;
+    setFormDate(value);
+    setFormStartDate("");
+    setFormEndDate("");
+    loadAttendances({ date: value, start_date: "", end_date: "" });
+  };
+
+  const handleStartDateChange = (e) => {
+    const value = e.target.value;
+    setFormStartDate(value);
+    setFormDate("");
+    loadAttendances({ date: "", start_date: value });
+  };
+
+  const handleEndDateChange = (e) => {
+    const value = e.target.value;
+    setFormEndDate(value);
+    setFormDate("");
+    loadAttendances({ date: "", end_date: value });
   };
 
   const handleClearFilters = () => {
-    tableSearchRef.current.clearSearch();
+    tableSearchRef.current?.clearSearch?.();
     setFormCourse("");
     setFormBatch("");
     setFormDate("");
-    dispatch(
-      fetchAttendances({
-        authToken,
-        course_id: "",
-        batch_id: "",
-        date: "",
-      })
-    );
+    setFormStartDate("");
+    setFormEndDate("");
+    loadAttendances({
+      course_id: "",
+      batch_id: "",
+      date: "",
+      start_date: "",
+      end_date: "",
+    });
   };
 
   const handleDownloadExcel = () => {
     setLoading(true);
-    dispatch(
-      fetchAttendances({
-        authToken,
-        course_id: formCourse,
-        batch_id: formBatch,
-        date: formDate,
-        download: true,
-      })
-    )
+    dispatch(fetchAttendances({ ...buildParams(), download: true }))
       .unwrap()
       .then((data) => {
-        const attendances = data.data;
+        const rows = data.data;
         downloadExcel({
           fileName: "StudentsAttendance[" + moment().format("DD/MM/YYYY") + "]",
           sheet: "Students Attendance",
-          tablePayload: attendances.map((attendance) => [
-            attendances.indexOf(attendance) + 1,
+          tablePayload: rows.map((attendance, index) => [
+            index + 1,
             attendance.date,
             attendance.student.name,
             attendance.batch.name,
@@ -139,92 +145,95 @@ function Attendance() {
 
   useEffect(() => {
     dispatch(fetchBatches({ authToken }));
-    dispatch(
-      fetchAttendances({
-        authToken,
-        course_id: formCourse,
-        batch_id: formBatch,
-        date: formDate,
-      })
-    );
+    loadAttendances();
   }, []);
+
+  useEffect(() => {
+    if (formBatch) {
+      dispatch(fetchBatchCourses({ authToken, batchId: formBatch }));
+    }
+  }, [authToken, dispatch, formBatch]);
+
+  const courseOptions = formBatch ? batchCourses : [];
 
   return (
     <>
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold ml-6 text-nowrap">Attendance</h1>
-        <div className="w-full flex items-center justify-end gap-3">
-          <div>
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchAttendances}
-            />
-          </div>
-          <HStack spacing={3}>
-            <FormControl>
-              <Select
-                placeholder="Select Batch"
-                w={48}
-                size={"lg"}
-                borderRadius="xl"
-                value={formBatch}
-                onChange={(e) => handleFormBatchChange(e)}
-              >
-                {batches.map((batch) => (
-                  <option key={batch._id} value={batch._id}>
-                    {batch.name}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            {selectedBatch && selectedBatch.courses.length > 0 && (
-              <FormControl>
-                <Select
-                  placeholder="Select Course"
-                  w={48}
-                  size={"lg"}
-                  borderRadius="xl"
-                  value={formCourse}
-                  onChange={(e) => handleFormCourseChange(e)}
-                >
-                  {selectedBatch?.courses?.map((course) => (
-                    <option key={course._id} value={course._id}>
-                      {course.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-            <FormControl>
-              <Input
-                type="date"
-                w={48}
-                size={"lg"}
-                borderRadius="xl"
-                value={formDate}
-                onChange={(e) => handleFormDateChange(e)}
+      <PageHeader title={viewOnly ? "My Attendance" : "Attendance"}>
+        <FilterStack>
+          {!viewOnly && (
+            <div className="w-full sm:max-w-xs">
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchAttendances}
+                payload={filterPayload}
               />
-            </FormControl>
-            <Button
-              size="icon"
-              p={4}
+            </div>
+          )}
+          {!viewOnly && (
+            <SearchableBatchSelect
+              batches={batches}
+              value={formBatch}
+              onChange={handleFormBatchChange}
+              placeholder="All Batches"
+              width="100%"
+            />
+          )}
+          {!viewOnly && formBatch && courseOptions.length > 0 && (
+            <SearchableCourseSelect
+              courses={courseOptions}
+              value={formCourse}
+              onChange={handleFormCourseChange}
+              placeholder="All Courses"
+              width="100%"
+            />
+          )}
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Input
+              type="date"
+              size="lg"
               borderRadius="xl"
-              onClick={(e) => handleClearFilters(e)}
-            >
-              <FilterX className="h-4 w-4" />
-            </Button>
+              value={formDate}
+              onChange={handleFormDateChange}
+              title="Single date"
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={formStartDate}
+              onChange={handleStartDateChange}
+              title="From date"
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={formEndDate}
+              onChange={handleEndDateChange}
+              title="To date"
+            />
+          </FormControl>
+          <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+            <FilterX className="h-4 w-4" />
+          </Button>
+          {!viewOnly && (
             <button
-              className="whitespace-nowrap bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+              className="w-full sm:w-auto whitespace-nowrap bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
               onClick={handleDownloadExcel}
+              disabled={loading}
             >
               <Download size={20} />
               Excel File
             </button>
-          </HStack>
-        </div>
-      </div>
-      <div className="w-full bg-white mt-3 rounded-xl border border-[#E0E8EC]">
+          )}
+        </FilterStack>
+      </PageHeader>
+      <DataTableShell>
         <TableContainer>
           <Table variant="simple">
             <Thead>
@@ -268,13 +277,14 @@ function Attendance() {
             </Tbody>
           </Table>
         </TableContainer>
-      </div>
+      </DataTableShell>
       {status === "succeeded" && (
         <TablePagination
           pagination={pagination}
           setLimitFilter={setLimitFilter}
           setPageFilter={setPageFilter}
           method={fetchAttendances}
+          payload={filterPayload}
         />
       )}
     </>

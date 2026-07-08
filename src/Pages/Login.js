@@ -6,11 +6,13 @@ import {
   Input,
   VStack,
   Box,
+  Flex,
   useToast,
   Image,
   InputGroup,
   InputRightElement,
   IconButton,
+  Text,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -19,9 +21,16 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { Eye, EyeOff } from "lucide-react";
 import { config } from "../utlls/config.js";
-
-const bgImageUrl =
-  "https://scontent.flhe4-2.fna.fbcdn.net/v/t39.30808-6/414463992_281655228223938_6472109216520204944_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=5f2048&_nc_eui2=AeHiu9iJFBzhz-4JWuZ6AIyy3QGKTqbgZWfdAYpOpuBlZzrWY1San5W3ln-0LB7I2dcw8M54_GEXvO66vV259ySJ&_nc_ohc=iMYUxfsHDD0Q7kNvgHRYgxd&_nc_zt=23&_nc_ht=scontent.flhe4-2.fna&oh=00_AYDbVe5Tt0X-_ugcwgwYS6eVbG1iB9_1YBNXF2KiSq1CYw&oe=665A1615";
+import { storeAuthSession } from "../utlls/useful.js";
+import {
+  getSessionCookieExpiry,
+  isAuthSessionExpired,
+  markSessionStarted,
+} from "../utlls/authSession.js";
+import {
+  isStudentRole,
+  syncStudentProfileStatus,
+} from "../utlls/studentAccess.js";
 
 const Login = () => {
   const BASE_URL = config.BASE_URL;
@@ -32,13 +41,20 @@ const Login = () => {
   const handleClick = () => setShow(!show)
 
   useEffect(() => {
-    // Check if authToken is present in cookies
-    const authToken = Cookies.get("authToken");
-    if (authToken) {
-      // Redirect to dashboard or the page the user came from
-      navigate("/dashboard");
-    }
-  }, []); // Empty dependency array ensures this effect runs only once, similar to componentDidMount
+    const redirectIfAuthenticated = async () => {
+      const authToken = Cookies.get("authToken");
+      if (!authToken || isAuthSessionExpired()) return;
+
+      if (isStudentRole()) {
+        const profileComplete = await syncStudentProfileStatus();
+        navigate(profileComplete ? "/dashboard" : "/student");
+      } else {
+        navigate("/dashboard");
+      }
+    };
+
+    redirectIfAuthenticated();
+  }, []);
 
   const formik = useFormik({
     initialValues: {
@@ -50,42 +66,69 @@ const Login = () => {
       password: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      try {
-        const response = await axios.post(`${BASE_URL}/users/adminlogin`, values);
-        if (response.status === 200) {
-          // Login successful
-          toast({
-            title: "Logged in",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-          });
-          // Save authToken to cookies securely
-          const authToken = response.data.authToken;
-          const permissions = response.data.permissions;
-          Cookies.set("authToken", authToken, {
-            expires: 7,
-            secure: window.location.protocol === "https:",
-          });
-          sessionStorage.setItem("authToken", authToken);
-          sessionStorage.setItem("permissions", permissions);
-          // Redirect to dashboard with react router
-          navigate("/dashboard");
+      const completeLogin = (response) => {
+        toast({
+          title: "Logged in",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+
+        const authToken = response.data.authToken;
+        const permissions = response.data.permissions;
+        const role = response.data.role;
+        const studentId =
+          response.data.studentId || response.data.studentData?._id;
+        const profileUpdatedOnce =
+          response.data.studentData?.profile_updated_once === true;
+        const skipProfileCompletion =
+          response.data.studentData?.skip_profile_completion === true;
+        const profileRequired =
+          role?.toLowerCase() === "student" &&
+          !profileUpdatedOnce &&
+          !skipProfileCompletion;
+
+        const teacherId =
+          response.data.teacherId || response.data.teacherData?._id;
+
+        Cookies.set("authToken", authToken, {
+          expires: getSessionCookieExpiry(),
+          secure: window.location.protocol === "https:",
+        });
+        markSessionStarted();
+        storeAuthSession({
+          authToken,
+          permissions,
+          role,
+          studentId,
+          teacherId,
+          profileUpdatedOnce,
+          skipProfileCompletion,
+        });
+
+        if (profileRequired) {
+          navigate("/student");
         } else {
-          // Handle other status codes if needed
-          toast({
-            title: "Error",
-            description: "An error occurred during login",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-          });
+          navigate("/dashboard");
+        }
+      };
+
+      try {
+        let response;
+        try {
+          response = await axios.post(`${BASE_URL}/users/adminlogin`, values);
+        } catch (adminError) {
+          response = await axios.post(`${BASE_URL}/users/login`, values);
+        }
+
+        if (response.status === 200) {
+          completeLogin(response);
         }
       } catch (error) {
-        // Handle network errors or server errors
         toast({
           title: "Error",
-          description: "An error occurred during login",
+          description:
+            error.response?.data?.message || "An error occurred during login",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -96,35 +139,65 @@ const Login = () => {
 
   return (
     <Box
-      height={"100vh"}
-      width={"100vw"}
-      className="bg-[#F9FBFC] flex justify-center items-center"
+      minH="100dvh"
+      w="full"
+      maxW="100%"
+      overflowX="hidden"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      px={4}
+      position="relative"
+      backgroundImage="url('/lca%20upd.png')"
+      backgroundSize="cover"
+      backgroundPosition="center"
+      backgroundRepeat="no-repeat"
     >
+      <Box
+        position="absolute"
+        inset={0}
+        bg="whiteAlpha.800"
+        pointerEvents="none"
+      />
       <VStack
         spacing={6}
         align="stretch"
         width="100%"
         maxW="500px"
         margin="auto"
-        paddingX="4"
+        position="relative"
+        zIndex={1}
       >
-        <Image
-          h={70}
-          src="./logo_light.svg"
-          alt="Dan Abramov"
-          className="mx-auto"
-        />
-        {/* <Box textAlign="center" fontSize="2xl" fontWeight="semibold" className="invisible">
-          LCA Dashboard
-        </Box> */}
-        <p className="text-center text-md text-gray-500 -mt-3">
-          Welcome back! Please login to your account.
-        </p>
         <form
           onSubmit={formik.handleSubmit}
-          className="flex flex-col gap-5 mt-3 bg-white shadow-xl rounded-2xl p-8"
+          className="flex flex-col gap-5 bg-white shadow-xl rounded-2xl p-5 sm:p-8"
         >
-          <h1 className="text-xl font-medium">Login Form</h1>
+          <VStack spacing={0} align="stretch">
+            <Flex align="center" justify="center" gap={3}>
+              <Box overflow="hidden" w="40px" h="48px" flexShrink={0}>
+                <Image
+                  src="/logo_dark.svg"
+                  alt=""
+                  h="48px"
+                  w="180px"
+                  maxW="none"
+                  objectFit="none"
+                  objectPosition="left center"
+                />
+              </Box>
+              <Text
+                fontWeight="bold"
+                fontSize={{ base: "xl", sm: "2xl" }}
+                color="black"
+                lineHeight="short"
+              >
+                Lahore CSS Academy
+              </Text>
+            </Flex>
+            <Text textAlign="center" fontSize="sm" color="gray.500" fontStyle="italic">
+              Welcome back! Please login to your account.
+            </Text>
+          </VStack>
           <FormControl
             id="email"
             isInvalid={formik.touched.email && formik.errors.email}

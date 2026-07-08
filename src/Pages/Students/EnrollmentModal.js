@@ -33,6 +33,7 @@ import {
 } from "../../Features/enrollmentSlice";
 import {
   fetchBatches,
+  selectActiveBatches,
   selectCurrentActiveBatch,
   setLimitFilter,
 } from "../../Features/batchSlice";
@@ -46,7 +47,7 @@ const EnrollmentModal = ({ studentId }) => {
 
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
 
-  const batches = useSelector((state) => state.batches.batches);
+  const batches = useSelector(selectActiveBatches);
   const activeBatch = useSelector(selectCurrentActiveBatch);
   const studentEnrollments = useSelector(
     (state) => state.enrollments.studentEnrollments

@@ -18,7 +18,7 @@ const fetchAttendances = createAsyncThunk(
   "attendances/fetchAll",
   async (payload, { getState }) => {
     const state = getState();
-    const { authToken, course_id, batch_id, date } = payload;
+    const { authToken, course_id, batch_id, date, start_date, end_date } = payload;
     const response = await axios.get(`${BASE_URL}/attendence`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -28,6 +28,8 @@ const fetchAttendances = createAsyncThunk(
         course_id,
         batch_id,
         date,
+        start_date,
+        end_date,
       }
     });
     return response.data;

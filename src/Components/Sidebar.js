@@ -1,27 +1,20 @@
-// Sidebar.jsx
 import React from "react";
 import {
   Box,
   Flex,
-  Text,
   CloseButton,
-  Icon,
   useColorModeValue,
+  Image,
+  Text,
 } from "@chakra-ui/react";
-import {
-  FiHome,
-  FiTrendingUp,
-  FiCompass,
-  FiStar,
-  FiSettings,
-} from "react-icons/fi";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { routes } from "../routes";
-import { Image } from "@chakra-ui/react";
-// const LinkItems = [
-//   { name: 'Home', icon: FiHome },
-// ];
-export default function Sidebar({ onClose, ...rest }) {
+import { getVisibleRoutes } from "../utlls/studentAccess";
+
+export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
+  const visibleRoutes = getVisibleRoutes(routes);
+  const location = useLocation();
+
   return (
     <Box
       transition="3s ease"
@@ -29,34 +22,74 @@ export default function Sidebar({ onClose, ...rest }) {
       borderRight="1px"
       borderRightColor={useColorModeValue("#E0E0E0", "gray.700")}
       w={{ base: "full", md: 60 }}
-      pos="fixed"
-      h="full"
+      pos={isMobileDrawer ? "relative" : "fixed"}
+      top={isMobileDrawer ? undefined : 0}
+      left={isMobileDrawer ? undefined : 0}
+      h={isMobileDrawer ? "100%" : "100vh"}
+      maxH={isMobileDrawer ? "100dvh" : "100vh"}
+      display={isMobileDrawer ? "flex" : { base: "none", md: "flex" }}
+      flexDirection="column"
+      overflow="hidden"
+      zIndex={isMobileDrawer ? undefined : 10}
       {...rest}
     >
-      <Flex alignItems="center" mx="8" my="0" justifyContent="space-between">
-        <Box boxSize="sm" h={32} className="flex justify-center items-center">
-          <Image src="./logo_dark.svg" alt="Dan Abramov" className="w-40 mx-auto" />
-        </Box>
+      <Flex
+        alignItems="center"
+        mx={{ base: 4, md: 6 }}
+        my={0}
+        py={2}
+        justifyContent="space-between"
+        flexShrink={0}
+        gap={2}
+      >
+        <Flex align="center" gap={2} flex="1" minW={0}>
+          <Image
+            src="./logo_dark.svg"
+            alt="LCA Logo"
+            className="w-20 sm:w-24 shrink-0"
+            objectFit="contain"
+          />
+          <Text
+            color="white"
+            fontSize={{ base: "xs", sm: "sm" }}
+            fontWeight="bold"
+            lineHeight="short"
+            noOfLines={2}
+          >
+            Lahore CSS Academy
+          </Text>
+        </Flex>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
-      <div className="flex flex-col gap-2">
-      {routes.map((link) => (
-        <NavItem key={link.name} icon={link.icon} to={link.path}>
-          {link.name}
-        </NavItem>
-      ))}
-      </div>
+      <Box
+        flex="1 1 auto"
+        minH={0}
+        overflowY="auto"
+        overflowX="hidden"
+        pb={4}
+        className="sidebar-scroll"
+        sx={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div className="flex flex-col gap-2">
+          {visibleRoutes.map((link) => (
+            <NavItem
+              key={link.name}
+              icon={link.icon}
+              to={link.path}
+              isActive={location.pathname === link.path}
+            >
+              {link.name}
+            </NavItem>
+          ))}
+        </div>
+      </Box>
     </Box>
   );
 }
 
-const NavItem = ({ icon, children, to, ...rest }) => {
+const NavItem = ({ icon: Icon, children, to, isActive, ...rest }) => {
   return (
-    <Link
-      to={to}
-      style={{ textDecoration: "none" }}
-      _focus={{ boxShadow: "none" }}
-    >
+    <Link to={to} style={{ textDecoration: "none" }}>
       <Flex
         align="center"
         px="4"
@@ -66,23 +99,18 @@ const NavItem = ({ icon, children, to, ...rest }) => {
         role="group"
         cursor="pointer"
         _hover={{
-          bg: to !== window.location.pathname ? "#2C2C2C" : "",
-          color: to !== window.location.pathname ? "white" : "",
+          bg: !isActive ? "#2C2C2C" : "",
+          color: !isActive ? "white" : "",
         }}
-        bg={to === window.location.pathname ? "#FFCB82" : ""}
-        color={to === window.location.pathname ? "#222222" : "#D0D0D0"}
-        fontWeight={to === window.location.pathname ? "semibold" : "normal"}
+        bg={isActive ? "#FFCB82" : ""}
+        color={isActive ? "#222222" : "#D0D0D0"}
+        fontWeight={isActive ? "semibold" : "normal"}
         {...rest}
       >
-        {icon && (
-          <Icon
-            mr="5"
-            fontSize="20"
-            _groupHover={{
-              color: to !== window.location.pathname ? "white" : "",
-            }}
-            as={icon}
-          />
+        {Icon && (
+          <Box as="span" mr="5" display="inline-flex" flexShrink={0}>
+            <Icon size={20} />
+          </Box>
         )}
         {children}
       </Flex>

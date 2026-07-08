@@ -18,14 +18,22 @@ const initialState = {
 
 const fetchTimeTableEvents = createAsyncThunk(
   "timetable/fetchTimeTableEvents",
-  async ({ authToken }) => {
-    const response = await fetch(`${BASE_URL}/timetable`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
+  async ({ authToken, batch_id, course_id, teacher_id }) => {
+    const params = new URLSearchParams();
+    if (batch_id) params.set("batch_id", batch_id);
+    if (course_id) params.set("course_id", course_id);
+    if (teacher_id) params.set("teacher_id", teacher_id);
+    const queryString = params.toString();
+    const response = await fetch(
+      `${BASE_URL}/timetable${queryString ? `?${queryString}` : ""}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
     const data = await response.json();
     return data;
   }

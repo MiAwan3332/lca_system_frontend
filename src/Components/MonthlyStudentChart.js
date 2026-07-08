@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 import axios from 'axios';
+import { useColorModeValue } from '@chakra-ui/react';
+import { config } from '../utlls/config';
 
-const MonthlyColumnChart = ({ chartTitle }) => {
-  const [chartOptions] = useState({
+const buildChartParams = (filters = {}) => {
+  const params = new URLSearchParams();
+  const { batch_id, start_date, end_date } = filters;
+
+  if (batch_id) params.append('batch_id', batch_id);
+  if (start_date) params.append('start_date', start_date);
+  if (end_date) params.append('end_date', end_date);
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : '';
+};
+
+const MonthlyColumnChart = ({ chartTitle, filters = {} }) => {
+  const titleColor = useColorModeValue('#263238', '#f1f5f9');
+  const labelColor = useColorModeValue('#6E879C', '#94a3b8');
+  const dataLabelColor = useColorModeValue('#263238', '#f1f5f9');
+
+  const [chartOptions, setChartOptions] = useState({
     chart: {
       id: 'monthly-column-chart',
       type: 'bar',
@@ -14,9 +32,9 @@ const MonthlyColumnChart = ({ chartTitle }) => {
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
       ]
     },
-    colors: ['#FFCB82'], // Set the bar color here
+    colors: ['#FFCB82'],
     title: {
-      text: `${chartTitle}`,
+      text: chartTitle,
       align: 'center',
       style: {
         fontSize: '20px',
@@ -26,20 +44,43 @@ const MonthlyColumnChart = ({ chartTitle }) => {
     dataLabels: {
         enabled: true,
         style: {
-          colors: ['#000000'] // Set the data labels text color to black
+          colors: ['#000000']
         }
     }
   });
 
   const [chartSeries, setChartSeries] = useState([{
     name: 'Data',
-    data: [] // Initialize with an empty array
+    data: []
   }]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setChartOptions((prev) => ({
+      ...prev,
+      title: {
+        ...prev.title,
+        text: chartTitle,
+        style: { fontSize: '20px', color: titleColor },
+      },
+      xaxis: {
+        ...prev.xaxis,
+        labels: { style: { colors: labelColor } },
+      },
+      yaxis: {
+        labels: { style: { colors: labelColor } },
+      },
+      dataLabels: {
+        enabled: true,
+        style: { colors: [dataLabelColor] },
+      },
+    }));
+  }, [chartTitle, titleColor, labelColor, dataLabelColor]);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        // Get authToken from session storage
         const authToken = sessionStorage.getItem('authToken');
 
         if (!authToken) {
@@ -47,19 +88,29 @@ const MonthlyColumnChart = ({ chartTitle }) => {
           return;
         }
 
-        const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/students/students/graph`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}` // Include the authToken in the headers
+        const response = await axios.get(
+          `${config.BASE_URL}/students/students/graph${buildChartParams(filters)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`
+            }
           }
-        });
+        );
 
         const responseData = response.data;
-
-        // Map the response data to the chart data format
-        const chartData = responseData.map(item => {
-          const monthName = Object.keys(item)[0]; // Get the month name (e.g., "January")
-          return item[monthName]; // Get the value for that month
+        const monthLabels = responseData.map((item) => Object.keys(item)[0].slice(0, 3));
+        const chartData = responseData.map((item) => {
+          const monthName = Object.keys(item)[0];
+          return item[monthName];
         });
+
+        setChartOptions((prevOptions) => ({
+          ...prevOptions,
+          xaxis: {
+            ...prevOptions.xaxis,
+            categories: monthLabels,
+          },
+        }));
 
         setChartSeries([{
           name: 'Data',
@@ -67,11 +118,17 @@ const MonthlyColumnChart = ({ chartTitle }) => {
         }]);
       } catch (error) {
         console.error('Error fetching the data', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, []); // Empty dependency array means this effect runs once on component mount
+  }, [filters.batch_id, filters.start_date, filters.end_date, chartTitle]);
+
+  if (loading) {
+    return <div className="my-8 text-center dash-text-muted">Loading...</div>;
+  }
 
   return (
     <div className="chart my-8 w-full">

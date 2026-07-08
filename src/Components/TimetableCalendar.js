@@ -31,9 +31,7 @@ import { Select } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTeachers, selectAllTeachers } from "../Features/teacherSlice";
-import { fetchCourses, selectAllCourses } from "../Features/courseSlice";
-import { fetchBatches, selectAllBatches } from "../Features/batchSlice";
+import { fetchBatches, selectActiveBatches, setLimitFilter } from "../Features/batchSlice";
 import Cookies from "js-cookie";
 import {
   addTimeTableEvent,
@@ -44,8 +42,14 @@ import {
 import { Tab, TabList, TabPanels, Tabs } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import TimeTableEventEditForm from "./TimeTableEventEditForm";
+import { isStudentViewOnly } from "../utlls/studentAccess";
 
-export default function TimetableCalendar() {
+export default function TimetableCalendar({
+  filterBatchId = "",
+  filterCourseId = "",
+  filterTeacherId = "",
+}) {
+  const viewOnly = isStudentViewOnly();
   const {
     isOpen: isAddModalOpen,
     onOpen: onAddModalOpen,
@@ -74,13 +78,12 @@ export default function TimetableCalendar() {
   );
 
   const timeTableEvents = useSelector(selectTimeTableEvents);
-  const teachers = useSelector(selectAllTeachers);
-  const courses = useSelector(selectAllCourses);
-  const batches = useSelector(selectAllBatches);
+  const batches = useSelector(selectActiveBatches);
   const dispatch = useDispatch();
 
   const handleSelectSlot = useCallback(
     ({ start, end }) => {
+      if (viewOnly) return;
       setStart(start);
       setEnd(end);
       setDay(moment(start).format("YYYY-MM-DD"));
@@ -89,13 +92,66 @@ export default function TimetableCalendar() {
       formik.setFieldValue("end_time", moment(end).format("HH:mm"));
       onAddModalOpen();
     },
-    [setEvents]
+    [setEvents, viewOnly]
   );
 
   const handleSelectEvent = useCallback((event) => {
     setEventDetails(event);
     onEditModalOpen();
-  }, []);
+  }, [onEditModalOpen]);
+
+  const renderEventDetails = () => (
+    <ModalBody className="!p-0 flex flex-col gap-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Course
+        </Text>
+        <Divider />
+        <Text className="min-w-max">{eventDetails.courseName}</Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Teacher
+        </Text>
+        <Divider />
+        <Text className="min-w-max">{eventDetails.teacherName}</Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Batch
+        </Text>
+        <Divider />
+        <Text className="min-w-max">{eventDetails.batchName}</Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Start Time
+        </Text>
+        <Divider />
+        <Text className="min-w-max">
+          {moment(eventDetails.start).format("hh:mm a")}
+        </Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          End Time
+        </Text>
+        <Divider />
+        <Text className="min-w-max">
+          {moment(eventDetails.end).format("hh:mm a")}
+        </Text>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Date
+        </Text>
+        <Divider />
+        <Text className="min-w-max">
+          {moment(eventDetails.start).format("DD dddd, MMMM YYYY")}
+        </Text>
+      </div>
+    </ModalBody>
+  );
 
   const { defaultDate, scrollToTime } = useMemo(
     () => ({
@@ -168,12 +224,18 @@ export default function TimetableCalendar() {
   };
 
   useEffect(() => {
-    dispatch(fetchTimeTableEvents({ authToken }))
+    dispatch(setLimitFilter(100));
+    dispatch(fetchBatches({ authToken }));
+    dispatch(
+      fetchTimeTableEvents({
+        authToken,
+        batch_id: filterBatchId || undefined,
+        course_id: filterCourseId || undefined,
+        teacher_id: filterTeacherId || undefined,
+      })
+    )
       .unwrap()
       .then((data) => {
-        // dispatch(fetchTeachers({ authToken }));
-        // dispatch(fetchCourses({ authToken }));
-        dispatch(fetchBatches({ authToken }));
         const formattedDateTime = data.map((event) => formateDateTime(event));
         const formattedData = data.map((event, index) => ({
           ...event,
@@ -186,7 +248,7 @@ export default function TimetableCalendar() {
         }));
         setEvents(formattedData);
       });
-  }, [authToken]);
+  }, [authToken, filterBatchId, filterCourseId, filterTeacherId]);
 
   return (
     <>
@@ -195,13 +257,14 @@ export default function TimetableCalendar() {
           <Spinner />
         </div>
       ) : (
+        <div className="w-full h-full min-h-[300px]">
         <Calendar
           defaultDate={defaultDate}
           defaultView={Views.MONTH}
           events={events}
           onSelectEvent={handleSelectEvent}
-          onSelectSlot={handleSelectSlot}
-          selectable
+          onSelectSlot={viewOnly ? undefined : handleSelectSlot}
+          selectable={!viewOnly}
           scrollToTime={scrollToTime}
           components={{
             day: {
@@ -226,8 +289,32 @@ export default function TimetableCalendar() {
             },
           }}
         />
+        </div>
       )}
 
+      {viewOnly && (
+        <Modal isOpen={isEditModalOpen} onClose={onEditModalClose} isCentered>
+          <ModalOverlay />
+          <ModalContent className="p-4">
+            <ModalHeader className="text-xl font-semibold">
+              Class Details
+            </ModalHeader>
+            <ModalCloseButton />
+            {renderEventDetails()}
+            <ModalFooter>
+              <Button
+                borderRadius="0.75rem"
+                onClick={onEditModalClose}
+              >
+                Close
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {!viewOnly && (
+      <>
       {/* Add New Timetable Event Modal */}
       <Modal isOpen={isAddModalOpen} onClose={onAddModalClose}>
         <ModalOverlay />
@@ -396,64 +483,11 @@ export default function TimetableCalendar() {
             </TabList>
             <TabPanels>
               <TabPanel>
-                <ModalBody className="!p-0 flex flex-col gap-3">
-                  <div className="flex justify-between items-center gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Course
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">{eventDetails.courseName}</Text>
-                  </div>
-                  <div className="flex justify-between items-center gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Teacher
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {eventDetails.teacherName}
-                    </Text>
-                  </div>
-                  <div className="flex justify-between items-center gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Batch
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">{eventDetails.batchName}</Text>
-                  </div>
-                  <div className="flex justify-between items-center gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Start Time
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {moment(eventDetails.start).format("hh:mm a")}
-                    </Text>
-                  </div>
-                  <div className="flex justify-between items-center gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      End Time
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {moment(eventDetails.end).format("hh:mm a")}
-                    </Text>
-                  </div>
-                  <div className="flex justify-between items-center gap-4">
-                    <Text as="b" className="min-w-max" fontSize="md">
-                      Date
-                    </Text>
-                    <Divider />
-                    <Text className="min-w-max">
-                      {moment(eventDetails.start).format("DD dddd, MMMM YYYY")}
-                    </Text>
-                  </div>
-                </ModalBody>
+                {renderEventDetails()}
               </TabPanel>
               <TabPanel>
                 <TimeTableEventEditForm
                   event={eventDetails}
-                  teachers={teachers}
-                  courses={courses}
                   batches={batches}
                   onClose={onEditModalClose}
                 />
@@ -493,6 +527,8 @@ export default function TimetableCalendar() {
           </Tabs>
         </ModalContent>
       </Modal>
+      </>
+      )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -12,39 +12,44 @@ import {
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import {
-  fetchTimeTableEvents,
-  updateTimeTableEvent,
-} from "../Features/timetableSlice";
+import { updateTimeTableEvent } from "../Features/timetableSlice";
 import { useDispatch, useSelector } from "react-redux";
 import Cookies from "js-cookie";
 
-function TimeTableEventEditForm({
-  event,
-  teachers,
-  courses,
-  batches,
-  onClose,
-}) {
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+const getRefId = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value._id || "";
+};
+
+const findBatchById = (batches, batchId) => {
+  if (!batchId || !Array.isArray(batches)) return null;
+  return batches.find((batch) => batch._id === batchId) || null;
+};
+
+function TimeTableEventEditForm({ event, batches = [], onClose }) {
+  const [authToken] = useState(Cookies.get("authToken"));
   const { updateStatus } = useSelector((state) => state.timetable);
   const dispatch = useDispatch();
 
-  const [selectedBatch, setSelectedBatch] = useState(batches.find((batch) => batch._id === event.batch._id));
+  const eventBatchId = getRefId(event?.batch);
+  const [selectedBatch, setSelectedBatch] = useState(() =>
+    findBatchById(batches, eventBatchId)
+  );
 
-  const batchChangeHandler = (e) => {
-    formik.handleChange(e);
-    setSelectedBatch(batches.find((batch) => batch._id === e.target.value));
-  };
+  useEffect(() => {
+    setSelectedBatch(findBatchById(batches, getRefId(event?.batch)));
+  }, [event, batches]);
 
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: {
-      day: event.day,
-      start_time: event.start_time,
-      end_time: event.end_time,
-      teacher: event.teacher._id,
-      course: event.course._id,
-      batch: event.batch._id,
+      day: event?.day || "",
+      start_time: event?.start_time || "",
+      end_time: event?.end_time || "",
+      teacher: getRefId(event?.teacher),
+      course: getRefId(event?.course),
+      batch: eventBatchId,
     },
     validationSchema: Yup.object({
       day: Yup.string().required("Required"),
@@ -69,6 +74,17 @@ function TimeTableEventEditForm({
     },
   });
 
+  const batchChangeHandler = (e) => {
+    formik.handleChange(e);
+    setSelectedBatch(findBatchById(batches, e.target.value));
+    formik.setFieldValue("course", "");
+    formik.setFieldValue("teacher", "");
+  };
+
+  if (!event?._id) {
+    return null;
+  }
+
   return (
     <>
       <form onSubmit={formik.handleSubmit}>
@@ -79,7 +95,7 @@ function TimeTableEventEditForm({
               <Input
                 type="date"
                 name="day"
-                borderRadius={"0.5rem"}
+                borderRadius="0.5rem"
                 value={formik.values.day}
                 onChange={formik.handleChange}
               />
@@ -94,7 +110,7 @@ function TimeTableEventEditForm({
               <Input
                 type="time"
                 name="start_time"
-                borderRadius={"0.5rem"}
+                borderRadius="0.5rem"
                 value={formik.values.start_time}
                 onChange={formik.handleChange}
               />
@@ -109,7 +125,7 @@ function TimeTableEventEditForm({
               <Input
                 type="time"
                 name="end_time"
-                borderRadius={"0.5rem"}
+                borderRadius="0.5rem"
                 value={formik.values.end_time}
                 onChange={formik.handleChange}
               />
@@ -124,7 +140,7 @@ function TimeTableEventEditForm({
               <Select
                 placeholder="Select Batch"
                 name="batch"
-                borderRadius={"0.5rem"}
+                borderRadius="0.5rem"
                 value={formik.values.batch}
                 onChange={batchChangeHandler}
               >
@@ -140,48 +156,59 @@ function TimeTableEventEditForm({
                 </Box>
               ) : null}
             </FormControl>
-            <FormControl id="course">
-              <FormLabel fontSize={14}>Course</FormLabel>
-              <Select
-                placeholder="Select Course"
-                name="course"
-                borderRadius={"0.5rem"}
-                value={formik.values.course}
-                onChange={formik.handleChange}
-              >
-                {selectedBatch.courses?.map((course) => (
-                  <option key={course._id} value={course._id}>
-                    {course.name}
-                  </option>
-                ))}
-              </Select>
-              {formik.touched.course && formik.errors.course ? (
-                <Box color="red" fontSize="sm">
-                  {formik.errors.course}
+            {selectedBatch ? (
+              <>
+                <FormControl id="course">
+                  <FormLabel fontSize={14}>Course</FormLabel>
+                  <Select
+                    placeholder="Select Course"
+                    name="course"
+                    borderRadius="0.5rem"
+                    value={formik.values.course}
+                    onChange={formik.handleChange}
+                  >
+                    {(selectedBatch.courses || []).map((course) => (
+                      <option key={course._id} value={course._id}>
+                        {course.name}
+                      </option>
+                    ))}
+                  </Select>
+                  {formik.touched.course && formik.errors.course ? (
+                    <Box color="red" fontSize="sm">
+                      {formik.errors.course}
+                    </Box>
+                  ) : null}
+                </FormControl>
+                <FormControl id="teacher">
+                  <FormLabel fontSize={14}>Teacher</FormLabel>
+                  <Select
+                    placeholder="Select Teacher"
+                    name="teacher"
+                    borderRadius="0.5rem"
+                    value={formik.values.teacher}
+                    onChange={formik.handleChange}
+                  >
+                    {(selectedBatch.teachers || []).map((teacher) => (
+                      <option key={teacher._id} value={teacher._id}>
+                        {teacher.name}
+                      </option>
+                    ))}
+                  </Select>
+                  {formik.touched.teacher && formik.errors.teacher ? (
+                    <Box color="red" fontSize="sm">
+                      {formik.errors.teacher}
+                    </Box>
+                  ) : null}
+                </FormControl>
+              </>
+            ) : (
+              formik.values.batch && (
+                <Box fontSize="sm" color="orange.600">
+                  Batch details are loading or unavailable. Select the batch
+                  again to edit course and teacher.
                 </Box>
-              ) : null}
-            </FormControl>
-            <FormControl id="teacher">
-              <FormLabel fontSize={14}>Teacher</FormLabel>
-              <Select
-                placeholder="Select Teacher"
-                name="teacher"
-                borderRadius={"0.5rem"}
-                value={formik.values.teacher}
-                onChange={formik.handleChange}
-              >
-                {selectedBatch.teachers?.map((teacher) => (
-                  <option key={teacher._id} value={teacher._id}>
-                    {teacher.name}
-                  </option>
-                ))}
-              </Select>
-              {formik.touched.teacher && formik.errors.teacher ? (
-                <Box color="red" fontSize="sm">
-                  {formik.errors.teacher}
-                </Box>
-              ) : null}
-            </FormControl>
+              )
+            )}
           </VStack>
         </ModalBody>
 
@@ -189,20 +216,20 @@ function TimeTableEventEditForm({
           <Button
             variant="ghost"
             mr={3}
-            borderRadius={"0.75rem"}
+            borderRadius="0.75rem"
             onClick={onClose}
           >
             Close
           </Button>
           <Button
-            borderRadius={"0.75rem"}
-            backgroundColor={"#FFCB82"}
-            color={"#85652D"}
+            borderRadius="0.75rem"
+            backgroundColor="#FFCB82"
+            color="#85652D"
             _hover={{
               backgroundColor: "#E3B574",
               color: "#654E26",
             }}
-            fontWeight={"500"}
+            fontWeight="500"
             type="submit"
             loadingText="Saving"
             isLoading={updateStatus === "loading"}

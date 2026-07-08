@@ -15,7 +15,14 @@ const initialState = {
   batches: [],
   batchCourses: [],
   batchTeachers: [],
-  filters: TABLE_FILTERS,
+  batchTeacherAssignments: [],
+  filters: {
+    ...TABLE_FILTERS,
+    is_active: "",
+    batch_type: "",
+    start_date: "",
+    end_date: "",
+  },
   pagination: TABLE_PAGINATION,
   fetchStatus: "idle",
   addStatus: "idle",
@@ -25,6 +32,9 @@ const initialState = {
   fetchBatchCoursesStatus: "idle",
   assignTeachersStatus: "idle",
   fetchBatchTeachersStatus: "idle",
+  assignTeacherCoursesStatus: "idle",
+  fetchBatchTeacherAssignmentsStatus: "idle",
+  toggleBatchStatusStatus: "idle",
   error: [],
 };
 
@@ -83,6 +93,26 @@ const deleteBatch = createAsyncThunk("batches/deleteBatch", async (payload) => {
   const data = await response.json();
   return data;
 });
+
+const toggleBatchStatus = createAsyncThunk(
+  "batches/toggleBatchStatus",
+  async (payload) => {
+    const { authToken, id, is_active } = payload;
+    const response = await fetch(`${BASE_URL}/batches/toggle-status/${id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ is_active }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update batch status");
+    }
+    return data;
+  }
+);
 
 const assignCoursesToBatch = createAsyncThunk(
   "batches/assignCoursesToBatch",
@@ -148,6 +178,44 @@ const fetchBatchTeachers = createAsyncThunk(
   }
 );
 
+const fetchBatchTeacherAssignments = createAsyncThunk(
+  "batches/fetchBatchTeacherAssignments",
+  async (payload) => {
+    const { authToken, batchId } = payload;
+    const response = await fetch(`${BASE_URL}/batches/teacher-assignments/${batchId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch teacher assignments");
+    }
+    return data;
+  }
+);
+
+const assignTeacherCoursesToBatch = createAsyncThunk(
+  "batches/assignTeacherCoursesToBatch",
+  async (payload) => {
+    const { authToken, batchId, assignments } = payload;
+    const response = await fetch(`${BASE_URL}/batches/assignTeacherCourses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ batchId, assignments }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to assign teachers");
+    }
+    return data;
+  }
+);
+
 const batchSlice = createSlice({
   name: "batches",
   initialState,
@@ -161,6 +229,30 @@ const batchSlice = createSlice({
       setLimitFilter(state, action) {
         state.filters.page = 1;
         state.filters.limit = action.payload;
+      },
+      setStatusFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.is_active = action.payload;
+      },
+      setBatchTypeFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.batch_type = action.payload;
+      },
+      setStartDateFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.start_date = action.payload;
+      },
+      setEndDateFilter(state, action) {
+        state.filters.page = 1;
+        state.filters.end_date = action.payload;
+      },
+      clearBatchFilters(state) {
+        state.filters.page = 1;
+        state.filters.query = "";
+        state.filters.is_active = "";
+        state.filters.batch_type = "";
+        state.filters.start_date = "";
+        state.filters.end_date = "";
       },
   },
 
@@ -220,8 +312,21 @@ const batchSlice = createSlice({
       })
       .addCase(updateBatch.fulfilled, (state, action) => {
         state.updateStatus = "success";
+        const index = state.batches.findIndex(
+          (batch) => batch._id === action.payload._id
+        );
+        if (index !== -1) {
+          state.batches[index] = {
+            ...state.batches[index],
+            ...action.payload,
+          };
+        }
+        const studentsDeactivated = action.payload.students_deactivated_count || 0;
         toast({
-          title: "Batch Updated Successfully",
+          title:
+            studentsDeactivated > 0
+              ? `Batch updated. ${studentsDeactivated} student(s) also deactivated.`
+              : "Batch Updated Successfully",
           status: "success",
           duration: 9000,
           isClosable: true,
@@ -234,6 +339,43 @@ const batchSlice = createSlice({
           title: "Batch Update Failed",
           status: "error",
           duration: 9000,
+          isClosable: true,
+        });
+      })
+
+      .addCase(toggleBatchStatus.pending, (state) => {
+        state.toggleBatchStatusStatus = "loading";
+      })
+      .addCase(toggleBatchStatus.fulfilled, (state, action) => {
+        state.toggleBatchStatusStatus = "success";
+        const index = state.batches.findIndex(
+          (batch) => batch._id === action.payload._id
+        );
+        if (index !== -1) {
+          state.batches[index] = {
+            ...state.batches[index],
+            ...action.payload,
+          };
+        }
+        toast({
+          title:
+            action.payload.is_active !== false
+              ? "Batch activated successfully"
+              : action.payload.students_deactivated_count
+              ? `Batch deactivated. ${action.payload.students_deactivated_count} student(s) also deactivated.`
+              : "Batch deactivated successfully",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+      .addCase(toggleBatchStatus.rejected, (state, action) => {
+        state.toggleBatchStatusStatus = "failure";
+        state.error.push(action.error.message);
+        toast({
+          title: action.error.message || "Failed to update batch status",
+          status: "error",
+          duration: 5000,
           isClosable: true,
         });
       })
@@ -334,13 +476,56 @@ const batchSlice = createSlice({
       .addCase(fetchBatchTeachers.rejected, (state, action) => {
         state.fetchBatchTeachersStatus = "failure";
         state.error.push(action.error.message);
+      })
+
+      .addCase(fetchBatchTeacherAssignments.pending, (state) => {
+        state.fetchBatchTeacherAssignmentsStatus = "loading";
+      })
+      .addCase(fetchBatchTeacherAssignments.fulfilled, (state, action) => {
+        state.fetchBatchTeacherAssignmentsStatus = "success";
+        state.batchTeacherAssignments = action.payload;
+      })
+      .addCase(fetchBatchTeacherAssignments.rejected, (state, action) => {
+        state.fetchBatchTeacherAssignmentsStatus = "failure";
+        state.error.push(action.error.message);
+      })
+
+      .addCase(assignTeacherCoursesToBatch.pending, (state) => {
+        state.assignTeacherCoursesStatus = "loading";
+      })
+      .addCase(assignTeacherCoursesToBatch.fulfilled, (state, action) => {
+        state.assignTeacherCoursesStatus = "success";
+        state.batchTeacherAssignments = action.payload;
+        toast({
+          title: "Teachers assigned to courses successfully",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+      .addCase(assignTeacherCoursesToBatch.rejected, (state, action) => {
+        state.assignTeacherCoursesStatus = "failure";
+        state.error.push(action.error.message);
+        toast({
+          title: action.error.message || "Teacher assignment failed",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       });
   },
 });
 
 export const selectAllBatches = (state) => state.batches.batches;
+export const selectActiveBatches = (state) =>
+  state.batches.batches.filter((batch) => batch.is_active !== false);
+
+export const filterActiveBatches = (batches = []) =>
+  batches.filter((batch) => batch?.is_active !== false);
 export const selectBatchCourses = (state) => state.batches.batchCourses;
 export const selectBatchTeachers = (state) => state.batches.batchTeachers;
+export const selectBatchTeacherAssignments = (state) =>
+  state.batches.batchTeacherAssignments;
 
 export const selectCurrentActiveBatch = (state) => {
   const batches = state.batches.batches;
@@ -353,11 +538,14 @@ export {
   addBatch,
   updateBatch,
   deleteBatch,
+  toggleBatchStatus,
   assignCoursesToBatch,
   fetchBatchCourses,
   assignTeachersToBatch,
   fetchBatchTeachers,
+  fetchBatchTeacherAssignments,
+  assignTeacherCoursesToBatch,
 };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = batchSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setStatusFilter, setBatchTypeFilter, setStartDateFilter, setEndDateFilter, clearBatchFilters } = batchSlice.actions;
 
 export default batchSlice.reducer;

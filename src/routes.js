@@ -16,10 +16,23 @@ import Roles from "./Pages/Roles/Roles.js";
 import Permissions from "./Pages/Permissions/Permissions.js";
 import Seminars from "./Pages/Seminar/seminar.js";
 import { FaQuestionCircle } from "react-icons/fa";
-import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound } from "lucide-react";
+import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell } from "lucide-react";
 import Timetable from "./Pages/Timetable/Timetable.js";
 import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
+import FinanceReport from "./Pages/FinanceReport/FinanceReport.js";
+import Expense from "./Pages/Expense/Expense.js";
+import Quiz from "./Pages/Quiz/Quiz.js";
+import Assignments from "./Pages/Assignments/Assignments.js";
+import CourseQuizzes from "./Pages/CourseQuizzes/CourseQuizzes.js";
+import Complaints from "./Pages/Complaints/Complaints.js";
+import Announcements from "./Pages/Announcements/Announcements.js";
+import NotificationsPage from "./Pages/Notifications/NotificationsPage.js";
+import {
+  StudentActivityLogs,
+  TeacherActivityLogs,
+  AdminActivityLogs,
+} from "./Pages/ActivityLogs/ActivityLogsPage.js";
 
 export const routes = [
   { name: "Dashboard", icon: LayoutDashboard, component: <Home />, path: "/dashboard" },
@@ -32,9 +45,22 @@ export const routes = [
   },
   {
     name: "Fees",
+    studentName: "My Finance",
     icon: CircleDollarSign,
     component: <Fees />,
     path: "/fees",
+  },
+  {
+    name: "Finance Report",
+    icon: BarChart3,
+    component: <FinanceReport />,
+    path: "/finance-report",
+  },
+  {
+    name: "Expenses",
+    icon: Receipt,
+    component: <Expense />,
+    path: "/expenses",
   },
   {
     name: "Teachers",
@@ -79,6 +105,43 @@ export const routes = [
     path: "/mcq",
   },
   {
+    name: "Quiz",
+    icon: BrainCircuit,
+    component: <Quiz />,
+    path: "/quiz",
+  },
+  {
+    name: "Assignments",
+    icon: ClipboardList,
+    component: <Assignments />,
+    path: "/assignments",
+  },
+  {
+    name: "Course Quizzes",
+    icon: BookOpenCheck,
+    component: <CourseQuizzes />,
+    path: "/course-quizzes",
+  },
+  {
+    name: "Complaints",
+    icon: MessageSquareWarning,
+    component: <Complaints />,
+    path: "/complaints",
+  },
+  {
+    name: "Announcements",
+    icon: Megaphone,
+    component: <Announcements />,
+    path: "/announcements",
+  },
+  {
+    name: "Notifications",
+    icon: Bell,
+    component: <NotificationsPage />,
+    path: "/notifications",
+    adminOnly: true,
+  },
+  {
     name: "Roles",
     icon: UserRoundCog,
     component: <Roles />,
@@ -89,5 +152,23 @@ export const routes = [
     icon: ListChecks,
     component: <Permissions />,
     path: "/permission",
+  },
+  {
+    name: "Student Logs",
+    icon: ScrollText,
+    component: <StudentActivityLogs />,
+    path: "/activity-logs/students",
+  },
+  {
+    name: "Teacher Logs",
+    icon: ClipboardPenLine,
+    component: <TeacherActivityLogs />,
+    path: "/activity-logs/teachers",
+  },
+  {
+    name: "Admin Logs",
+    icon: Shield,
+    component: <AdminActivityLogs />,
+    path: "/activity-logs/admins",
   },
 ];

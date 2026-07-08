@@ -11,11 +11,10 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@chakra-ui/react";
-import { Text, Divider } from "@chakra-ui/react";
-import TableRowLoading from "../../Components/TableRowLoading";
+import { Text } from "@chakra-ui/react";
 import { TableContainer } from "@chakra-ui/react";
 import Cookies from "js-cookie";
-import { Eye } from "lucide-react";
+import { Eye, UserPlus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAttendeesBySeminar,
@@ -27,6 +26,11 @@ import {
 import moment from "moment";
 import { downloadExcel } from "react-export-table-to-excel";
 import TablePagination from "../../Components/TablePagination";
+import AddAttendeeModal from "./AddAttendeeModal";
+import {
+  getResponsiveModalSize,
+  responsiveModalContentProps,
+} from "../../utlls/responsiveModal";
 
 const AttendeesModal = ({ seminar }) => {
   const fileHeaders = [
@@ -40,11 +44,19 @@ const AttendeesModal = ({ seminar }) => {
     "age",
   ];
 
-  const [isOpen, setIsOpen] = React.useState(false);
-  const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+  const onOpen = () => setIsOpen(true);
+  const onClose = () => {
+    setIsOpen(false);
+    setIsAddOpen(false);
+  };
+
+  const onAddOpen = () => setIsAddOpen(true);
+  const onAddClose = () => setIsAddOpen(false);
+
+  const [authToken] = useState(Cookies.get("authToken"));
   const [loading, setLoading] = useState(false);
 
   const { fetchStatus, pagination } = useSelector(
@@ -53,8 +65,12 @@ const AttendeesModal = ({ seminar }) => {
   const seminarAttendees = useSelector(selectSeminarAttendees);
   const dispatch = useDispatch();
 
-  const handleModalOpen = () => {
+  const refreshAttendees = () => {
     dispatch(fetchAttendeesBySeminar({ authToken, seminarId: seminar._id }));
+  };
+
+  const handleModalOpen = () => {
+    refreshAttendees();
     onOpen();
   };
 
@@ -68,7 +84,6 @@ const AttendeesModal = ({ seminar }) => {
       .unwrap()
       .then((data) => {
         const attendees = data.docs;
-        console.log(attendees);
         downloadExcel({
           fileName:
             "AttendeesSheet[" + seminar.name + "][" + seminar.date + "]",
@@ -83,7 +98,7 @@ const AttendeesModal = ({ seminar }) => {
               attendee.city,
               attendee.qualification,
               attendee.age,
-              attendee.attend_type.map(
+              attendee.attend_type?.map(
                 (type, index) =>
                   ("" + type)?.toString().replace(/,/g, "") +
                   (index < attendee.attend_type.length - 1 ? ", " : "")
@@ -94,7 +109,7 @@ const AttendeesModal = ({ seminar }) => {
         setTimeout(() => {
           dispatch(setLimitFilter(tempLimit));
           setTimeout(() => {
-            dispatch(fetchAttendeesBySeminar({ authToken, seminarId: seminar._id }));
+            refreshAttendees();
             setLoading(false);
           }, 1000);
         }, 1000);
@@ -110,40 +125,45 @@ const AttendeesModal = ({ seminar }) => {
         <Eye size={18} />
       </button>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="6xl">
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        {...getResponsiveModalSize("6xl")}
+      >
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Seminar Attendees
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <div className="flex flex-col gap-2 mb-6 border-l-4 border-blue-400 pl-6 ml-5 py-4">
-              <div className="flex justify-start items-center gap-4">
-                <Text as="b" className="w-[100px]" fontSize="md">
+            <div className="flex flex-col gap-2 mb-6 border-l-4 border-blue-400 pl-4 sm:pl-6 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                <Text as="b" className="w-[100px] shrink-0" fontSize="md">
                   Event Name:
                 </Text>
-                <Text className="min-w-max">{seminar.name}</Text>
+                <Text>{seminar.name}</Text>
               </div>
-              <div className="flex justify-start items-start gap-4">
-                <Text as="b" className="w-[100px]" fontSize="md">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                <Text as="b" className="w-[100px] shrink-0" fontSize="md">
                   Description:
                 </Text>
-                <Text className="w-[calc(100%-200px)] text-wrap line-clamp-4">
+                <Text className="text-wrap line-clamp-4">
                   {seminar.description}
                 </Text>
               </div>
-              <div className="flex justify-start items-center gap-4">
-                <Text as="b" className="w-[100px]" fontSize="md">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                <Text as="b" className="w-[100px] shrink-0" fontSize="md">
                   Date:
                 </Text>
-                <Text className="min-w-max">
+                <Text>
                   {moment(seminar.date + " " + seminar.time).format(
                     "dddd DD, MMMM YYYY"
                   )}
                 </Text>
               </div>
             </div>
+
             {fetchStatus === "loading" || loading ? (
               <div className="flex justify-center items-center h-40 rounded-xl border border-[#E0E8EC]">
                 <Spinner />
@@ -174,13 +194,14 @@ const AttendeesModal = ({ seminar }) => {
                               <Td>{seminarAttendees.indexOf(attendee) + 1}</Td>
                               <Td>{attendee.name}</Td>
                               <Td>{attendee.phone}</Td>
-                              <Td>{attendee.email ? attendee.email : 'N/A'}</Td>
-                              <Td>{attendee.city}</Td>
-                              <Td>{attendee.qualification}</Td>
-                              <Td>{attendee.age ? attendee.email : 'N/A'}</Td>
+                              <Td>{attendee.email ? attendee.email : "N/A"}</Td>
+                              <Td>{attendee.city || "N/A"}</Td>
+                              <Td>{attendee.qualification || "N/A"}</Td>
+                              <Td>{attendee.age || "N/A"}</Td>
                               <Td>
-                                {attendee.attend_type && attendee.attend_type.length > 0 ? (
-                                  <span className="">
+                                {attendee.attend_type &&
+                                attendee.attend_type.length > 0 ? (
+                                  <span>
                                     {attendee.attend_type.map(
                                       (type, index) =>
                                         ("" + type)
@@ -192,7 +213,7 @@ const AttendeesModal = ({ seminar }) => {
                                     )}
                                   </span>
                                 ) : (
-                                  <span className="">N/A</span>
+                                  <span>N/A</span>
                                 )}
                               </Td>
                             </Tr>
@@ -216,22 +237,37 @@ const AttendeesModal = ({ seminar }) => {
             <Button
               variant="ghost"
               mr={3}
-              borderRadius={"0.75rem"}
+              borderRadius="0.75rem"
               onClick={onClose}
             >
               Close
             </Button>
             <Button
-              borderRadius={"0.75rem"}
-              backgroundColor={"#7AEF85"}
-              color={"#257947"}
+              leftIcon={<UserPlus size={18} />}
+              mr={3}
+              borderRadius="0.75rem"
+              backgroundColor="#FFCB82"
+              color="#85652D"
+              _hover={{
+                backgroundColor: "#E3B574",
+                color: "#654E26",
+              }}
+              fontWeight="500"
+              onClick={onAddOpen}
+            >
+              Add Attendee
+            </Button>
+            <Button
+              borderRadius="0.75rem"
+              backgroundColor="#7AEF85"
+              color="#257947"
               _hover={{
                 backgroundColor: "#65C76E",
                 color: "#184E2E",
               }}
-              fontWeight={"500"}
+              fontWeight="500"
               onClick={handleDownloadExcel}
-              loadingText="Deleting"
+              loadingText="Exporting"
               isLoading={loading}
             >
               Export Excel
@@ -239,6 +275,13 @@ const AttendeesModal = ({ seminar }) => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <AddAttendeeModal
+        seminar={seminar}
+        isOpen={isAddOpen}
+        onClose={onAddClose}
+        onAdded={refreshAttendees}
+      />
     </>
   );
 };

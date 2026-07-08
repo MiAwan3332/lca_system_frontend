@@ -23,7 +23,7 @@ const DeleteFeeModal = ({ fee }) => {
 
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
 
-  const { deleteStatus } = useSelector((state) => state.students);
+  const { deleteStatus } = useSelector((state) => state.fees);
   const dispatch = useDispatch();
 
   const handleDeleteFee = () => {

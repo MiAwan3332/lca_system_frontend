@@ -14,14 +14,17 @@ import {
     VStack,
     Box,
     Code,
+    HStack,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector } from "react-redux";
-import { HandCoins, Pen } from "lucide-react";
+import { HandCoins } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { fetchFees, payFee } from "../../Features/feeSlice.js";
+
+const PAYMENT_METHODS = ["Cash", "Online"];
 
 function PayFeeModal({ fee, isDisabled }) {
     const [isOpen, setIsOpen] = React.useState(false);
@@ -37,12 +40,24 @@ function PayFeeModal({ fee, isDisabled }) {
     const formik = useFormik({
         initialValues: {
             amount: 0,
+            payment_method: "Cash",
         },
         validationSchema: Yup.object({
             amount: Yup.number().min(1).max(fee.amount).required("Required"),
+            payment_method: Yup.string()
+                .oneOf(PAYMENT_METHODS, "Select Cash or Online")
+                .required("Required"),
         }),
         onSubmit: async (values) => {
-            dispatch(payFee({ authToken, id: fee._id, studentId: fee.student._id, amount: values.amount }))
+            dispatch(
+                payFee({
+                    authToken,
+                    id: fee._id,
+                    studentId: fee.student._id,
+                    amount: values.amount,
+                    payment_method: values.payment_method,
+                })
+            )
                 .unwrap()
                 .then(() => {
                     dispatch(fetchFees({ authToken }));
@@ -87,6 +102,34 @@ function PayFeeModal({ fee, isDisabled }) {
                                     />
                                     {formik.errors.amount && formik.touched.amount ? (
                                         <p className="text-red-500">{formik.errors.amount}</p>
+                                    ) : null}
+                                </FormControl>
+                                <FormControl isRequired>
+                                    <FormLabel>Payment Method</FormLabel>
+                                    <HStack spacing={2}>
+                                        {PAYMENT_METHODS.map((method) => (
+                                            <Button
+                                                key={method}
+                                                size="sm"
+                                                type="button"
+                                                variant={
+                                                    formik.values.payment_method === method
+                                                        ? "solid"
+                                                        : "outline"
+                                                }
+                                                colorScheme={method === "Cash" ? "yellow" : "blue"}
+                                                onClick={() =>
+                                                    formik.setFieldValue("payment_method", method)
+                                                }
+                                            >
+                                                {method}
+                                            </Button>
+                                        ))}
+                                    </HStack>
+                                    {formik.errors.payment_method && formik.touched.payment_method ? (
+                                        <Box color="red.500" fontSize="sm" mt={1}>
+                                            {formik.errors.payment_method}
+                                        </Box>
                                     ) : null}
                                 </FormControl>
                             </VStack>

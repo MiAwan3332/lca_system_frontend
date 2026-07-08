@@ -12,7 +12,11 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
   teachers: [],
-  filters: TABLE_FILTERS,
+  filters: {
+    ...TABLE_FILTERS,
+    search_field: "all",
+    batch_id: "",
+  },
   pagination: TABLE_PAGINATION,
   fetchStatus: "idle",
   addStatus: "idle",
@@ -93,6 +97,20 @@ const teacherSlice = createSlice({
       setLimitFilter(state, action) {
           state.filters.page = 1;
           state.filters.limit = action.payload;
+      },
+      setSearchFieldFilter(state, action) {
+          state.filters.page = 1;
+          state.filters.search_field = action.payload;
+      },
+      setBatchFilter(state, action) {
+          state.filters.page = 1;
+          state.filters.batch_id = action.payload;
+      },
+      clearTeacherFilters(state) {
+          state.filters.page = 1;
+          state.filters.query = "";
+          state.filters.search_field = "all";
+          state.filters.batch_id = "";
       },
   },
 
@@ -183,6 +201,6 @@ export const selectTeacherById = (state, teacherId) =>
   state.teachers.teachers.find((teacher) => teacher.id === teacherId);
 
 export { fetchTeachers, addTeacher, updateTeacher, deleteTeacher };
-export const { setQueryFilter, setPageFilter, setLimitFilter } = teacherSlice.actions;
+export const { setQueryFilter, setPageFilter, setLimitFilter, setSearchFieldFilter, setBatchFilter, clearTeacherFilters } = teacherSlice.actions;
 
 export default teacherSlice.reducer;
