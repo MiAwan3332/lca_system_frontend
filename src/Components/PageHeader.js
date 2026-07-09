@@ -8,7 +8,7 @@ export function PageHeader({ title, subtitle, children, className = "" }) {
     <div className={`page-header ${className}`.trim()}>
       <div className="page-header__title min-w-0">
         {typeof title === "string" ? (
-          <h1 className="text-lg sm:text-xl font-semibold break-words dash-text">
+          <h1 className="text-lg sm:text-xl font-semibold break-normal dash-text">
             {title}
           </h1>
         ) : (

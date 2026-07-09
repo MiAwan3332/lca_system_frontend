@@ -9,7 +9,6 @@ import {
   FormControl,
   Input,
   Select,
-  Skeleton,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -275,17 +274,19 @@ function NotificationsPage() {
         title="Notifications"
         subtitle="Daily fee due report, overdue alerts, complaints, and system updates."
       >
-        <Button
-          leftIcon={<CheckCheck size={16} />}
-          size="sm"
-          colorScheme="blue"
-          variant="outline"
-          isDisabled={unreadCount === 0}
-          isLoading={markingAll}
-          onClick={handleMarkAllRead}
-        >
-          Mark all read
-        </Button>
+        <FilterStack className="filter-stack--actions">
+          <Button
+            leftIcon={<CheckCheck size={16} />}
+            size="md"
+            borderRadius="xl"
+            variant="outline"
+            isDisabled={unreadCount === 0}
+            isLoading={markingAll}
+            onClick={handleMarkAllRead}
+          >
+            Mark all read
+          </Button>
+        </FilterStack>
       </PageHeader>
 
       <FeeDueReportPanel
@@ -301,10 +302,10 @@ function NotificationsPage() {
       </Text>
 
       <FilterStack className="filter-stack--panel filter-stack--table">
-        <FormControl maxW={{ base: "full", sm: "200px" }}>
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
           <Select
-            size="sm"
-            borderRadius="lg"
+            size="lg"
+            borderRadius="xl"
             value={filters.read_filter}
             onChange={handleReadFilterChange}
           >
@@ -313,10 +314,10 @@ function NotificationsPage() {
             <option value="read">Read only</option>
           </Select>
         </FormControl>
-        <FormControl maxW={{ base: "full", sm: "180px" }}>
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
           <Select
-            size="sm"
-            borderRadius="lg"
+            size="lg"
+            borderRadius="xl"
             value={filters.type}
             onChange={handleTypeChange}
           >
@@ -327,12 +328,12 @@ function NotificationsPage() {
             ))}
           </Select>
         </FormControl>
-        <FormControl maxW={{ base: "full", sm: "180px" }}>
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
           <Input
             type="date"
-            size="sm"
-            borderRadius="lg"
-            bg="white"
+            size="lg"
+            borderRadius="xl"
+            bg="#FAFBFC"
             value={filters.date}
             onChange={handleNotificationDateChange}
             placeholder="Notification date"
@@ -341,8 +342,9 @@ function NotificationsPage() {
         {(filters.read_filter !== "all" || filters.type !== "all" || filters.date) && (
           <Button
             leftIcon={<FilterX size={16} />}
-            size="sm"
-            variant="ghost"
+            size="md"
+            borderRadius="xl"
+            variant="outline"
             onClick={handleClearFilters}
           >
             Clear filters
@@ -368,10 +370,10 @@ function NotificationsPage() {
                 bg="white"
                 p={4}
               >
-                <Skeleton height="16px" width="120px" mb={3} borderRadius="md" />
-                <Skeleton height="20px" width="70%" mb={2} borderRadius="md" />
-                <Skeleton height="14px" width="100%" mb={1} borderRadius="md" />
-                <Skeleton height="14px" width="85%" borderRadius="md" />
+                <div className="h-4 w-28 dash-skeleton rounded-md mb-3" />
+                <div className="h-5 w-2/3 dash-skeleton rounded-md mb-2" />
+                <div className="h-4 w-full dash-skeleton rounded-md mb-1" />
+                <div className="h-4 w-5/6 dash-skeleton rounded-md" />
               </Box>
             ))}
           </VStack>

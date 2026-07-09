@@ -8,7 +8,6 @@ import {
   HStack,
   Input,
   SimpleGrid,
-  Skeleton,
   Stat,
   StatHelpText,
   StatLabel,
@@ -160,15 +159,15 @@ function FeeDueReportPanel({ report, loading, reportDate, onReportDateChange, on
   if (loading) {
     return (
       <Box mb={6}>
-        <Skeleton height="24px" width="240px" mb={4} borderRadius="md" />
+        <div className="h-6 w-60 dash-skeleton rounded-md mb-4" />
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={4}>
           {[1, 2, 3].map((key) => (
-            <Skeleton key={key} height="88px" borderRadius="xl" />
+            <div key={key} className="h-[88px] dash-skeleton rounded-xl" />
           ))}
         </SimpleGrid>
         <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={4}>
-          <Skeleton height="220px" borderRadius="xl" />
-          <Skeleton height="220px" borderRadius="xl" />
+          <div className="h-[220px] dash-skeleton rounded-xl" />
+          <div className="h-[220px] dash-skeleton rounded-xl" />
         </SimpleGrid>
       </Box>
     );
@@ -193,20 +192,20 @@ function FeeDueReportPanel({ report, loading, reportDate, onReportDateChange, on
             </Text>
             <Input
               type="date"
-              size="sm"
-              borderRadius="lg"
-              bg="white"
+              size="md"
+              borderRadius="xl"
+              bg="#FAFBFC"
               value={reportDate}
               onChange={(e) => onReportDateChange(e.target.value)}
             />
           </FormControl>
-          <Button size="sm" variant="outline" onClick={onRefresh}>
+          <Button size="md" borderRadius="xl" variant="outline" onClick={onRefresh}>
             Refresh
           </Button>
           <Button
-            size="sm"
+            size="md"
             leftIcon={<Download size={16} />}
-            colorScheme="blue"
+            borderRadius="xl"
             variant="outline"
             onClick={() => handleExport("download")}
             isDisabled={!report}
@@ -214,9 +213,9 @@ function FeeDueReportPanel({ report, loading, reportDate, onReportDateChange, on
             Download PDF
           </Button>
           <Button
-            size="sm"
+            size="md"
             leftIcon={<Printer size={16} />}
-            colorScheme="blue"
+            borderRadius="xl"
             onClick={() => handleExport("print")}
             isDisabled={!report}
           >

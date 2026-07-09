@@ -34,9 +34,9 @@ export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
     >
       <Flex
         alignItems="center"
-        mx={{ base: 4, md: 6 }}
+        mx={{ base: 4, md: 5 }}
         my={0}
-        py={2}
+        py={3}
         justifyContent="space-between"
         flexShrink={0}
         gap={2}
@@ -45,7 +45,7 @@ export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
           <Image
             src="/logo_dark.svg"
             alt="LCA Logo"
-            h={{ base: "42px", md: "48px" }}
+            h={{ base: "34px", md: "36px" }}
             w="auto"
             objectFit="contain"
           />

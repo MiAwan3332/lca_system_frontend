@@ -177,7 +177,7 @@ const Login = () => {
               <Image
                 src="/logo_light.svg"
                 alt="Lahore CSS Academy"
-                h={{ base: "58px", sm: "68px" }}
+                h={{ base: "44px", sm: "50px" }}
                 w="auto"
                 objectFit="contain"
               />

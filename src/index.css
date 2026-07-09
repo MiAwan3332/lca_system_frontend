@@ -66,6 +66,29 @@
     @apply justify-start;
   }
 
+  @media (min-width: 640px) {
+    .filter-stack--table > * {
+      flex: 0 1 14rem;
+      max-width: 18rem;
+    }
+
+    .filter-stack--table > .chakra-form-control {
+      max-width: 14rem;
+    }
+
+    .filter-stack--table > .period-toggle {
+      flex: 1 1 22rem;
+      max-width: none;
+    }
+
+    .filter-stack--table > .chakra-button,
+    .filter-stack--table > .chakra-icon-button,
+    .filter-stack--table > button {
+      flex: 0 0 auto;
+      max-width: none;
+    }
+  }
+
   .filter-stack .chakra-input,
   .filter-stack .chakra-select,
   .filter-stack .chakra-button {
