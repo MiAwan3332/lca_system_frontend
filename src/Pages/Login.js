@@ -233,14 +233,6 @@ const Login = () => {
           </motion.div>
 
           <VStack spacing={4} align="flex-start" as={motion.div} variants={fadeUpVariants}>
-            <Heading
-              fontSize={{ md: "4xl", lg: "5xl" }}
-              fontWeight="extrabold"
-              lineHeight="1.15"
-              letterSpacing="-0.02em"
-            >
-              Lahore CSS Academy
-            </Heading>
             <Text
               fontSize="lg"
               color="gray.300"

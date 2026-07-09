@@ -4,6 +4,7 @@ import {
   Badge,
   Box,
   Button,
+  Flex,
   FormControl,
   HStack,
   Input,
@@ -175,7 +176,7 @@ function FeeDueReportPanel({ report, loading, reportDate, onReportDateChange, on
 
   return (
     <Box mb={8}>
-      <HStack justify="space-between" align="flex-start" mb={4} flexWrap="wrap" gap={3}>
+      <Flex justify="space-between" align="flex-start" mb={4} flexWrap="wrap" gap={3} w="full">
         <Box>
           <Text fontSize="lg" fontWeight="semibold" color="#2D3748">
             Fee Due Report
@@ -185,7 +186,7 @@ function FeeDueReportPanel({ report, loading, reportDate, onReportDateChange, on
             {report?.generated_at || "just now"}
           </Text>
         </Box>
-        <HStack spacing={2} flexWrap="wrap" align="flex-end">
+        <Flex gap={3} flexWrap="wrap" align="flex-end" justify="flex-start">
           <FormControl maxW="180px">
             <Text fontSize="xs" color="gray.500" mb={1}>
               Report date
@@ -221,8 +222,8 @@ function FeeDueReportPanel({ report, loading, reportDate, onReportDateChange, on
           >
             Print
           </Button>
-        </HStack>
-      </HStack>
+        </Flex>
+      </Flex>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={4}>
         <Stat
