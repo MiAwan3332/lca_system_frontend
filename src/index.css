@@ -51,6 +51,46 @@
     @apply flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full sm:w-auto;
   }
 
+  .filter-stack--panel {
+    @apply w-full rounded-xl border p-3 sm:p-4;
+    background: var(--dash-surface);
+    border-color: var(--dash-border);
+    box-shadow: var(--dash-shadow);
+  }
+
+  .filter-stack--actions {
+    @apply justify-start sm:justify-end;
+  }
+
+  .filter-stack--table {
+    @apply justify-start;
+  }
+
+  .filter-stack .chakra-input,
+  .filter-stack .chakra-select,
+  .filter-stack .chakra-button {
+    min-height: 44px;
+  }
+
+  .topbar-search .chakra-input {
+    min-height: 44px;
+  }
+
+  .table-action-btn {
+    @apply w-full sm:w-auto font-medium rounded-xl flex items-center gap-1.5 justify-center transition-colors duration-300 border;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--dash-surface);
+    border-color: var(--dash-border);
+    color: var(--dash-text);
+  }
+
+  .table-action-btn:hover {
+    background: var(--dash-accent-soft);
+    border-color: var(--dash-accent-soft);
+    color: #85652D;
+  }
+
   .responsive-input {
     @apply w-full sm:w-auto min-w-0;
   }
@@ -203,6 +243,28 @@
     background-color: var(--dash-accent-soft);
     border-color: var(--dash-accent-soft);
     color: #222222;
+  }
+
+  .dash-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(90deg, var(--dash-surface-2) 25%, rgba(224, 232, 236, 0.75) 37%, var(--dash-surface-2) 63%);
+    background-size: 400% 100%;
+    animation: dash-skeleton-shimmer 1.4s ease infinite;
+  }
+
+  .chakra-ui-dark .dash-skeleton {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 37%, #1e293b 63%);
+    background-size: 400% 100%;
+  }
+
+  @keyframes dash-skeleton-shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: 0 0;
+    }
   }
 
   .chakra-ui-dark .dash-action-btn:hover {

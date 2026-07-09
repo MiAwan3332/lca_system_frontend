@@ -259,7 +259,11 @@ function Home() {
               <h3 className="text-lg font-medium dash-text mb-1">Quick Finance Summary</h3>
               <p className="text-sm dash-text-muted mb-4">Real-time financial snapshot</p>
               {loading ? (
-                <div className="h-32 bg-gray-200 dark:bg-slate-600 rounded-lg animate-pulse" />
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((item) => (
+                    <div key={item} className="h-8 dash-skeleton rounded-lg" />
+                  ))}
+                </div>
               ) : (
                 <div className="space-y-3 px-1">
                   {[

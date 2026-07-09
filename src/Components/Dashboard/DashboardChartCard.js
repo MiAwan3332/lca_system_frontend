@@ -78,8 +78,10 @@ function DashboardChartCard({
 
   if (loading) {
     return (
-      <div className="dash-surface-card p-5 min-h-[340px] flex items-center justify-center">
-        <div className="w-full h-48 bg-gray-200 dark:bg-slate-600 rounded-xl animate-pulse" />
+      <div className="dash-surface-card p-5 min-h-[340px]">
+        <div className="h-5 w-36 dash-skeleton rounded-md mb-2" />
+        <div className="h-4 w-48 dash-skeleton rounded-md mb-8" />
+        <div className="w-full h-48 dash-skeleton rounded-xl" />
       </div>
     );
   }

@@ -173,26 +173,14 @@ const Login = () => {
           className="flex flex-col gap-5 bg-white shadow-xl rounded-2xl p-5 sm:p-8"
         >
           <VStack spacing={0} align="stretch">
-            <Flex align="center" justify="center" gap={3}>
-              <Box overflow="hidden" w="40px" h="48px" flexShrink={0}>
-                <Image
-                  src="/logo_dark.svg"
-                  alt=""
-                  h="48px"
-                  w="180px"
-                  maxW="none"
-                  objectFit="none"
-                  objectPosition="left center"
-                />
-              </Box>
-              <Text
-                fontWeight="bold"
-                fontSize={{ base: "xl", sm: "2xl" }}
-                color="black"
-                lineHeight="short"
-              >
-                Lahore CSS Academy
-              </Text>
+            <Flex align="center" justify="center">
+              <Image
+                src="/logo_light.svg"
+                alt="Lahore CSS Academy"
+                h={{ base: "58px", sm: "68px" }}
+                w="auto"
+                objectFit="contain"
+              />
             </Flex>
             <Text textAlign="center" fontSize="sm" color="gray.500" fontStyle="italic">
               Welcome back! Please login to your account.

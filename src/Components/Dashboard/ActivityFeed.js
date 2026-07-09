@@ -34,7 +34,7 @@ function ActivityFeed({ items = [], loading = false, title = "Recent Activity" }
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-14 bg-gray-200 dark:bg-slate-600 rounded-xl animate-pulse" />
+            <div key={i} className="h-14 dash-skeleton rounded-xl" />
           ))}
         </div>
       ) : items.length === 0 ? (

@@ -249,51 +249,30 @@ function Student() {
         }
       >
         {showAdminControls && (
-          <FilterStack>
-            <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
-              <Select
-                size="lg"
-                borderRadius="xl"
-                value={filters.search_field}
-                onChange={handleSearchFieldChange}
-              >
-                <option value="all">All Fields</option>
-                <option value="name">Name</option>
-                <option value="email">Email</option>
-                <option value="phone">Phone</option>
-              </Select>
-            </FormControl>
-            <div className="w-full sm:max-w-xs">
-              <TableSearch
-                ref={tableSearchRef}
-                setQueryFilter={setQueryFilter}
-                method={fetchStudents}
-                placeholder={searchPlaceholder}
-              />
-            </div>
+          <FilterStack className="filter-stack--actions">
             {hasPermission(["Add_Student"]) && (
               <>
                 <button
                   type="button"
-                  className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                  className="table-action-btn"
                   onClick={handleDownloadImportTemplate}
                 >
-                  <Download size={24} />
+                  <Download size={18} />
                   Download Template
                 </button>
                 <button
                   type="button"
-                  className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                  className="table-action-btn"
                   onClick={onImportOpen}
                 >
-                  <FileUp size={24} />
+                  <FileUp size={18} />
                   Import Excel
                 </button>
                 <button
-                  className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                  className="table-action-btn"
                   onClick={onAddOpen}
                 >
-                  <Plus size={24} />
+                  <Plus size={18} />
                   Add Student
                 </button>
               </>
@@ -366,7 +345,28 @@ function Student() {
       </PageHeader>
 
       {showAdminControls && (
-      <FilterStack className="mt-3">
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+          <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.search_field}
+              onChange={handleSearchFieldChange}
+            >
+              <option value="all">All Fields</option>
+              <option value="name">Name</option>
+              <option value="email">Email</option>
+              <option value="phone">Phone</option>
+            </Select>
+          </FormControl>
+          <div className="w-full sm:max-w-xs">
+            <TableSearch
+              ref={tableSearchRef}
+              setQueryFilter={setQueryFilter}
+              method={fetchStudents}
+              placeholder={searchPlaceholder}
+            />
+          </div>
           <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
             <SearchableBatchSelect
               batches={batches}

@@ -83,8 +83,10 @@ function NotificationBell() {
           </Box>
         }
         variant="outline"
-        size="sm"
+        size="md"
         borderRadius="xl"
+        h="44px"
+        minW="44px"
         flexShrink={0}
       />
       <MenuList maxH="320px" overflowY="auto" minW="300px">

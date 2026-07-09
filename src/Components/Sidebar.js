@@ -5,7 +5,6 @@ import {
   CloseButton,
   useColorModeValue,
   Image,
-  Text,
 } from "@chakra-ui/react";
 import { Link, useLocation } from "react-router-dom";
 import { routes } from "../routes";
@@ -42,22 +41,14 @@ export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
         flexShrink={0}
         gap={2}
       >
-        <Flex align="center" gap={2} flex="1" minW={0}>
+        <Flex align="center" flex="1" minW={0}>
           <Image
-            src="./logo_dark.svg"
+            src="/logo_dark.svg"
             alt="LCA Logo"
-            className="w-20 sm:w-24 shrink-0"
+            h={{ base: "42px", md: "48px" }}
+            w="auto"
             objectFit="contain"
           />
-          <Text
-            color="white"
-            fontSize={{ base: "xs", sm: "sm" }}
-            fontWeight="bold"
-            lineHeight="short"
-            noOfLines={2}
-          >
-            Lahore CSS Academy
-          </Text>
         </Flex>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>

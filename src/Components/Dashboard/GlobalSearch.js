@@ -48,13 +48,14 @@ function GlobalSearch() {
       matchWidth
     >
       <PopoverTrigger>
-        <InputGroup size="sm" maxW={{ base: "140px", sm: "200px", md: "260px" }}>
-          <InputLeftElement pointerEvents="none">
+        <InputGroup className="topbar-search" size="md" maxW={{ base: "140px", sm: "200px", md: "260px" }}>
+          <InputLeftElement pointerEvents="none" h="full">
             <Search size={16} color="#94a3b8" />
           </InputLeftElement>
           <Input
             placeholder="Quick search..."
             borderRadius="xl"
+            h="44px"
             bg={bg}
             borderColor={border}
             color={primaryText}

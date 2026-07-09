@@ -12,7 +12,7 @@ function KpiCard({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium dash-text-muted">{title}</p>
         {loading ? (
-          <div className="mt-2 h-9 w-28 bg-gray-200 dark:bg-slate-600 rounded-lg animate-pulse" />
+          <div className="mt-2 h-9 w-28 dash-skeleton rounded-lg" />
         ) : (
           <p className="mt-1 text-2xl sm:text-3xl font-bold dash-text tracking-tight break-words">
             {value ?? 0}

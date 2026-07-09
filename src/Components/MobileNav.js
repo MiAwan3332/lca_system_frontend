@@ -92,7 +92,8 @@ export default function MobileNav({ onOpen, ...rest }) {
         <NotificationBell />
         <Menu>
           <MenuButton
-            py={2}
+            h="44px"
+            py={0}
             px={{ base: 2, sm: 4 }}
             borderRadius="xl"
             transition="all 0.3s"
