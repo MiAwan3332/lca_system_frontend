@@ -31,6 +31,7 @@ import { fetchStudents, updateStudentInfo } from "../../Features/studentSlice";
 import { setUser } from "../../Features/authSlice";
 import { isStudentViewOnly, setProfileUpdatedOnce } from "../../utlls/studentAccess";
 import { clearAuthSession } from "../../utlls/authSession";
+import { getMediaUrl } from "../../utlls/useful.js";
 import {
   responsiveModalContentProps,
   responsiveModalProps,
@@ -201,14 +202,14 @@ function ViewModal({ student, forced = false, onComplete }) {
         {imageUrl ? (
           <Flex align="center" mb={canEditProfile ? 2 : 0}>
             <Image
-              src={imageUrl}
+              src={getMediaUrl(imageUrl)}
               alt={label}
               boxSize="150px"
               objectFit="cover"
             />
             <IconButton
               icon={<View />}
-              onClick={() => window.open(imageUrl, "_blank")}
+              onClick={() => window.open(getMediaUrl(imageUrl), "_blank")}
               colorScheme="blue"
               aria-label={`View ${label}`}
               size="sm"

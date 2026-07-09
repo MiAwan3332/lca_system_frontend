@@ -34,9 +34,10 @@ export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
     >
       <Flex
         alignItems="center"
-        mx={{ base: 4, md: 5 }}
-        my={0}
-        py={3}
+        mx={0}
+        pl={8}
+        pr={4}
+        py={5}
         justifyContent="space-between"
         flexShrink={0}
         gap={2}
@@ -45,12 +46,19 @@ export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
           <Image
             src="/logo_dark.svg"
             alt="LCA Logo"
-            h={{ base: "34px", md: "36px" }}
+            h="40px"
             w="auto"
             objectFit="contain"
+            transition="transform 0.2s ease"
+            _hover={{ transform: "scale(1.03)" }}
           />
         </Flex>
-        <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
+        <CloseButton
+          display={{ base: "flex", md: "none" }}
+          onClick={onClose}
+          color="white"
+          _hover={{ bg: "#2C2C2C" }}
+        />
       </Flex>
       <Box
         flex="1 1 auto"

@@ -23,6 +23,7 @@ import {
   setQueryFilter,
 } from "../../Features/userSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
+import { getMediaUrl } from "../../utlls/useful.js";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
@@ -113,7 +114,7 @@ function User() {
                     <Td>
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.avatar || defaultAvatar}
+                          src={getMediaUrl(user.avatar) || defaultAvatar}
                           alt={user.name}
                           className="h-10 w-10 rounded-full"
                         />

@@ -3,6 +3,7 @@ import html2canvas from "html2canvas";
 import { Button } from "@chakra-ui/react";
 import jsPDF from "jspdf";
 import { showErrorPopup } from "../../utlls/errorHandler";
+import { getMediaUrl } from "../../utlls/useful.js";
 
 const StudentCard = ({ student, qrCode }) => {
     if (!student) {
@@ -93,7 +94,7 @@ const StudentCard = ({ student, qrCode }) => {
                     </div>
                     <div className="relative w-72 h-20 bg-white">
                         <img
-                            src={student.image || "/17698878.jpg"}
+                            src={getMediaUrl(student.image) || "/17698878.jpg"}
                             style={{ border: "4px solid goldenrod" }}
                             className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-36"
                             alt="Student"

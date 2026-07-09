@@ -1,4 +1,5 @@
 import { markSessionStarted } from "./authSession.js";
+import { config } from "./config.js";
 
 const FULL_ACCESS_ROLES = [
   "secrateadmin",
@@ -169,6 +170,20 @@ const storeAuthSession = ({
   }
 };
 
+const getMediaUrl = (url) => {
+  if (!url) return url;
+  if (typeof url !== "string") return url;
+
+  // Match: http://173.249.42.210/api/public/files/... or http://localhost:5000/public/files/...
+  const regex = /^https?:\/\/[^\/]+(?:\/api)?(\/public)?(\/files\/.*)$/i;
+  const match = url.match(regex);
+  if (match) {
+    return `${config.BASE_URL}/public${match[2]}`;
+  }
+
+  return url;
+};
+
 export {
   extractUserIdFromToken,
   extractRoleFromToken,
@@ -178,4 +193,5 @@ export {
   hasPermission,
   hasFullAccess,
   storeAuthSession,
+  getMediaUrl,
 };

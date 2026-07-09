@@ -33,6 +33,7 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import { getMediaUrl } from "../../utlls/useful.js";
 import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
@@ -193,7 +194,7 @@ function Teacher() {
                     <Td>
                       <div className="flex items-center gap-3">
                         <img
-                          src={teacher.image || defaultAvatar}
+                          src={getMediaUrl(teacher.image) || defaultAvatar}
                           alt={teacher.name}
                           className="w-10 h-10 rounded-full"
                         />

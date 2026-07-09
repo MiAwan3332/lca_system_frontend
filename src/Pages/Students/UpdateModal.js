@@ -31,6 +31,7 @@ import { Pen } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { basicUpdate, fetchStudents } from "../../Features/studentSlice";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import { getMediaUrl } from "../../utlls/useful.js";
 import CameraCapture from "../../Components/CameraCapture";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import {
@@ -248,7 +249,7 @@ function UpdateModal({ student }) {
                     Current Photo
                   </Text>
                   <Image
-                    src={student.image}
+                    src={getMediaUrl(student.image)}
                     alt={student.name}
                     maxH="180px"
                     borderRadius="lg"

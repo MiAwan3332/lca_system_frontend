@@ -170,7 +170,7 @@ function FeeHistoryModal({ fee }) {
                         <ModalCloseButton top={3} right={3} />
                         <HStack spacing={3} align="center" mb={3}>
                             <Image
-                                src="/logo_dark.svg"
+                                src="/logo_light.svg"
                                 alt="Lahore CSS Academy"
                                 h={{ base: "36px", md: "44px" }}
                                 objectFit="contain"
