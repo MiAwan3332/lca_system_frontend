@@ -300,7 +300,7 @@ function NotificationsPage() {
         Notification Inbox
       </Text>
 
-      <FilterStack>
+      <FilterStack className="filter-stack--panel filter-stack--table">
         <FormControl maxW={{ base: "full", sm: "200px" }}>
           <Select
             size="sm"

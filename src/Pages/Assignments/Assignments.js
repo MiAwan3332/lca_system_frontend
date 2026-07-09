@@ -301,20 +301,6 @@ function Assignments() {
           <option value="Published">Published</option>
         </Select>
       </FormControl>
-      {canManage && activeTab === 0 && (
-        <Button
-          leftIcon={<Plus size={18} />}
-          colorScheme="yellow"
-          borderRadius="xl"
-          w={{ base: "full", sm: "auto" }}
-          onClick={() => {
-            setEditingAssignment(null);
-            formDisclosure.onOpen();
-          }}
-        >
-          New Assignment
-        </Button>
-      )}
     </>
   );
 
@@ -332,8 +318,27 @@ function Assignments() {
               : "Create and manage assignments linked to batches and courses."
         }
       >
-        <FilterStack>{assignmentFilters}</FilterStack>
+        {canManage && activeTab === 0 && (
+          <FilterStack className="filter-stack--actions">
+            <Button
+              leftIcon={<Plus size={18} />}
+              colorScheme="yellow"
+              borderRadius="xl"
+              w={{ base: "full", sm: "auto" }}
+              onClick={() => {
+                setEditingAssignment(null);
+                formDisclosure.onOpen();
+              }}
+            >
+              New Assignment
+            </Button>
+          </FilterStack>
+        )}
       </PageHeader>
+
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        {assignmentFilters}
+      </FilterStack>
 
       {!viewOnly ? (
         <Tabs index={activeTab} onChange={setActiveTab} colorScheme="yellow" mb={4}>

@@ -280,69 +280,70 @@ function Student() {
             <ExportModal />
           </FilterStack>
         )}
-        {isTeacher && (
-          <FilterStack>
-            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-              <SearchableBatchSelect
-                batches={batches}
-                value={filters.batch_id}
-                onChange={handleBatchChange}
-                placeholder="All Assigned Batches"
-                width="100%"
-              />
-            </FormControl>
-            <div className="w-full sm:max-w-xs">
-              <TableSearch
-                ref={tableSearchRef}
-                setQueryFilter={setQueryFilter}
-                method={fetchStudents}
-                placeholder="Search by student name..."
-              />
-            </div>
-            {canUpdateStudent && (
-              <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-                <Select
-                  size="lg"
-                  borderRadius="xl"
-                  placeholder="Account Status"
-                  value={filters.is_active}
-                  onChange={handleStatusFilterChange}
-                >
-                  <option value="">All Statuses</option>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </Select>
-              </FormControl>
-            )}
-            {(filters.batch_id || filters.query || filters.is_active) && (
-              <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-                <FilterX className="h-4 w-4" />
-              </Button>
-            )}
-            {canUpdateStudent && filters.batch_id && (
-              <>
-                <Button
-                  size="sm"
-                  colorScheme="green"
-                  borderRadius="xl"
-                  onClick={() => handleBatchStudentsStatus(true)}
-                >
-                  Activate all
-                </Button>
-                <Button
-                  size="sm"
-                  colorScheme="red"
-                  variant="outline"
-                  borderRadius="xl"
-                  onClick={() => handleBatchStudentsStatus(false)}
-                >
-                  Deactivate all
-                </Button>
-              </>
-            )}
-          </FilterStack>
-        )}
       </PageHeader>
+
+      {isTeacher && (
+        <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <SearchableBatchSelect
+              batches={batches}
+              value={filters.batch_id}
+              onChange={handleBatchChange}
+              placeholder="All Assigned Batches"
+              width="100%"
+            />
+          </FormControl>
+          <div className="w-full sm:max-w-xs">
+            <TableSearch
+              ref={tableSearchRef}
+              setQueryFilter={setQueryFilter}
+              method={fetchStudents}
+              placeholder="Search by student name..."
+            />
+          </div>
+          {canUpdateStudent && (
+            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+              <Select
+                size="lg"
+                borderRadius="xl"
+                placeholder="Account Status"
+                value={filters.is_active}
+                onChange={handleStatusFilterChange}
+              >
+                <option value="">All Statuses</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </Select>
+            </FormControl>
+          )}
+          {(filters.batch_id || filters.query || filters.is_active) && (
+            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+              <FilterX className="h-4 w-4" />
+            </Button>
+          )}
+          {canUpdateStudent && filters.batch_id && (
+            <>
+              <Button
+                size="sm"
+                colorScheme="green"
+                borderRadius="xl"
+                onClick={() => handleBatchStudentsStatus(true)}
+              >
+                Activate all
+              </Button>
+              <Button
+                size="sm"
+                colorScheme="red"
+                variant="outline"
+                borderRadius="xl"
+                onClick={() => handleBatchStudentsStatus(false)}
+              >
+                Deactivate all
+              </Button>
+            </>
+          )}
+        </FilterStack>
+      )}
 
       {showAdminControls && (
       <FilterStack className="filter-stack--panel filter-stack--table mt-3">

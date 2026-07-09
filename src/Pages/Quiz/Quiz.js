@@ -51,7 +51,7 @@ function Quiz() {
         title="Quiz Module"
         subtitle="Attempt quizzes by subject with flexible patterns and detailed logs."
       >
-        <FilterStack>
+        <FilterStack className="filter-stack--actions">
           <Button
             leftIcon={<PlayCircle size={18} />}
             variant={activeTab === "take" ? "solid" : "outline"}

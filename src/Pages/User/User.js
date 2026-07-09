@@ -62,22 +62,26 @@ function User() {
     <div>
       <PageHeader title={viewOnly ? "My Account" : "All Users"}>
         {!viewOnly && (
-          <FilterStack>
-            <div className="w-full sm:max-w-xs">
-              <TableSearch setQueryFilter={setQueryFilter} method={fetchUsers} />
-            </div>
+          <FilterStack className="filter-stack--actions">
             {hasPermission(["Add_User"]) && (
               <button
-                className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                className="table-action-btn"
                 onClick={onAddOpen}
               >
-                <Plus size={24} />
+                <Plus size={18} />
                 Add User
               </button>
             )}
           </FilterStack>
         )}
       </PageHeader>
+      {!viewOnly && (
+        <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+          <div className="w-full sm:max-w-xs">
+            <TableSearch setQueryFilter={setQueryFilter} method={fetchUsers} />
+          </div>
+        </FilterStack>
+      )}
       <DataTableShell>
         <TableContainer>
           <Table variant="simple">

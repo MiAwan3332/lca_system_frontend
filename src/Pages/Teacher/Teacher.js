@@ -108,52 +108,56 @@ function Teacher() {
     <>
       <PageHeader title={isTeacher ? "My Profile" : "All Teachers"}>
         {canManageInstitution && (
-          <FilterStack>
-            <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
-              <Select
-                size="lg"
-                borderRadius="xl"
-                value={filters.search_field}
-                onChange={handleSearchFieldChange}
-              >
-                <option value="all">All Fields</option>
-                <option value="name">Name</option>
-                <option value="email">Email</option>
-                <option value="phone">Phone</option>
-              </Select>
-            </FormControl>
-            <div className="w-full sm:max-w-xs">
-              <TableSearch
-                ref={tableSearchRef}
-                setQueryFilter={setQueryFilter}
-                method={fetchTeachers}
-                placeholder={searchPlaceholder}
-              />
-            </div>
-            <SearchableBatchSelect
-              batches={batches}
-              value={filters.batch_id}
-              onChange={handleBatchChange}
-              placeholder="All Batches"
-              width="100%"
-            />
-            {(filters.batch_id || filters.query || filters.search_field !== "all") && (
-              <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-                <FilterX className="h-4 w-4" />
-              </Button>
-            )}
+          <FilterStack className="filter-stack--actions">
             {hasPermission(["Add_Teacher"]) && (
               <button
-                className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+                className="table-action-btn"
                 onClick={onAddOpen}
               >
-                <Plus size={24} />
+                <Plus size={18} />
                 Add Teacher
               </button>
             )}
           </FilterStack>
         )}
       </PageHeader>
+      {canManageInstitution && (
+        <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+          <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.search_field}
+              onChange={handleSearchFieldChange}
+            >
+              <option value="all">All Fields</option>
+              <option value="name">Name</option>
+              <option value="email">Email</option>
+              <option value="phone">Phone</option>
+            </Select>
+          </FormControl>
+          <div className="w-full sm:max-w-xs">
+            <TableSearch
+              ref={tableSearchRef}
+              setQueryFilter={setQueryFilter}
+              method={fetchTeachers}
+              placeholder={searchPlaceholder}
+            />
+          </div>
+          <SearchableBatchSelect
+            batches={batches}
+            value={filters.batch_id}
+            onChange={handleBatchChange}
+            placeholder="All Batches"
+            width="100%"
+          />
+          {(filters.batch_id || filters.query || filters.search_field !== "all") && (
+            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+              <FilterX className="h-4 w-4" />
+            </Button>
+          )}
+        </FilterStack>
+      )}
       <DataTableShell>
         <TableContainer>
           <Table variant="simple">

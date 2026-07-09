@@ -111,20 +111,17 @@ function ActivityLogsPage({ actorCategory, title, subtitle }) {
 
   return (
     <>
-      <PageHeader title={title} subtitle={subtitle}>
-        <FilterStack>
-          <div className="w-full sm:max-w-xs">
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchActivityLogs}
-              placeholder="Search logs..."
-            />
-          </div>
-        </FilterStack>
-      </PageHeader>
+      <PageHeader title={title} subtitle={subtitle} />
 
-      <FilterStack className="mt-3">
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        <div className="w-full sm:max-w-xs">
+          <TableSearch
+            ref={tableSearchRef}
+            setQueryFilter={setQueryFilter}
+            method={fetchActivityLogs}
+            placeholder="Search logs..."
+          />
+        </div>
         <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
           <Select
             placeholder="All modules"

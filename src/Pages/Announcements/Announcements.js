@@ -205,40 +205,43 @@ function Announcements() {
             : "Send announcements to one or more batches at once."
         }
       >
-        <FilterStack>
-          <div className="w-full sm:max-w-xs">
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchAnnouncements}
-              placeholder="Search announcements..."
-            />
-          </div>
           {canManage && (
-            <SearchableBatchSelect
-              batches={batches}
-              value={filters.batch_id}
-              onChange={handleBatchChange}
-              placeholder="All Batches"
-              width="100%"
-            />
+            <FilterStack className="filter-stack--actions">
+              <button
+                className="table-action-btn"
+                onClick={addDisclosure.onOpen}
+              >
+                <Plus size={18} />
+                Send Announcement
+              </button>
+            </FilterStack>
           )}
-          {(filters.batch_id || filters.query) && (
-            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-              <FilterX className="h-4 w-4" />
-            </Button>
-          )}
-          {canManage && (
-            <button
-              className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
-              onClick={addDisclosure.onOpen}
-            >
-              <Plus size={24} />
-              Send Announcement
-            </button>
-          )}
-        </FilterStack>
       </PageHeader>
+
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        <div className="w-full sm:max-w-xs">
+          <TableSearch
+            ref={tableSearchRef}
+            setQueryFilter={setQueryFilter}
+            method={fetchAnnouncements}
+            placeholder="Search announcements..."
+          />
+        </div>
+        {canManage && (
+          <SearchableBatchSelect
+            batches={batches}
+            value={filters.batch_id}
+            onChange={handleBatchChange}
+            placeholder="All Batches"
+            width="100%"
+          />
+        )}
+        {(filters.batch_id || filters.query) && (
+          <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+            <FilterX className="h-4 w-4" />
+          </Button>
+        )}
+      </FilterStack>
 
       {viewOnly ? (
         <Box px={{ base: 2, md: 4 }}>

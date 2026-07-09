@@ -159,17 +159,31 @@ function Attendance() {
   return (
     <>
       <PageHeader title={viewOnly ? "My Attendance" : "Attendance"}>
-        <FilterStack>
-          {!viewOnly && (
-            <div className="w-full sm:max-w-xs">
-              <TableSearch
-                ref={tableSearchRef}
-                setQueryFilter={setQueryFilter}
-                method={fetchAttendances}
-                payload={filterPayload}
-              />
-            </div>
-          )}
+        {!viewOnly && (
+          <FilterStack className="filter-stack--actions">
+            <button
+              className="table-action-btn"
+              onClick={handleDownloadExcel}
+              disabled={loading}
+            >
+              <Download size={18} />
+              Excel File
+            </button>
+          </FilterStack>
+        )}
+      </PageHeader>
+
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        {!viewOnly && (
+          <div className="w-full sm:max-w-xs">
+            <TableSearch
+              ref={tableSearchRef}
+              setQueryFilter={setQueryFilter}
+              method={fetchAttendances}
+              payload={filterPayload}
+            />
+          </div>
+        )}
           {!viewOnly && (
             <SearchableBatchSelect
               batches={batches}
@@ -221,18 +235,7 @@ function Attendance() {
           <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
             <FilterX className="h-4 w-4" />
           </Button>
-          {!viewOnly && (
-            <button
-              className="w-full sm:w-auto whitespace-nowrap bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
-              onClick={handleDownloadExcel}
-              disabled={loading}
-            >
-              <Download size={20} />
-              Excel File
-            </button>
-          )}
-        </FilterStack>
-      </PageHeader>
+      </FilterStack>
       <DataTableShell>
         <TableContainer>
           <Table variant="simple">

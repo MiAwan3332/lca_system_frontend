@@ -84,48 +84,50 @@ function Seminar() {
   return (
     <>
       <PageHeader title="All Seminars">
-        <FilterStack>
-          <div className="w-full sm:max-w-xs">
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchSeminars}
-            />
-          </div>
-          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-            <Input
-              type="date"
-              size="lg"
-              borderRadius="xl"
-              value={filters.start_date}
-              onChange={handleStartDateChange}
-            />
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-            <Input
-              type="date"
-              size="lg"
-              borderRadius="xl"
-              value={filters.end_date}
-              onChange={handleEndDateChange}
-            />
-          </FormControl>
-          {(filters.start_date || filters.end_date || filters.query) && (
-            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-              <FilterX className="h-4 w-4" />
-            </Button>
-          )}
+        <FilterStack className="filter-stack--actions">
           {hasPermission(["Add_Seminar"]) && (
             <button
-              className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+              className="table-action-btn"
               onClick={onAddOpen}
             >
-              <Plus size={24} />
+              <Plus size={18} />
               Add Seminar
             </button>
           )}
         </FilterStack>
       </PageHeader>
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        <div className="w-full sm:max-w-xs">
+          <TableSearch
+            ref={tableSearchRef}
+            setQueryFilter={setQueryFilter}
+            method={fetchSeminars}
+          />
+        </div>
+        <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+          <Input
+            type="date"
+            size="lg"
+            borderRadius="xl"
+            value={filters.start_date}
+            onChange={handleStartDateChange}
+          />
+        </FormControl>
+        <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+          <Input
+            type="date"
+            size="lg"
+            borderRadius="xl"
+            value={filters.end_date}
+            onChange={handleEndDateChange}
+          />
+        </FormControl>
+        {(filters.start_date || filters.end_date || filters.query) && (
+          <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+            <FilterX className="h-4 w-4" />
+          </Button>
+        )}
+      </FilterStack>
       <DataTableShell>
         <TableContainer>
           <Table variant="simple">

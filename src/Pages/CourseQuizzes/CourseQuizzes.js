@@ -145,59 +145,9 @@ function CourseQuizzes() {
             : "Schedule and manage batch-linked course quizzes."
         }
       >
-        <FilterStack>
-          {screen === "list" && !viewOnly && (
-            <div className="w-full sm:max-w-xs">
-              <TableSearch setQueryFilter={setQueryFilter} method={fetchCourseQuizzes} />
-            </div>
-          )}
+        <FilterStack className="filter-stack--actions">
           {screen === "list" && (
             <>
-              {!viewOnly && (
-                <>
-                  <SearchableBatchSelect
-                    batches={batches}
-                    value={filters.batch_id}
-                    onChange={handleBatchFilter}
-                    placeholder="All Batches"
-                    width="100%"
-                  />
-                  {filters.batch_id && (
-                    <SearchableCourseSelect
-                      courses={batchCourses}
-                      value={filters.course_id}
-                      onChange={handleCourseFilter}
-                      placeholder="All Courses"
-                      width="100%"
-                    />
-                  )}
-                </>
-              )}
-              <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-                <Select
-                  size="lg"
-                  borderRadius="xl"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="">All Statuses</option>
-                  <option value="Draft">Draft</option>
-                  <option value="Scheduled">Scheduled</option>
-                  <option value="Active">Active</option>
-                  <option value="Closed">Closed</option>
-                  <option value="Published">Published</option>
-                </Select>
-              </FormControl>
-              {(filters.batch_id || filters.course_id || statusFilter) && (
-                <IconButton
-                  aria-label="Clear filters"
-                  icon={<FilterX size={18} />}
-                  size="lg"
-                  borderRadius="xl"
-                  variant="outline"
-                  onClick={clearFilters}
-                />
-              )}
               <Button
                 leftIcon={<History size={18} />}
                 variant="outline"
@@ -228,6 +178,61 @@ function CourseQuizzes() {
           )}
         </FilterStack>
       </PageHeader>
+
+      {screen === "list" && (
+        <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+          {!viewOnly && (
+            <div className="w-full sm:max-w-xs">
+              <TableSearch setQueryFilter={setQueryFilter} method={fetchCourseQuizzes} />
+            </div>
+          )}
+          {!viewOnly && (
+            <>
+              <SearchableBatchSelect
+                batches={batches}
+                value={filters.batch_id}
+                onChange={handleBatchFilter}
+                placeholder="All Batches"
+                width="100%"
+              />
+              {filters.batch_id && (
+                <SearchableCourseSelect
+                  courses={batchCourses}
+                  value={filters.course_id}
+                  onChange={handleCourseFilter}
+                  placeholder="All Courses"
+                  width="100%"
+                />
+              )}
+            </>
+          )}
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="Draft">Draft</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Active">Active</option>
+              <option value="Closed">Closed</option>
+              <option value="Published">Published</option>
+            </Select>
+          </FormControl>
+          {(filters.batch_id || filters.course_id || statusFilter) && (
+            <IconButton
+              aria-label="Clear filters"
+              icon={<FilterX size={18} />}
+              size="lg"
+              borderRadius="xl"
+              variant="outline"
+              onClick={clearFilters}
+            />
+          )}
+        </FilterStack>
+      )}
 
       {screen === "list" && (
         <DataTableShell>

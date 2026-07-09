@@ -330,65 +330,65 @@ function FinanceReport() {
 
   return (
     <>
-      <PageHeader title="Finance Reporting" subtitle={reportSubtitle || undefined}>
-        <FilterStack>
-          <div className="period-toggle overflow-x-auto pb-1">
-            <ButtonGroup isAttached variant="outline" borderRadius="xl" flexWrap="wrap">
-              {PERIOD_OPTIONS.map((option) => (
-                <Button
-                  key={option.value}
-                  size={{ base: "sm", md: "lg" }}
-                  borderRadius="xl"
-                  colorScheme={period === option.value ? "yellow" : "gray"}
-                  bg={period === option.value ? "#FFCB82" : "white"}
-                  onClick={() => handlePeriodChange(option.value)}
-                >
-                  {option.label}
-                </Button>
-              ))}
-            </ButtonGroup>
-          </div>
-          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-            <Input
-              type="date"
-              size="lg"
-              borderRadius="xl"
-              value={reportDate}
-              onChange={handleDateChange}
-            />
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-            <SearchableBatchSelect
-              batches={batches}
-              value={formBatch}
-              onChange={handleBatchChange}
-              placeholder="All batches"
-              width="100%"
-            />
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-            <SearchableUserSelect
-              users={users}
-              value={formChangedBy}
-              onChange={handleChangedByChange}
-              placeholder="Changed by"
-              width="100%"
-            />
-          </FormControl>
-          <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-            <FilterX className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            p={4}
+      <PageHeader title="Finance Reporting" subtitle={reportSubtitle || undefined} />
+
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        <div className="period-toggle overflow-x-auto pb-1">
+          <ButtonGroup isAttached variant="outline" borderRadius="xl" flexWrap="wrap">
+            {PERIOD_OPTIONS.map((option) => (
+              <Button
+                key={option.value}
+                size={{ base: "sm", md: "lg" }}
+                borderRadius="xl"
+                colorScheme={period === option.value ? "yellow" : "gray"}
+                bg={period === option.value ? "#FFCB82" : "white"}
+                onClick={() => handlePeriodChange(option.value)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </ButtonGroup>
+        </div>
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+          <Input
+            type="date"
+            size="lg"
             borderRadius="xl"
-            onClick={() => loadReport()}
-            className={status === "loading" ? "animate-spin" : ""}
-          >
-            <RotateCw className="h-4 w-4" />
-          </Button>
-        </FilterStack>
-      </PageHeader>
+            value={reportDate}
+            onChange={handleDateChange}
+          />
+        </FormControl>
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+          <SearchableBatchSelect
+            batches={batches}
+            value={formBatch}
+            onChange={handleBatchChange}
+            placeholder="All batches"
+            width="100%"
+          />
+        </FormControl>
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+          <SearchableUserSelect
+            users={users}
+            value={formChangedBy}
+            onChange={handleChangedByChange}
+            placeholder="Changed by"
+            width="100%"
+          />
+        </FormControl>
+        <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+          <FilterX className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          p={4}
+          borderRadius="xl"
+          onClick={() => loadReport()}
+          className={status === "loading" ? "animate-spin" : ""}
+        >
+          <RotateCw className="h-4 w-4" />
+        </Button>
+      </FilterStack>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
         {SUMMARY_CARDS.map((item) => (
@@ -430,7 +430,7 @@ function FinanceReport() {
                 Includes fee income and approved expense deductions
               </p>
             </div>
-            <FilterStack className="mt-0">
+            <FilterStack className="filter-stack--actions mt-0">
               <Button
                 size="sm"
                 borderRadius="xl"

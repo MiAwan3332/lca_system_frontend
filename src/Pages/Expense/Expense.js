@@ -127,7 +127,18 @@ function Expense() {
         title="Expense Management"
         subtitle="Daily expenses require approval before deduction from finance"
       >
-        <FilterStack>
+        <FilterStack className="filter-stack--actions">
+          <button
+            className="table-action-btn"
+            onClick={onAddOpen}
+          >
+            <Plus size={18} />
+            Add Expense
+          </button>
+        </FilterStack>
+      </PageHeader>
+
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
           <div className="w-full sm:max-w-xs">
             <TableSearch setQueryFilter={setQueryFilter} method={fetchExpenses} />
           </div>
@@ -182,15 +193,7 @@ function Expense() {
           <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
             <FilterX className="h-4 w-4" />
           </Button>
-          <button
-            className="w-full sm:w-auto bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 justify-center transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
-            onClick={onAddOpen}
-          >
-            <Plus size={24} />
-            Add Expense
-          </button>
-        </FilterStack>
-      </PageHeader>
+      </FilterStack>
 
       <div className="summary-cards">
         {summaryCards.map((card) => (

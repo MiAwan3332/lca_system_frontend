@@ -133,38 +133,37 @@ function Mcq() {
   return (
     <>
       <PageHeader title={pageTitle} subtitle={pageSubtitle}>
-        <FilterStack>
-          <div className="w-full sm:max-w-xs">
-            <TableSearch setQueryFilter={setQueryFilter} method={fetchMcqs} />
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <SearchableBatchSelect
-              batches={batches}
-              value={filters.batch_id}
-              onChange={handleBatchFilter}
-              placeholder="All Batches"
-              width="100%"
-            />
-            <SearchableCourseSelect
-              courses={courseOptions}
-              value={filters.course_id}
-              onChange={handleCourseFilter}
-              placeholder={isTeacher ? "Filter by assigned course" : "All Courses"}
-              width="100%"
-            />
-            {(filters.batch_id || filters.course_id) && (
-              <IconButton
-                aria-label="Clear filters"
-                icon={<FilterX size={18} />}
-                size="lg"
-                borderRadius="xl"
-                variant="outline"
-                onClick={clearFilters}
-              />
-            )}
-          </div>
-        </FilterStack>
       </PageHeader>
+
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        <div className="w-full sm:max-w-xs">
+          <TableSearch setQueryFilter={setQueryFilter} method={fetchMcqs} />
+        </div>
+        <SearchableBatchSelect
+          batches={batches}
+          value={filters.batch_id}
+          onChange={handleBatchFilter}
+          placeholder="All Batches"
+          width="100%"
+        />
+        <SearchableCourseSelect
+          courses={courseOptions}
+          value={filters.course_id}
+          onChange={handleCourseFilter}
+          placeholder={isTeacher ? "Filter by assigned course" : "All Courses"}
+          width="100%"
+        />
+        {(filters.batch_id || filters.course_id) && (
+          <IconButton
+            aria-label="Clear filters"
+            icon={<FilterX size={18} />}
+            size="lg"
+            borderRadius="xl"
+            variant="outline"
+            onClick={clearFilters}
+          />
+        )}
+      </FilterStack>
 
       {canAdd && (
         <McqAddMethods

@@ -112,42 +112,7 @@ function Complaints() {
               : "Submit complaints to Principal, Vice Principal, or CEO and manage received complaints."
         }
       >
-        <FilterStack>
-          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-            <Select
-              size="lg"
-              borderRadius="xl"
-              value={filters.status}
-              onChange={(e) => {
-                dispatch(setComplaintStatusFilter(e.target.value));
-              }}
-            >
-              <option value="">All Statuses</option>
-              {COMPLAINT_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </Select>
-          </FormControl>
-          {(currentView === "all" || currentView === "inbox") && (
-            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-              <Select
-                size="lg"
-                borderRadius="xl"
-                value={filters.target_role}
-                onChange={(e) => {
-                  dispatch(setComplaintTargetFilter(e.target.value));
-                }}
-              >
-                <option value="">All Recipients</option>
-                <option value="teacher">Teacher</option>
-                <option value="principal">Principal</option>
-                <option value="vice_principal">Vice Principal</option>
-                <option value="ceo">CEO</option>
-              </Select>
-            </FormControl>
-          )}
+        <FilterStack className="filter-stack--actions">
           <Button
             leftIcon={<Plus size={18} />}
             colorScheme="yellow"
@@ -159,6 +124,44 @@ function Complaints() {
           </Button>
         </FilterStack>
       </PageHeader>
+
+      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+          <Select
+            size="lg"
+            borderRadius="xl"
+            value={filters.status}
+            onChange={(e) => {
+              dispatch(setComplaintStatusFilter(e.target.value));
+            }}
+          >
+            <option value="">All Statuses</option>
+            {COMPLAINT_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+        {(currentView === "all" || currentView === "inbox") && (
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.target_role}
+              onChange={(e) => {
+                dispatch(setComplaintTargetFilter(e.target.value));
+              }}
+            >
+              <option value="">All Recipients</option>
+              <option value="teacher">Teacher</option>
+              <option value="principal">Principal</option>
+              <option value="vice_principal">Vice Principal</option>
+              <option value="ceo">CEO</option>
+            </Select>
+          </FormControl>
+        )}
+      </FilterStack>
 
       <Tabs index={activeTab} onChange={handleTabChange} colorScheme="yellow" mb={4}>
         <TabList>

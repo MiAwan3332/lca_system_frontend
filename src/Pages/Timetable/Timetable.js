@@ -59,48 +59,47 @@ function Timetable() {
             ? "View your scheduled classes. Tap a class to see details."
             : "View and manage class schedules"
         }
-      >
-        {!viewOnly && (
-          <FilterStack>
-            <SearchableBatchSelect
-              batches={batches}
-              value={filterBatch}
-              onChange={handleBatchChange}
-              placeholder="All Batches"
+      />
+      {!viewOnly && (
+        <FilterStack className="filter-stack--panel filter-stack--table mt-3">
+          <SearchableBatchSelect
+            batches={batches}
+            value={filterBatch}
+            onChange={handleBatchChange}
+            placeholder="All Batches"
+            width="100%"
+          />
+          {filterBatch && (
+            <SearchableCourseSelect
+              courses={batchCourses}
+              value={filterCourse}
+              onChange={setFilterCourse}
+              placeholder="All Courses"
               width="100%"
             />
-            {filterBatch && (
-              <SearchableCourseSelect
-                courses={batchCourses}
-                value={filterCourse}
-                onChange={setFilterCourse}
-                placeholder="All Courses"
-                width="100%"
-              />
-            )}
-            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-              <Select
-                placeholder="All Teachers"
-                size="lg"
-                borderRadius="xl"
-                value={filterTeacher}
-                onChange={(e) => setFilterTeacher(e.target.value)}
-              >
-                {teachers.map((teacher) => (
-                  <option key={teacher._id} value={teacher._id}>
-                    {teacher.name}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            {hasFilters && (
-              <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-                <FilterX className="h-4 w-4" />
-              </Button>
-            )}
-          </FilterStack>
-        )}
-      </PageHeader>
+          )}
+          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+            <Select
+              placeholder="All Teachers"
+              size="lg"
+              borderRadius="xl"
+              value={filterTeacher}
+              onChange={(e) => setFilterTeacher(e.target.value)}
+            >
+              {teachers.map((teacher) => (
+                <option key={teacher._id} value={teacher._id}>
+                  {teacher.name}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+          {hasFilters && (
+            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+              <FilterX className="h-4 w-4" />
+            </Button>
+          )}
+        </FilterStack>
+      )}
       <div className="w-full h-[calc(100dvh-10rem)] min-h-[360px] sm:min-h-[480px] md:min-h-[600px] lg:min-h-[700px]">
         <TimetableCalendar
           filterBatchId={filterBatch}
