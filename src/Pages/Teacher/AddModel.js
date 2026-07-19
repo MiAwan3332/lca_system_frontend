@@ -12,7 +12,7 @@ import {
   FormLabel,
   Input,
   VStack,
-  Box
+  Box,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -21,7 +21,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { addTeacher, fetchTeachers } from "../../Features/teacherSlice";
 
 function AddTeacher({ isOpen, onClose }) {
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+  const [authToken] = useState(Cookies.get("authToken"));
 
   const { addStatus } = useSelector((state) => state.teachers);
   const dispatch = useDispatch();
@@ -35,21 +35,28 @@ function AddTeacher({ isOpen, onClose }) {
       resume: null,
     },
     validationSchema: Yup.object({
-      name: Yup.string().required("Required"),
+      name: Yup.string().trim().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
-      phone: Yup.string().required("Required"),
+      phone: Yup.string(),
     }),
     onSubmit: async (values) => {
       const formData = new FormData();
-      formData.append("name", values.name);
-      formData.append("email", values.email);
-      formData.append("phone", values.phone);
-      formData.append("image", values.image);
-      formData.append("resume", values.resume);
+      formData.append("name", values.name.trim());
+      formData.append("email", values.email.trim());
+      if (values.phone?.trim()) {
+        formData.append("phone", values.phone.trim());
+      }
+      if (values.image) {
+        formData.append("image", values.image);
+      }
+      if (values.resume) {
+        formData.append("resume", values.resume);
+      }
 
       dispatch(addTeacher({ formData, authToken }))
         .unwrap()
         .then(() => {
+          formik.resetForm();
           onClose();
           dispatch(fetchTeachers({ authToken }));
         });
@@ -58,7 +65,6 @@ function AddTeacher({ isOpen, onClose }) {
 
   return (
     <>
-      {/* <Button onClick={onOpen}>Add Teacher</Button> */}
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
@@ -69,7 +75,7 @@ function AddTeacher({ isOpen, onClose }) {
           <form onSubmit={formik.handleSubmit}>
             <ModalBody>
               <VStack spacing={4}>
-                <FormControl id="name">
+                <FormControl id="name" isRequired>
                   <FormLabel fontSize={14}>Name</FormLabel>
                   <Input
                     type="text"
@@ -83,7 +89,7 @@ function AddTeacher({ isOpen, onClose }) {
                     </Box>
                   ) : null}
                 </FormControl>
-                <FormControl id="email">
+                <FormControl id="email" isRequired>
                   <FormLabel fontSize={14}>Email</FormLabel>
                   <Input
                     type="email"
@@ -105,11 +111,6 @@ function AddTeacher({ isOpen, onClose }) {
                     value={formik.values.phone}
                     onChange={formik.handleChange}
                   />
-                  {formik.touched.phone && formik.errors.phone ? (
-                    <Box color="red" fontSize="sm">
-                      {formik.errors.phone}
-                    </Box>
-                  ) : null}
                 </FormControl>
                 <FormControl id="image">
                   <FormLabel fontSize={14}>Image</FormLabel>
@@ -118,7 +119,7 @@ function AddTeacher({ isOpen, onClose }) {
                     accept="image/*"
                     name="image"
                     onChange={(e) =>
-                      formik.setFieldValue("image", e.target.files[0])
+                      formik.setFieldValue("image", e.target.files[0] || null)
                     }
                   />
                 </FormControl>
@@ -129,7 +130,7 @@ function AddTeacher({ isOpen, onClose }) {
                     accept=".pdf,.doc,.docx"
                     name="resume"
                     onChange={(e) =>
-                      formik.setFieldValue("resume", e.target.files[0])
+                      formik.setFieldValue("resume", e.target.files[0] || null)
                     }
                   />
                 </FormControl>
