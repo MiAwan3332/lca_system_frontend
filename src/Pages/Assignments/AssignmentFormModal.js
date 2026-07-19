@@ -46,9 +46,16 @@ const defaultForm = {
   late_submission_policy: "no_late",
   late_deadline: "",
   late_penalty_percent: 0,
-  visibility_status: "Draft",
+  visibility_status: "Published",
   resubmission_allowed: false,
   max_attempts: 1,
+};
+
+const toDateTimeLocalValue = (date = new Date()) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
 };
 
 function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
@@ -63,7 +70,12 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
 
   useEffect(() => {
     if (isOpen) {
-      dispatch(fetchBatches({ authToken, limit: 100 }));
+      dispatch(
+        fetchBatches({
+          authToken,
+          queryParams: { limit: 200, page: 1, query: "" },
+        })
+      );
     }
   }, [isOpen, dispatch, authToken]);
 
@@ -74,12 +86,23 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
         ...assignment,
         batch: assignment.batch?._id || assignment.batch || "",
         course: assignment.course?._id || assignment.course || "",
-        availability_date: assignment.availability_date?.slice(0, 16) || "",
-        submission_deadline: assignment.submission_deadline?.slice(0, 16) || "",
-        late_deadline: assignment.late_deadline?.slice(0, 16) || "",
+        availability_date: assignment.availability_date
+          ? toDateTimeLocalValue(new Date(assignment.availability_date))
+          : toDateTimeLocalValue(),
+        submission_deadline: assignment.submission_deadline
+          ? toDateTimeLocalValue(new Date(assignment.submission_deadline))
+          : "",
+        late_deadline: assignment.late_deadline
+          ? toDateTimeLocalValue(new Date(assignment.late_deadline))
+          : "",
+        visibility_status: assignment.visibility_status || "Published",
       });
     } else {
-      setForm(defaultForm);
+      setForm({
+        ...defaultForm,
+        availability_date: toDateTimeLocalValue(),
+        visibility_status: "Published",
+      });
     }
     setFiles([]);
   }, [assignment, isOpen]);
@@ -115,20 +138,37 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
   };
 
   const handleSubmit = async () => {
+    const dateTimeFields = new Set([
+      "availability_date",
+      "submission_deadline",
+      "late_deadline",
+    ]);
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => {
-      if (value !== "" && value !== null && value !== undefined) {
-        formData.append(key, value);
+      if (value === "" || value === null || value === undefined) return;
+      if (dateTimeFields.has(key)) {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          formData.append(key, parsed.toISOString());
+          return;
+        }
       }
+      formData.append(key, value);
     });
     files.forEach((file) => formData.append("attachments", file));
 
-    if (assignment?._id) {
-      await dispatch(updateAssignment({ authToken, id: assignment._id, formData }));
-    } else {
-      await dispatch(addAssignment({ authToken, formData }));
+    try {
+      if (assignment?._id) {
+        await dispatch(
+          updateAssignment({ authToken, id: assignment._id, formData })
+        ).unwrap();
+      } else {
+        await dispatch(addAssignment({ authToken, formData })).unwrap();
+      }
+      onClose();
+    } catch {
+      // Error toast is handled by the assignment slice; keep modal open.
     }
-    onClose();
   };
 
   return (
@@ -192,12 +232,15 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
                 <FormLabel>Max Attempts</FormLabel>
                 <Input type="number" name="max_attempts" value={form.max_attempts} onChange={handleChange} />
               </FormControl>
-              <FormControl flex="1" minW="140px">
+              <FormControl flex="1" minW="140px" isRequired>
                 <FormLabel>Visibility</FormLabel>
                 <Select name="visibility_status" value={form.visibility_status} onChange={handleChange}>
-                  <option value="Draft">Draft</option>
-                  <option value="Published">Published</option>
+                  <option value="Published">Published (visible to students)</option>
+                  <option value="Draft">Draft (hidden from students)</option>
                 </Select>
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Students only see Published assignments for their own batch.
+                </Text>
               </FormControl>
             </HStack>
             <FormControl>
@@ -207,6 +250,9 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
             <FormControl isRequired>
               <FormLabel>Availability Date</FormLabel>
               <Input type="datetime-local" name="availability_date" value={form.availability_date} onChange={handleChange} />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Students can see this assignment from this date/time onward.
+              </Text>
             </FormControl>
             <FormControl display="flex" alignItems="center">
               <FormLabel mb={0}>Has Deadline</FormLabel>

@@ -24,6 +24,7 @@ import {
   IconButton,
   Alert,
   AlertIcon,
+  useToast,
 } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { UserPlus, Trash2 } from "lucide-react";
@@ -53,6 +54,7 @@ const AssignTeachersModal = ({ batchId }) => {
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [assignments, setAssignments] = useState([]);
+  const toast = useToast();
 
   const dispatch = useDispatch();
   const teachers = useSelector(selectAllTeachers);
@@ -98,7 +100,16 @@ const AssignTeachersModal = ({ batchId }) => {
       (item) => item.teacher === selectedTeacher && item.course === selectedCourse
     );
 
-    if (exists) return;
+    if (exists) {
+      toast({
+        title: "Duplicate assignment is not allowed",
+        description: "This teacher is already assigned to the selected course.",
+        status: "warning",
+        duration: 3500,
+        isClosable: true,
+      });
+      return;
+    }
 
     setAssignments((prev) => [
       ...prev,

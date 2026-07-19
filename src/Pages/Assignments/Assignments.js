@@ -22,9 +22,10 @@ import {
   Box,
   Text,
   IconButton,
+  Input,
 } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
-import { FileX, Plus, Eye, Send, Trash2, ClipboardList, FilterX } from "lucide-react";
+import { FileX, Plus, Eye, Send, Trash2, ClipboardList, FilterX, Pencil } from "lucide-react";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
@@ -33,7 +34,7 @@ import SearchableCourseSelect from "../../Components/SearchableCourseSelect";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
-import { isTeacherRole } from "../../utlls/teacherAccess";
+import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import { hasPermission } from "../../utlls/useful";
 import { fetchBatches, selectActiveBatches } from "../../Features/batchSlice";
 import {
@@ -44,11 +45,14 @@ import {
   setQueryFilter,
   setBatchFilter,
   setCourseFilter,
+  setStartDateFilter,
+  setEndDateFilter,
   clearAssignmentFilters,
   publishAssignment,
   deleteAssignment,
   fetchAssignmentSubmissions,
   fetchBatchCoursesForAssignment,
+  fetchMyAssignmentCourses,
 } from "../../Features/assignmentSlice";
 import AssignmentFormModal from "./AssignmentFormModal";
 import AssignmentDetailModal from "./AssignmentDetailModal";
@@ -59,17 +63,22 @@ import TeacherSubmissionMarking from "./TeacherSubmissionMarking";
 const statusColor = {
   Draft: "gray",
   Published: "green",
+  "Not Submitted": "gray",
   Submitted: "blue",
   "Late Submitted": "orange",
   "Under Review": "yellow",
   Graded: "purple",
   Completed: "teal",
+  "Resubmission Requested": "red",
 };
 
 function Assignments() {
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
-  const canManage = hasPermission(["Add_Assignment", "Edit_Assignment"]) || !viewOnly;
+  // Teachers and institution staff can create/edit; students remain view-only.
+  const canManage =
+    !viewOnly &&
+    (isTeacher || hasPermission(["Add_Assignment", "Edit_Assignment"]) || isInstitutionAdmin());
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
   const { fetchStatus, pagination, filters, batchCourses } = useSelector(
@@ -95,9 +104,13 @@ function Assignments() {
     dispatch(
       fetchAssignments({
         authToken,
-        status: statusFilter || undefined,
-        batch_id: filters.batch_id || undefined,
+        // Students must not send leaked batch filters from shared Redux state
+        status: viewOnly ? undefined : statusFilter || undefined,
+        submission_status: viewOnly ? statusFilter || undefined : undefined,
+        batch_id: viewOnly ? "" : filters.batch_id || undefined,
         course_id: filters.course_id || undefined,
+        start_date: filters.start_date || undefined,
+        end_date: filters.end_date || undefined,
       })
     );
   };
@@ -105,18 +118,29 @@ function Assignments() {
   useEffect(() => {
     if (!viewOnly) {
       dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+    } else {
+      dispatch(fetchMyAssignmentCourses({ authToken }));
     }
   }, [dispatch, authToken, viewOnly]);
 
   useEffect(() => {
     loadAssignments();
-  }, [dispatch, authToken, statusFilter, filters.batch_id, filters.course_id]);
+  }, [
+    dispatch,
+    authToken,
+    statusFilter,
+    filters.batch_id,
+    filters.course_id,
+    filters.start_date,
+    filters.end_date,
+    viewOnly,
+  ]);
 
   useEffect(() => {
-    if (filters.batch_id) {
+    if (!viewOnly && filters.batch_id) {
       dispatch(fetchBatchCoursesForAssignment({ authToken, batchId: filters.batch_id }));
     }
-  }, [dispatch, authToken, filters.batch_id]);
+  }, [dispatch, authToken, filters.batch_id, viewOnly]);
 
   const groupedAssignments = useMemo(() => {
     const groups = new Map();
@@ -152,6 +176,13 @@ function Assignments() {
     setStatusFilter("");
     setSubmissionStatusFilter("");
   };
+
+  const hasActiveFilters =
+    filters.batch_id ||
+    filters.course_id ||
+    filters.start_date ||
+    filters.end_date ||
+    Boolean(statusFilter);
 
   const openDetail = (assignment) => {
     setSelectedAssignment(assignment);
@@ -233,6 +264,7 @@ function Assignments() {
                 </Button>
               )}
               <Button
+                leftIcon={<Pencil size={14} />}
                 onClick={() => {
                   setEditingAssignment(item);
                   formDisclosure.onOpen();
@@ -270,7 +302,7 @@ function Assignments() {
           width="100%"
         />
       )}
-      {!viewOnly && filters.batch_id && (
+      {(viewOnly || filters.batch_id) && (
         <SearchableCourseSelect
           courses={batchCourses}
           value={filters.course_id}
@@ -279,7 +311,50 @@ function Assignments() {
           width="100%"
         />
       )}
-      {(filters.batch_id || filters.course_id || statusFilter) && (
+      {viewOnly && (
+        <>
+          <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={filters.start_date || ""}
+              onChange={(e) => dispatch(setStartDateFilter(e.target.value))}
+              title="Deadline from"
+              aria-label="Deadline from"
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
+            <Input
+              type="date"
+              size="lg"
+              borderRadius="xl"
+              value={filters.end_date || ""}
+              onChange={(e) => dispatch(setEndDateFilter(e.target.value))}
+              title="Deadline to"
+              aria-label="Deadline to"
+            />
+          </FormControl>
+          <FormControl className="responsive-input" w={{ base: "full", md: "14rem" }}>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="Not Submitted">Not Submitted</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Late Submitted">Late Submitted</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Graded">Graded</option>
+              <option value="Completed">Completed</option>
+              <option value="Resubmission Requested">Resubmission Requested</option>
+            </Select>
+          </FormControl>
+        </>
+      )}
+      {hasActiveFilters && (
         <IconButton
           aria-label="Clear filters"
           icon={<FilterX size={18} />}
@@ -289,18 +364,20 @@ function Assignments() {
           onClick={clearFilters}
         />
       )}
-      <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-        <Select
-          size="lg"
-          borderRadius="xl"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          <option value="Draft">Draft</option>
-          <option value="Published">Published</option>
-        </Select>
-      </FormControl>
+      {!viewOnly && (
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+          <Select
+            size="lg"
+            borderRadius="xl"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            <option value="Draft">Draft</option>
+            <option value="Published">Published</option>
+          </Select>
+        </FormControl>
+      )}
     </>
   );
 
@@ -314,7 +391,7 @@ function Assignments() {
           viewOnly
             ? "View, download, and submit assignments for your batch."
             : isTeacher
-              ? "View assignments by batch and course, then add marks for each student submission."
+              ? "Create and update assignments for your assigned batches and courses, then mark student submissions."
               : "Create and manage assignments linked to batches and courses."
         }
       >
@@ -386,7 +463,7 @@ function Assignments() {
                                     </Badge>
                                   </Td>
                                   <Td>
-                                    <ButtonGroup size="sm" variant="outline">
+                                    <ButtonGroup size="sm" variant="outline" flexWrap="wrap">
                                       <Button
                                         size="sm"
                                         leftIcon={<Eye size={14} />}
@@ -400,6 +477,32 @@ function Assignments() {
                                         onClick={() => openSubmissions(item)}
                                       >
                                         Submissions
+                                      </Button>
+                                      {item.visibility_status === "Draft" && (
+                                        <Button
+                                          size="sm"
+                                          leftIcon={<Send size={14} />}
+                                          onClick={() =>
+                                            dispatch(
+                                              publishAssignment({
+                                                authToken,
+                                                id: item._id,
+                                              })
+                                            )
+                                          }
+                                        >
+                                          Publish
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        leftIcon={<Pencil size={14} />}
+                                        onClick={() => {
+                                          setEditingAssignment(item);
+                                          formDisclosure.onOpen();
+                                        }}
+                                      >
+                                        Edit
                                       </Button>
                                     </ButtonGroup>
                                   </Td>
@@ -505,7 +608,11 @@ function Assignments() {
                   <Tr>
                     <Td colSpan={7} textAlign="center" py={8}>
                       <FileX className="mx-auto mb-2 text-gray-400" />
-                      No assignments found
+                      No published assignments available for your batch yet.
+                      <Text fontSize="sm" color="gray.500" mt={2}>
+                        Assignments appear here after a teacher publishes them and the
+                        availability date has started.
+                      </Text>
                     </Td>
                   </Tr>
                 ) : (
@@ -521,8 +628,16 @@ function Assignments() {
                           : "No deadline"}
                       </Td>
                       <Td>
-                        <Badge colorScheme={statusColor[item.status] || "gray"}>
-                          {item.visibility_status || item.status}
+                        <Badge
+                          colorScheme={
+                            statusColor[item.student_status] ||
+                            statusColor[item.status] ||
+                            "gray"
+                          }
+                        >
+                          {item.student_status ||
+                            item.visibility_status ||
+                            item.status}
                         </Badge>
                       </Td>
                       <Td>

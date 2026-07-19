@@ -17,6 +17,8 @@ const initialState = {
     ...TABLE_FILTERS,
     batch_id: "",
     course_id: "",
+    start_date: "",
+    end_date: "",
   },
   pagination: TABLE_PAGINATION,
   submissionsPagination: TABLE_PAGINATION,
@@ -61,6 +63,16 @@ export const fetchBatchCoursesForAssignment = createAsyncThunk(
       `${BASE_URL}/assignments/batch/${batchId}/courses`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
+    return response.data;
+  }
+);
+
+export const fetchMyAssignmentCourses = createAsyncThunk(
+  "assignments/fetchMyCourses",
+  async ({ authToken }) => {
+    const response = await axios.get(`${BASE_URL}/assignments/my-courses`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
     return response.data;
   }
 );
@@ -201,9 +213,19 @@ const assignmentSlice = createSlice({
       state.filters.page = 1;
       state.filters.course_id = action.payload;
     },
+    setStartDateFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.start_date = action.payload;
+    },
+    setEndDateFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.end_date = action.payload;
+    },
     clearAssignmentFilters(state) {
       state.filters.batch_id = "";
       state.filters.course_id = "";
+      state.filters.start_date = "";
+      state.filters.end_date = "";
       state.filters.query = "";
       state.filters.page = 1;
     },
@@ -230,6 +252,14 @@ const assignmentSlice = createSlice({
           prevPage: action.payload.prevPage,
           nextPage: action.payload.nextPage,
         };
+        if (action.payload.message && !(action.payload.docs || []).length) {
+          toast({
+            title: action.payload.message,
+            status: "info",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
       })
       .addCase(fetchAssignments.rejected, (state, action) => {
         state.fetchStatus = "failure";
@@ -240,6 +270,9 @@ const assignmentSlice = createSlice({
       })
       .addCase(fetchBatchCoursesForAssignment.fulfilled, (state, action) => {
         state.batchCourses = action.payload;
+      })
+      .addCase(fetchMyAssignmentCourses.fulfilled, (state, action) => {
+        state.batchCourses = action.payload || [];
       })
       .addCase(fetchAssignmentSubmissions.pending, (state) => {
         state.submissionsStatus = "loading";
@@ -269,6 +302,14 @@ const assignmentSlice = createSlice({
         if (idx !== -1) state.assignments[idx] = action.payload;
         toast({ title: "Assignment updated", status: "success", duration: 3000 });
       })
+      .addCase(updateAssignment.rejected, (state, action) => {
+        state.updateStatus = "failure";
+        toast({
+          title: action.error.message || "Failed to update assignment",
+          status: "error",
+          duration: 4000,
+        });
+      })
       .addCase(publishAssignment.fulfilled, (state, action) => {
         state.publishStatus = "success";
         const idx = state.assignments.findIndex((a) => a._id === action.payload._id);
@@ -296,8 +337,17 @@ const assignmentSlice = createSlice({
   },
 });
 
-export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setCourseFilter, clearAssignmentFilters, clearSelectedAssignment } =
-  assignmentSlice.actions;
+export const {
+  setQueryFilter,
+  setPageFilter,
+  setLimitFilter,
+  setBatchFilter,
+  setCourseFilter,
+  setStartDateFilter,
+  setEndDateFilter,
+  clearAssignmentFilters,
+  clearSelectedAssignment,
+} = assignmentSlice.actions;
 
 export const selectAllAssignments = createSelector(
   (state) => state.assignments.assignments,
