@@ -22,18 +22,12 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
-import { useSelector } from "react-redux";
-import {
-  fetchBatches,
-  selectActiveBatches,
-} from "../../Features/batchSlice.js";
 import { Pen } from "lucide-react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { basicUpdate, fetchStudents } from "../../Features/studentSlice";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { getMediaUrl } from "../../utlls/useful.js";
 import CameraCapture from "../../Components/CameraCapture";
-import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -46,22 +40,11 @@ function UpdateModal({ student }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [photoFile, setPhotoFile] = useState(null);
 
-  const batches = useSelector(selectActiveBatches);
   const { updateStatus } = useSelector((state) => state.students);
   const dispatch = useDispatch();
 
-  const currentBatchId = student?.batch?._id || student?.batch || "";
-
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      dispatch(
-        fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
-      );
-    }
-  }, [dispatch, authToken, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -75,7 +58,6 @@ function UpdateModal({ student }) {
       name: student?.name || "",
       email: student?.email || "",
       phone: student?.phone || "",
-      batch: currentBatchId,
       remarks: student?.remarks || "",
       skip_profile_completion: student?.skip_profile_completion === true,
     },
@@ -83,7 +65,6 @@ function UpdateModal({ student }) {
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
       phone: Yup.string().required("Required"),
-      batch: Yup.string().required("Please select a batch"),
       remarks: Yup.string(),
     }),
     onSubmit: async (values) => {
@@ -91,7 +72,6 @@ function UpdateModal({ student }) {
       formData.append("name", values.name);
       formData.append("email", values.email);
       formData.append("phone", values.phone);
-      formData.append("batch", values.batch);
       formData.append("remarks", values.remarks || "");
       if (!viewOnly) {
         formData.append(
@@ -212,20 +192,17 @@ function UpdateModal({ student }) {
               </GridItem>
 
               <GridItem>
-                <FormControl id="batch" isRequired>
-                  <FormLabel fontSize={14}>Batch</FormLabel>
-                  <SearchableBatchSelect
-                    batches={batches}
-                    value={formik.values.batch}
-                    onChange={(batchId) => formik.setFieldValue("batch", batchId)}
-                    placeholder="Select batch"
-                    width="100%"
+                <FormControl>
+                  <FormLabel fontSize={14}>Current Batch</FormLabel>
+                  <Input
+                    value={student?.batch?.name || "No Batch"}
+                    isReadOnly
+                    borderRadius="0.5rem"
+                    bg="gray.50"
                   />
-                  {formik.touched.batch && formik.errors.batch ? (
-                    <Box color="red" fontSize="sm">
-                      {formik.errors.batch}
-                    </Box>
-                  ) : null}
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Use Shift Batch to move this student to another batch.
+                  </Text>
                 </FormControl>
               </GridItem>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Button, HStack, Image, Input, Text } from "@chakra-ui/react";
-import { Camera, RotateCcw, Upload } from "lucide-react";
+import { Camera, RotateCcw, SwitchCamera, Upload } from "lucide-react";
 
 function CameraCapture({ onCapture, label = "Student Photo" }) {
   const videoRef = useRef(null);
@@ -11,6 +11,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
   const [active, setActive] = useState(false);
+  const [facingMode, setFacingMode] = useState("user"); // user = front, environment = back
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -21,20 +22,40 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     setActive(false);
   };
 
-  const startCamera = async () => {
+  const startCamera = async (mode = facingMode) => {
     try {
-      stopCamera();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: false,
-      });
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: mode } },
+          audio: false,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: mode } },
+          audio: false,
+        });
+      }
+
       streamRef.current = stream;
+      setFacingMode(mode);
       setError("");
       setActive(true);
     } catch {
       setError("Unable to access camera. Use upload photo instead.");
       setActive(false);
     }
+  };
+
+  const switchCamera = async () => {
+    const nextMode = facingMode === "user" ? "environment" : "user";
+    await startCamera(nextMode);
   };
 
   useEffect(() => {
@@ -64,7 +85,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     return () => {
       video.onloadedmetadata = null;
     };
-  }, [active]);
+  }, [active, facingMode]);
 
   useEffect(() => () => stopCamera(), []);
 
@@ -118,7 +139,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     }
     setPreview(null);
     onCapture?.(null);
-    startCamera();
+    startCamera(facingMode);
   };
 
   const handleFileUpload = (event) => {
@@ -128,6 +149,9 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     stopCamera();
     event.target.value = "";
   };
+
+  const cameraLabel =
+    facingMode === "user" ? "Front camera" : "Back camera";
 
   return (
     <Box
@@ -168,6 +192,20 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
         </>
       ) : active ? (
         <>
+          <HStack justify="space-between" mb={2}>
+            <Text fontSize="xs" color="gray.500">
+              Using {cameraLabel}
+            </Text>
+            <Button
+              size="xs"
+              type="button"
+              variant="outline"
+              leftIcon={<SwitchCamera size={14} />}
+              onClick={switchCamera}
+            >
+              Switch to {facingMode === "user" ? "Back" : "Front"}
+            </Button>
+          </HStack>
           <video
             ref={videoRef}
             autoPlay
@@ -178,6 +216,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
               maxHeight: "240px",
               borderRadius: "12px",
               background: "#111",
+              transform: facingMode === "user" ? "scaleX(-1)" : "none",
             }}
           />
           <canvas ref={canvasRef} style={{ display: "none" }} />
@@ -191,6 +230,15 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
             >
               Capture Photo
             </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              leftIcon={<SwitchCamera size={16} />}
+              onClick={switchCamera}
+            >
+              {facingMode === "user" ? "Back Camera" : "Front Camera"}
+            </Button>
             <Button size="sm" type="button" variant="outline" onClick={stopCamera}>
               Stop Camera
             </Button>
@@ -202,7 +250,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
             size="sm"
             type="button"
             leftIcon={<Camera size={16} />}
-            onClick={startCamera}
+            onClick={() => startCamera(facingMode)}
           >
             Open Camera
           </Button>

@@ -42,12 +42,15 @@ const fetchBatches = createAsyncThunk(
   "batches/fetchBatches",
   async (payload, { getState }) => {
     const state = getState();
-    const { authToken } = payload;
+    const { authToken, queryParams } = payload;
     const response = await axios.get(`${BASE_URL}/batches`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
-      params: state.batches.filters,
+      params: {
+        ...state.batches.filters,
+        ...(queryParams || {}),
+      },
     });
     return response.data;
   }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -18,14 +18,45 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
+import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, addUser } from "../../Features/userSlice";
+import { config } from "../../utlls/config";
 
 function AddModel({ isOpen, onClose }) {
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+  const [authToken] = useState(Cookies.get("authToken"));
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   const { addStatus } = useSelector((state) => state.users);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!isOpen || !authToken) return;
+
+    let cancelled = false;
+    const loadRoles = async () => {
+      setRolesLoading(true);
+      try {
+        const response = await axios.get(`${config.BASE_URL}/roles`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+          params: { page: 1, limit: 1000, query: "" },
+        });
+        if (!cancelled) {
+          setRoles(response.data?.docs || []);
+        }
+      } catch {
+        if (!cancelled) setRoles([]);
+      } finally {
+        if (!cancelled) setRolesLoading(false);
+      }
+    };
+
+    loadRoles();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, authToken]);
 
   const formik = useFormik({
     initialValues: {
@@ -107,13 +138,18 @@ function AddModel({ isOpen, onClose }) {
               <FormControl id="role">
                 <FormLabel fontSize={14}>Role</FormLabel>
                 <Select
-                  placeholder="Select Role"
+                  placeholder={rolesLoading ? "Loading roles..." : "Select Role"}
                   borderRadius={"0.5rem"}
                   name="role"
+                  value={formik.values.role}
                   onChange={formik.handleChange}
+                  isDisabled={rolesLoading}
                 >
-                  <option value="admin">Admin</option>
-                  <option value="user">User </option>
+                  {roles.map((role) => (
+                    <option key={role._id} value={role.name}>
+                      {role.name}
+                    </option>
+                  ))}
                 </Select>
                 {formik.touched.role && formik.errors.role ? (
                   <Box color="red" fontSize="sm">

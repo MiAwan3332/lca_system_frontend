@@ -22,6 +22,8 @@ import {
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
+import ShiftBatchModal from "./ShiftBatchModal";
+import StudentHistoryModal from "./StudentHistoryModal";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -541,9 +543,11 @@ function Student() {
                     <Td className="space-x-3" isNumeric>
                       <div className="action-cell">
                         <ActionMenu>
+                          <StudentHistoryModal student={student} />
                           {hasPermission(["Update_Student"]) && (
                             <>
                               <UpdateModal student={student} />
+                              <ShiftBatchModal student={student} />
                               <ChangePasswordModal student={student} />
                             </>
                           )}

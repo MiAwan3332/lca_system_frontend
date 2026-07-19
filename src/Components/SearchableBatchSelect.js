@@ -9,6 +9,7 @@ function SearchableBatchSelect({
   placeholder = "Search or select batch",
   width = "12rem",
   activeOnly = true,
+  showClearOption = true,
   size = "lg",
 }) {
   const containerRef = useRef(null);
@@ -126,7 +127,7 @@ function SearchableBatchSelect({
           zIndex={1500}
           boxShadow="lg"
         >
-          {!search.trim() && (
+          {!search.trim() && showClearOption && (
             <ListItem
               px={4}
               py={2}

@@ -253,11 +253,18 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
                   <List spacing={1} mt={2} maxH="180px" overflowY="auto">
                     {importResult.imported_students.map((item) => (
                       <ListItem key={`${item.row}-${item.email}`} fontSize="sm" color="gray.700">
-                        Row {item.row}: {item.roll_number} — {item.name} ({item.email})
+                        Row {item.row}: <strong>{item.roll_number || "—"}</strong> — {item.name} ({item.email})
                       </ListItem>
                     ))}
                   </List>
                 </>
+              )}
+              {importResult.backfilled_roll_numbers?.length > 0 && (
+                <Text fontSize="sm" color="blue.700" mt={2}>
+                  Also assigned roll numbers to{" "}
+                  {importResult.backfilled_roll_numbers.length} existing student
+                  {importResult.backfilled_roll_numbers.length === 1 ? "" : "s"} in this batch who were missing one.
+                </Text>
               )}
               {importResult.failed?.length > 0 && (
                 <>

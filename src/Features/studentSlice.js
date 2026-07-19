@@ -29,6 +29,10 @@ const initialState = {
     deleteStatus: 'idle',
     changePasswordStatus: 'idle',
     importStatus: 'idle',
+    transferBatchStatus: 'idle',
+    pendingFeeSlipStatus: 'idle',
+    studentHistory: null,
+    fetchStudentHistoryStatus: 'idle',
     myFinance: null,
     fetchMyFinanceStatus: 'idle',
     error: null,
@@ -157,6 +161,85 @@ const bulkImportStudents = createAsyncThunk(
         } catch (error) {
             return rejectWithValue(
                 error.response?.data?.message || error.message || 'Failed to import students'
+            );
+        }
+    }
+);
+
+const transferStudentBatch = createAsyncThunk(
+    'students/transferStudentBatch',
+    async ({ authToken, studentId, batch }, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/students/transfer-batch/${studentId}`,
+                { batch },
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            const data = error.response?.data;
+            if (data?.code === 'PENDING_FEE_BLOCK') {
+                return rejectWithValue(data);
+            }
+            return rejectWithValue(
+                data?.message || error.message || 'Failed to transfer student batch'
+            );
+        }
+    }
+);
+
+const getOrCreatePendingFeeSlip = createAsyncThunk(
+    'students/getOrCreatePendingFeeSlip',
+    async ({ authToken, studentId, slipFile }, { rejectWithValue }) => {
+        try {
+            const formData = new FormData();
+            if (slipFile) {
+                formData.append('slip', slipFile);
+            }
+
+            const response = await axios.post(
+                `${BASE_URL}/students/pending-fee-slip/${studentId}`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            const data = error.response?.data;
+            return rejectWithValue(
+                data || {
+                    message: error.message || 'Failed to generate pending fee slip',
+                }
+            );
+        }
+    }
+);
+
+const fetchStudentHistory = createAsyncThunk(
+    'students/fetchStudentHistory',
+    async ({ authToken, studentId }, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(
+                `${BASE_URL}/students/history/${studentId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    error.message ||
+                    'Failed to load student history'
             );
         }
     }
@@ -586,12 +669,102 @@ const studentSlice = createSlice({
                     isClosable: true,
                 });
             })
+
+            .addCase(transferStudentBatch.pending, (state) => {
+                state.transferBatchStatus = 'loading';
+            })
+            .addCase(transferStudentBatch.fulfilled, (state) => {
+                state.transferBatchStatus = 'succeeded';
+                toast({
+                    title: "Batch transferred",
+                    description: "Student moved to the selected batch successfully.",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            })
+            .addCase(transferStudentBatch.rejected, (state, action) => {
+                state.transferBatchStatus = 'failed';
+                const payload = action.payload;
+                if (payload?.code !== 'PENDING_FEE_BLOCK') {
+                    toast({
+                        title: "Batch transfer failed",
+                        description:
+                            typeof payload === 'string'
+                                ? payload
+                                : payload?.message || action.error.message,
+                        status: "error",
+                        duration: 5000,
+                        isClosable: true,
+                    });
+                }
+            })
+
+            .addCase(getOrCreatePendingFeeSlip.pending, (state) => {
+                state.pendingFeeSlipStatus = 'loading';
+            })
+            .addCase(getOrCreatePendingFeeSlip.fulfilled, (state) => {
+                state.pendingFeeSlipStatus = 'succeeded';
+            })
+            .addCase(getOrCreatePendingFeeSlip.rejected, (state, action) => {
+                state.pendingFeeSlipStatus = 'failed';
+                const payload = action.payload;
+                if (payload?.code === 'NEED_SLIP_FILE') {
+                    return;
+                }
+                toast({
+                    title: "Pending fee slip failed",
+                    description:
+                        payload?.message ||
+                        (typeof payload === 'string' ? payload : action.error.message),
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
+
+            .addCase(fetchStudentHistory.pending, (state) => {
+                state.fetchStudentHistoryStatus = 'loading';
+                state.studentHistory = null;
+            })
+            .addCase(fetchStudentHistory.fulfilled, (state, action) => {
+                state.fetchStudentHistoryStatus = 'succeeded';
+                state.studentHistory = action.payload;
+            })
+            .addCase(fetchStudentHistory.rejected, (state, action) => {
+                state.fetchStudentHistoryStatus = 'failed';
+                state.studentHistory = null;
+                toast({
+                    title: "Could not load student history",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
     }
 });
 
 export const selectAllStudents = (state) => state.students.students;
+export const selectStudentHistory = (state) => state.students.studentHistory;
 
-export { fetchStudents, fetchStudentsByBatch, addStudent, bulkImportStudents, updateStudent, basicUpdate, updateStudentInfo, deleteStudent, changeStudentPassword, fetchMyFinance, toggleStudentStatus, toggleBatchStudentsStatus };
+export {
+    fetchStudents,
+    fetchStudentsByBatch,
+    addStudent,
+    bulkImportStudents,
+    updateStudent,
+    basicUpdate,
+    updateStudentInfo,
+    deleteStudent,
+    changeStudentPassword,
+    fetchMyFinance,
+    toggleStudentStatus,
+    toggleBatchStudentsStatus,
+    transferStudentBatch,
+    getOrCreatePendingFeeSlip,
+    fetchStudentHistory,
+};
 export const selectMyFinance = (state) => state.students.myFinance;
 export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, setStatusFilter, clearStudentFilters } = studentSlice.actions;
 

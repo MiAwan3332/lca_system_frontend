@@ -218,23 +218,33 @@ export const exportFinanceTransactionsPdf = async ({
   // Table layout (landscape A4)
   const col = {
     no: 8,
-    date: 28,
+    date: 26,
     type: 14,
-    details: 58,
-    batch: 34,
-    action: 18,
+    details: 48,
+    batch: 30,
+    action: 16,
+    payment: 16,
     amount: 22,
-    by: 28,
+    by: 26,
   };
   const tableW =
-    col.no + col.date + col.type + col.details + col.batch + col.action + col.amount + col.by;
+    col.no +
+    col.date +
+    col.type +
+    col.details +
+    col.batch +
+    col.action +
+    col.payment +
+    col.amount +
+    col.by;
   const x0 = margin + Math.max(0, (contentWidth - tableW) / 2);
-  const rowH = 8;
+  const headerH = 9;
+  const rowGap = 2;
 
   const drawTableHeader = () => {
     doc.setFillColor(...COLORS.grayLight);
     doc.setDrawColor(...COLORS.border);
-    doc.roundedRect(x0, y, tableW, 9, 2, 2, "FD");
+    doc.roundedRect(x0, y, tableW, headerH, 2, 2, "FD");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(...COLORS.text);
@@ -252,10 +262,12 @@ export const exportFinanceTransactionsPdf = async ({
     put("Details", col.details);
     put("Batch", col.batch);
     put("Action", col.action);
+    put("Payment", col.payment);
     put("Amount", col.amount, "right");
     put("By", col.by);
 
-    y += 11;
+    // Move below header so data rows never cover header text
+    y += headerH + rowGap;
   };
 
   const ensureSpace = (needed) => {
@@ -283,23 +295,30 @@ export const exportFinanceTransactionsPdf = async ({
     const typeLabel = isExpense ? "Expense" : "Fee";
     const details = isExpense ? t.title : t.student_name;
     const dateLabel = t.action_date ? moment(t.action_date).format("DD/MM/YYYY HH:mm") : "";
+    const paymentLabel =
+      t.payment_method ||
+      (t.action_type === "Paid" ? "Cash" : "—");
 
     const detailLines = wrapText(doc, details || "—", col.details - 4);
     const byLines = wrapText(doc, t.action_by || "—", col.by - 4);
     const maxLines = Math.min(2, Math.max(detailLines.length, byLines.length, 1));
-    const h = rowH + (maxLines - 1) * 4;
+    const textBlockH = 4 + (maxLines - 1) * 4;
+    const h = Math.max(8, textBlockH + 4);
 
-    ensureSpace(h + 2);
+    ensureSpace(h + rowGap);
+
+    const rowTop = y;
+    const textY = rowTop + 5;
 
     doc.setDrawColor(...COLORS.border);
     doc.setFillColor(...COLORS.white);
-    doc.roundedRect(x0, y - 6, tableW, h, 1.5, 1.5, "FD");
+    doc.roundedRect(x0, rowTop, tableW, h, 1.5, 1.5, "FD");
 
     let x = x0;
     const cellText = (txt, w, align = "left", color = COLORS.text) => {
       doc.setTextColor(...color);
       const tx = align === "right" ? x + w - 2 : x + 2;
-      doc.text(String(txt ?? ""), tx, y, { align, maxWidth: w - 4 });
+      doc.text(String(txt ?? ""), tx, textY, { align, maxWidth: w - 4 });
       x += w;
     };
 
@@ -308,7 +327,7 @@ export const exportFinanceTransactionsPdf = async ({
       const startX = x + 2;
       const max = Math.min(lines.length, 2);
       for (let i = 0; i < max; i += 1) {
-        doc.text(String(lines[i] ?? ""), startX, y + i * 4, { maxWidth: w - 4 });
+        doc.text(String(lines[i] ?? ""), startX, textY + i * 4, { maxWidth: w - 4 });
       }
       x += w;
     };
@@ -319,24 +338,24 @@ export const exportFinanceTransactionsPdf = async ({
     cellLines(detailLines, col.details);
     cellText(t.batch_name || "—", col.batch);
     cellText(t.action_type || "—", col.action);
+    cellText(paymentLabel, col.payment);
     cellText(`Rs. ${amountLabel}`, col.amount, "right", isExpense ? COLORS.expense : COLORS.text);
     cellLines(byLines, col.by);
 
-    y += h + 2;
+    y = rowTop + h + rowGap;
   });
 
   drawFooter();
 
   if (mode === "print") {
+    // Embed auto-print so headers render fully before the print dialog
+    doc.autoPrint();
     const blobUrl = doc.output("bloburl");
-    const printWindow = window.open(blobUrl);
+    const printWindow = window.open(blobUrl, "_blank");
     if (!printWindow) {
       throw new Error("Pop-up blocked. Allow pop-ups to print the report.");
     }
-    printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
-    };
+    printWindow.focus();
   } else {
     doc.save(fileName);
   }

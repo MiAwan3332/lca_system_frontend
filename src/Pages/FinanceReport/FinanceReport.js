@@ -22,6 +22,7 @@ import {
   Th,
   Thead,
   Tr,
+  Text,
   useToast,
 } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
@@ -73,7 +74,20 @@ const ACTION_TYPE_OPTIONS = [
   { value: "Created", label: "Created" },
   { value: "Discounted", label: "Discounted" },
   { value: "Deleted", label: "Deleted" },
+  { value: "Pending", label: "Pending" },
   { value: "Expense", label: "Expense" },
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "", label: "All Payments" },
+  { value: "Cash", label: "Cash" },
+  { value: "Online", label: "Online" },
+];
+
+const PENDING_DUES_OPTIONS = [
+  { value: "", label: "All Dues" },
+  { value: "pending", label: "Pending Dues" },
+  { value: "cleared", label: "No Pending / Paid" },
 ];
 
 const PERIOD_OPTIONS = [
@@ -149,6 +163,8 @@ function FinanceReport() {
   const [formChangedBy, setFormChangedBy] = useState("");
   const [txnTypeFilter, setTxnTypeFilter] = useState("");
   const [txnActionFilter, setTxnActionFilter] = useState("");
+  const [txnPaymentMethodFilter, setTxnPaymentMethodFilter] = useState("");
+  const [txnPendingDuesFilter, setTxnPendingDuesFilter] = useState("");
   const [txnSearch, setTxnSearch] = useState("");
   const [previewTransaction, setPreviewTransaction] = useState(null);
   const [isVoucherPreviewOpen, setIsVoucherPreviewOpen] = useState(false);
@@ -199,6 +215,8 @@ function FinanceReport() {
     setFormChangedBy("");
     setTxnTypeFilter("");
     setTxnActionFilter("");
+    setTxnPaymentMethodFilter("");
+    setTxnPendingDuesFilter("");
     setTxnSearch("");
     loadReport({
       period: "daily",
@@ -211,6 +229,8 @@ function FinanceReport() {
   const handleClearTxnFilters = () => {
     setTxnTypeFilter("");
     setTxnActionFilter("");
+    setTxnPaymentMethodFilter("");
+    setTxnPendingDuesFilter("");
     setTxnSearch("");
   };
 
@@ -309,6 +329,32 @@ function FinanceReport() {
       if (txnActionFilter && transaction.action_type !== txnActionFilter) {
         return false;
       }
+      if (txnPaymentMethodFilter) {
+        const method =
+          transaction.payment_method ||
+          (transaction.action_type === "Paid" ? "Cash" : "");
+        if (method !== txnPaymentMethodFilter) {
+          return false;
+        }
+      }
+      if (txnPendingDuesFilter === "pending") {
+        const hasPending =
+          transaction.has_pending_dues === true ||
+          transaction.action_type === "Pending" ||
+          (transaction.fee_status === "Pending" &&
+            Number(transaction.fee_pending_amount) > 0);
+        if (!hasPending) return false;
+      }
+      if (txnPendingDuesFilter === "cleared") {
+        if (transaction.type !== "fee") return false;
+        if (
+          transaction.has_pending_dues === true ||
+          transaction.action_type === "Pending" ||
+          transaction.fee_status === "Pending"
+        ) {
+          return false;
+        }
+      }
       if (!query) return true;
 
       const haystack = [
@@ -319,6 +365,8 @@ function FinanceReport() {
         transaction.action_by,
         transaction.action_type,
         transaction.type,
+        transaction.payment_method,
+        transaction.fee_status,
       ]
         .filter(Boolean)
         .join(" ")
@@ -326,7 +374,14 @@ function FinanceReport() {
 
       return haystack.includes(query);
     });
-  }, [report?.transactions, txnTypeFilter, txnActionFilter, txnSearch]);
+  }, [
+    report?.transactions,
+    txnTypeFilter,
+    txnActionFilter,
+    txnPaymentMethodFilter,
+    txnPendingDuesFilter,
+    txnSearch,
+  ]);
 
   return (
     <>
@@ -491,6 +546,36 @@ function FinanceReport() {
                   ))}
                 </Select>
               </FormControl>
+              <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
+                <Select
+                  size="md"
+                  borderRadius="xl"
+                  value={txnPaymentMethodFilter}
+                  onChange={(e) => setTxnPaymentMethodFilter(e.target.value)}
+                  placeholder="All Payments"
+                >
+                  {PAYMENT_METHOD_OPTIONS.map((option) => (
+                    <option key={option.value || "all-payments"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl className="responsive-input" w={{ base: "full", sm: "11rem" }}>
+                <Select
+                  size="md"
+                  borderRadius="xl"
+                  value={txnPendingDuesFilter}
+                  onChange={(e) => setTxnPendingDuesFilter(e.target.value)}
+                  placeholder="All Dues"
+                >
+                  {PENDING_DUES_OPTIONS.map((option) => (
+                    <option key={option.value || "all-dues"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
               <FormControl className="responsive-input" w={{ base: "full", sm: "12rem" }}>
                 <InputGroup size="md">
                   <InputLeftElement pointerEvents="none">
@@ -504,7 +589,11 @@ function FinanceReport() {
                   />
                 </InputGroup>
               </FormControl>
-              {(txnTypeFilter || txnActionFilter || txnSearch) && (
+              {(txnTypeFilter ||
+                txnActionFilter ||
+                txnPaymentMethodFilter ||
+                txnPendingDuesFilter ||
+                txnSearch) && (
                 <Button size="sm" borderRadius="xl" variant="outline" onClick={handleClearTxnFilters}>
                   <FilterX size={16} className="mr-1" />
                   Clear
@@ -523,6 +612,7 @@ function FinanceReport() {
                 <Th>Details</Th>
                 <Th>Category / Batch</Th>
                 <Th>Action</Th>
+                <Th>Payment</Th>
                 <Th isNumeric>Amount</Th>
                 <Th>By</Th>
                 <Th isNumeric>Voucher</Th>
@@ -531,8 +621,8 @@ function FinanceReport() {
             <Tbody>
               {status === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={9}
-                  actions={["w-10", "w-24", "w-16", "w-24", "w-24", "w-20", "w-20", "w-24", "w-16"]}
+                  nOfColumns={10}
+                  actions={["w-10", "w-24", "w-16", "w-24", "w-24", "w-20", "w-16", "w-20", "w-24", "w-16"]}
                 />
               ) : filteredTransactions.length > 0 ? (
                 filteredTransactions.map((transaction, index) => (
@@ -563,11 +653,33 @@ function FinanceReport() {
                                 ? "blue"
                                 : transaction.action_type === "Discounted"
                                   ? "orange"
-                                  : "gray"
+                                  : transaction.action_type === "Pending"
+                                    ? "yellow"
+                                    : "gray"
                         }
                       >
                         {transaction.action_type}
                       </Badge>
+                    </Td>
+                    <Td>
+                      {transaction.payment_method ||
+                      (transaction.action_type === "Paid" ? "Cash" : null) ? (
+                        <Badge
+                          colorScheme={
+                            (transaction.payment_method || "Cash") === "Online"
+                              ? "purple"
+                              : "teal"
+                          }
+                          borderRadius="full"
+                        >
+                          {transaction.payment_method ||
+                            (transaction.action_type === "Paid" ? "Cash" : "—")}
+                        </Badge>
+                      ) : (
+                        <Text as="span" color="gray.400">
+                          —
+                        </Text>
+                      )}
                     </Td>
                     <Td>
                       <span
@@ -597,7 +709,7 @@ function FinanceReport() {
                 ))
               ) : (
                 <Tr>
-                  <Td colSpan={9}>
+                  <Td colSpan={10}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1] py-6">
                       {report?.transactions?.length > 0
                         ? "No transactions match the selected filters"

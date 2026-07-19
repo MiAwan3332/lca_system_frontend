@@ -272,9 +272,13 @@ function Batch() {
                     <Td>{batch.description}</Td>
                     <Td>{batch.batch_type ? batch.batch_type : "N/A"}</Td>
                     <Td>
-                      {batch.batch_fee != null && batch.batch_fee !== ""
-                        ? `${batch.batch_fee} Rs.`
-                        : "N/A"}
+                      {batch.is_special_batch ? (
+                        <Badge colorScheme="purple">Special</Badge>
+                      ) : batch.batch_fee != null && batch.batch_fee !== "" ? (
+                        `${batch.batch_fee} Rs.`
+                      ) : (
+                        "N/A"
+                      )}
                     </Td>
                     <Td>{batch.startdate}</Td>
                     <Td>{batch.enddate}</Td>
