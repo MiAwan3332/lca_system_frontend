@@ -1,7 +1,10 @@
 import Cookies from "js-cookie";
 import { extractRoleFromToken } from "./useful";
 
-/** Principal and Vice-Principal share the same access. */
+/**
+ * Principal and Vice-Principal share the same access:
+ * all screens except Roles, Permissions, and all activity logs.
+ */
 export const PRINCIPAL_BLOCKED_ROUTE_PATHS = [
   "/role",
   "/permission",
@@ -45,18 +48,23 @@ export const isPrincipalRole = () => {
   return false;
 };
 
+const isPrincipalBlockedPath = (path) => {
+  if (PRINCIPAL_BLOCKED_ROUTE_PATHS.includes(path)) return true;
+  // Any activity-log screen (student / teacher / admin logs)
+  if (String(path || "").startsWith("/activity-logs")) return true;
+  return false;
+};
+
 export const canAccessPrincipalRoute = (path) => {
   if (!isPrincipalRole()) {
     return true;
   }
-  return !PRINCIPAL_BLOCKED_ROUTE_PATHS.includes(path);
+  return !isPrincipalBlockedPath(path);
 };
 
 export const getPrincipalVisibleRoutes = (allRoutes) => {
   if (!isPrincipalRole()) {
     return allRoutes;
   }
-  return allRoutes.filter(
-    (route) => !PRINCIPAL_BLOCKED_ROUTE_PATHS.includes(route.path)
-  );
+  return allRoutes.filter((route) => !isPrincipalBlockedPath(route.path));
 };

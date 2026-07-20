@@ -1,19 +1,21 @@
 import Cookies from "js-cookie";
 import { extractRoleFromToken } from "./useful";
 
-/** Screens allowed for the Information Office role (view access). */
+/** Screens allowed for the Information Office role. */
 export const INFORMATION_OFFICE_ROUTE_PATHS = [
   "/dashboard",
   "/student",
+  "/fees",
   "/finance-report",
-  "/course",
   "/teacher",
+  "/course",
+  "/timetable",
+  "/batch",
   "/attendance",
   "/seminar",
+  "/complaints",
   "/announcements",
   "/notifications",
-  "/complaints",
-  "/timetable",
 ];
 
 const normalizeRole = (role) =>
