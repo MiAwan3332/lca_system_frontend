@@ -27,14 +27,14 @@ const initialState = {
 
 const fetchTeachers = createAsyncThunk(
   "teachers/fetchTeachers",
-  async (payload, { getState }) => {
+  async (payload = {}, { getState }) => {
     const state = getState();
-    const { authToken } = payload;
+    const { authToken, queryParams = {} } = payload;
     const response = await axios.get(`${BASE_URL}/teachers`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
-      params: state.teachers.filters,
+      params: { ...state.teachers.filters, ...queryParams },
     });
     return response.data;
   }

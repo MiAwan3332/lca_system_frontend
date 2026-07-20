@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -25,6 +25,7 @@ import {
   Alert,
   AlertIcon,
   useToast,
+  Heading,
 } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { UserPlus, Trash2 } from "lucide-react";
@@ -36,7 +37,6 @@ import {
   fetchBatchTeacherAssignments,
   fetchBatches,
   selectBatchCourses,
-  selectBatchTeacherAssignments,
 } from "../../Features/batchSlice";
 import {
   responsiveModalProps,
@@ -44,9 +44,25 @@ import {
   getResponsiveModalSize,
 } from "../../utlls/responsiveModal";
 
-const getId = (value) => value?._id || value || "";
+const getId = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value._id || "";
+};
 
-const getName = (value, fallback = "N/A") => value?.name || fallback;
+const getName = (value, fallback = "N/A") => {
+  if (!value) return fallback;
+  if (typeof value === "string") return fallback;
+  return value.name || fallback;
+};
+
+const mapAssignments = (items = []) =>
+  items.map((item) => ({
+    teacher: getId(item.teacher),
+    course: getId(item.course),
+    teacherName: getName(item.teacher),
+    courseName: getName(item.course),
+  }));
 
 const AssignTeachersModal = ({ batchId }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,42 +70,57 @@ const AssignTeachersModal = ({ batchId }) => {
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [assignments, setAssignments] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
   const toast = useToast();
 
   const dispatch = useDispatch();
   const teachers = useSelector(selectAllTeachers);
   const batchCourses = useSelector(selectBatchCourses);
-  const savedAssignments = useSelector(selectBatchTeacherAssignments);
-  const {
-    assignTeacherCoursesStatus,
-    fetchBatchTeacherAssignmentsStatus,
-    fetchBatchCoursesStatus,
-  } = useSelector((state) => state.batches);
+  const { assignTeacherCoursesStatus, fetchBatchCoursesStatus } = useSelector(
+    (state) => state.batches
+  );
 
-  const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
-
-  const loadModalData = () => {
-    dispatch(fetchTeachers({ authToken }));
-    dispatch(fetchBatchCourses({ authToken, batchId }));
-    dispatch(fetchBatchTeacherAssignments({ authToken, batchId }));
+  const onClose = () => {
+    setIsOpen(false);
+    setSelectedTeacher("");
+    setSelectedCourse("");
   };
 
-  const handleOpenModal = () => {
-    loadModalData();
-    onOpen();
-  };
+  const handleOpenModal = async () => {
+    setAssignments([]);
+    setSelectedTeacher("");
+    setSelectedCourse("");
+    setIsOpen(true);
+    setLoadingData(true);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const mapped = (savedAssignments || []).map((item) => ({
-      teacher: getId(item.teacher),
-      course: getId(item.course),
-      teacherName: getName(item.teacher),
-      courseName: getName(item.course),
-    }));
-    setAssignments(mapped);
-  }, [savedAssignments, isOpen]);
+    try {
+      await Promise.all([
+        dispatch(
+          fetchTeachers({
+            authToken,
+            queryParams: { page: 1, limit: 1000, query: "" },
+          })
+        ),
+        dispatch(fetchBatchCourses({ authToken, batchId })),
+      ]);
+
+      const data = await dispatch(
+        fetchBatchTeacherAssignments({ authToken, batchId })
+      ).unwrap();
+
+      setAssignments(mapAssignments(Array.isArray(data) ? data : []));
+    } catch {
+      setAssignments([]);
+      toast({
+        title: "Could not load existing teacher assignments",
+        status: "error",
+        duration: 3500,
+        isClosable: true,
+      });
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const handleAddAssignment = () => {
     if (!selectedTeacher || !selectedCourse) return;
@@ -147,8 +178,7 @@ const AssignTeachersModal = ({ batchId }) => {
   };
 
   const isLoading =
-    fetchBatchTeacherAssignmentsStatus === "loading" ||
-    fetchBatchCoursesStatus === "loading";
+    loadingData || fetchBatchCoursesStatus === "loading";
 
   return (
     <>
@@ -185,7 +215,8 @@ const AssignTeachersModal = ({ batchId }) => {
                 ) : (
                   <>
                     <Text fontSize="sm" color="gray.600">
-                      Select a teacher and the course within this batch, then add the assignment.
+                      Select a teacher and the course within this batch, then add the
+                      assignment. Existing assignments for this batch are listed below.
                     </Text>
 
                     <FormControl>
@@ -228,6 +259,10 @@ const AssignTeachersModal = ({ batchId }) => {
                       Add Assignment
                     </Button>
 
+                    <Heading size="sm" mt={2}>
+                      Assigned Teachers ({assignments.length})
+                    </Heading>
+
                     <TableContainer>
                       <Table size="sm" variant="simple">
                         <Thead>
@@ -246,7 +281,7 @@ const AssignTeachersModal = ({ batchId }) => {
                             </Tr>
                           ) : (
                             assignments.map((item, index) => (
-                              <Tr key={`${item.teacher}-${item.course}`}>
+                              <Tr key={`${item.teacher}-${item.course}-${index}`}>
                                 <Td>{item.teacherName}</Td>
                                 <Td>{item.courseName}</Td>
                                 <Td isNumeric>
@@ -285,7 +320,7 @@ const AssignTeachersModal = ({ batchId }) => {
               fontWeight="500"
               onClick={handleSave}
               isLoading={assignTeacherCoursesStatus === "loading"}
-              isDisabled={batchCourses.length === 0}
+              isDisabled={batchCourses.length === 0 || isLoading}
             >
               Save Assignments
             </Button>

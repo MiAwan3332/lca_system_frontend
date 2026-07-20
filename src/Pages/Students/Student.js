@@ -24,6 +24,7 @@ import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
 import ShiftBatchModal from "./ShiftBatchModal";
 import StudentHistoryModal from "./StudentHistoryModal";
+import GeneratePendingFeeSlipAction from "./GeneratePendingFeeSlipAction";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -535,6 +536,9 @@ function Student() {
                       <div className="action-cell">
                         <ActionMenu>
                           <StudentHistoryModal student={student} />
+                          {Number(student.pending_fee) > 0 && (
+                            <GeneratePendingFeeSlipAction student={student} />
+                          )}
                           {hasPermission(["Update_Student"]) && (
                             <>
                               <UpdateModal student={student} />
