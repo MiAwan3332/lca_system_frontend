@@ -246,7 +246,7 @@ function Attendance() {
                 <Th data-searchable>Student Name</Th>
                 <Th>Batch</Th>
                 <Th>Course</Th>
-                <Th>Sttendance Status</Th>
+                <Th>Attendance Status</Th>
               </Tr>
             </Thead>
             <Tbody>
