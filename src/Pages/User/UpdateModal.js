@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -18,21 +18,66 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
+import axios from "axios";
 import { Pen } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, updateUser } from "../../Features/userSlice";
+import { config } from "../../utlls/config";
 
-function AddModel({ user }) {
-  const [isOpen, setIsOpen] = React.useState(false);
+const isExcludedUserFormRole = (roleName) => {
+  const name = String(roleName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+  return name === "teacher" || name === "student";
+};
+
+function UpdateModal({ user }) {
+  const [isOpen, setIsOpen] = useState(false);
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
-  
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
-  
+
+  const [authToken] = useState(Cookies.get("authToken"));
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+
   const { updateStatus } = useSelector((state) => state.users);
   const dispatch = useDispatch();
 
+  useEffect(() => {
+    if (!isOpen || !authToken) return;
+
+    let cancelled = false;
+    const loadRoles = async () => {
+      setRolesLoading(true);
+      try {
+        const response = await axios.get(`${config.BASE_URL}/roles`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+          params: { page: 1, limit: 1000, query: "" },
+        });
+        if (!cancelled) {
+          setRoles(
+            (response.data?.docs || []).filter(
+              (role) => !isExcludedUserFormRole(role.name)
+            )
+          );
+        }
+      } catch {
+        if (!cancelled) setRoles([]);
+      } finally {
+        if (!cancelled) setRolesLoading(false);
+      }
+    };
+
+    loadRoles();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, authToken]);
+
   const formik = useFormik({
+    enableReinitialize: true,
     initialValues: {
       name: user.name,
       email: user.email,
@@ -42,7 +87,6 @@ function AddModel({ user }) {
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
-      //   password: Yup.string().required("Required"),
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
@@ -54,6 +98,22 @@ function AddModel({ user }) {
         });
     },
   });
+
+  const roleOptions = React.useMemo(() => {
+    const docs = [...roles];
+    if (
+      user?.role &&
+      !isExcludedUserFormRole(user.role) &&
+      !docs.some(
+        (role) =>
+          String(role.name).toLowerCase() === String(user.role).toLowerCase()
+      )
+    ) {
+      docs.unshift({ _id: `current-${user.role}`, name: user.role });
+    }
+    return docs;
+  }, [roles, user?.role]);
+
   return (
     <>
       <button
@@ -120,14 +180,20 @@ function AddModel({ user }) {
                 <FormControl id="role">
                   <FormLabel fontSize={14}>Role</FormLabel>
                   <Select
-                    placeholder="Select Role"
+                    placeholder={
+                      rolesLoading ? "Loading roles..." : "Select Role"
+                    }
                     name="role"
                     borderRadius={"0.5rem"}
                     onChange={formik.handleChange}
                     value={formik.values.role}
+                    isDisabled={rolesLoading}
                   >
-                    <option value="admin">Admin</option>
-                    <option value="user">User </option>
+                    {roleOptions.map((role) => (
+                      <option key={role._id} value={role.name}>
+                        {role.name}
+                      </option>
+                    ))}
                   </Select>
                   {formik.touched.role && formik.errors.role ? (
                     <Box color="red" fontSize="sm">
@@ -170,4 +236,4 @@ function AddModel({ user }) {
   );
 }
 
-export default AddModel;
+export default UpdateModal;

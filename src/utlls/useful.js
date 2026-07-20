@@ -1,19 +1,6 @@
 import { markSessionStarted } from "./authSession.js";
 import { config } from "./config.js";
-
-const FULL_ACCESS_ROLES = [
-  "secrateadmin",
-  "superadmin",
-  "super_admin",
-  "super admin",
-  "Super Admin",
-  "Super_Admin",
-  "super admin development",
-  "Super Admin Development",
-  "admin",
-  "ceo",
-  "CEO",
-];
+import { isFullAccessRoleName } from "./fullAccessRoles.js";
 
 const PERMISSION_ALIASES = {
   Pay_Fee: ["Pay_Fee", "pay_fee", "Pay_fee"],
@@ -72,12 +59,7 @@ const parseStoredPermissions = (storedPermissions) => {
 
 const hasFullAccess = () => {
   const storedRole = sessionStorage.getItem("role");
-  if (
-    storedRole &&
-    FULL_ACCESS_ROLES.some(
-      (role) => role.toLowerCase() === storedRole.toLowerCase()
-    )
-  ) {
+  if (storedRole && isFullAccessRoleName(storedRole)) {
     return true;
   }
 
@@ -90,10 +72,7 @@ const hasFullAccess = () => {
             ?.split("=")[1]
         : null;
     if (authToken) {
-      const role = extractRoleFromToken(authToken);
-      return FULL_ACCESS_ROLES.some(
-        (fullRole) => fullRole.toLowerCase() === role?.toLowerCase()
-      );
+      return isFullAccessRoleName(extractRoleFromToken(authToken));
     }
   } catch {
     return false;
@@ -101,6 +80,8 @@ const hasFullAccess = () => {
 
   return false;
 };
+
+const isFullAccessRole = () => hasFullAccess();
 
 const hasPermission = (permissionsToCheck) => {
   if (hasFullAccess()) return true;
@@ -192,6 +173,7 @@ export {
   extractTeacherIdFromToken,
   hasPermission,
   hasFullAccess,
+  isFullAccessRole,
   storeAuthSession,
   getMediaUrl,
 };

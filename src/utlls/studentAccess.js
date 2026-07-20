@@ -1,12 +1,27 @@
 import Cookies from "js-cookie";
 import axios from "axios";
 import { config } from "./config";
-import { extractRoleFromToken } from "./useful";
+import { extractRoleFromToken, isFullAccessRole } from "./useful";
 import {
   isTeacherRole,
   canAccessTeacherRoute,
   getTeacherVisibleRoutes,
 } from "./teacherAccess";
+import {
+  isInformationOfficeRole,
+  canAccessInformationOfficeRoute,
+  getInformationOfficeVisibleRoutes,
+} from "./informationOfficeAccess";
+import {
+  isPrincipalRole,
+  canAccessPrincipalRoute,
+  getPrincipalVisibleRoutes,
+} from "./principalAccess";
+import {
+  isFinanceAdministratorRole,
+  canAccessFinanceAdministratorRoute,
+  getFinanceAdministratorVisibleRoutes,
+} from "./financeAdministratorAccess";
 
 export const STUDENT_ROUTE_PATHS = [
   "/dashboard",
@@ -96,8 +111,21 @@ export const syncStudentProfileStatus = async () => {
 };
 
 export const canAccessRoute = (path) => {
+  // CEO, secrateAdmin, superadmin, Administrator — all pages
+  if (isFullAccessRole()) {
+    return true;
+  }
   if (isTeacherRole()) {
     return canAccessTeacherRoute(path);
+  }
+  if (isInformationOfficeRole()) {
+    return canAccessInformationOfficeRoute(path);
+  }
+  if (isPrincipalRole()) {
+    return canAccessPrincipalRoute(path);
+  }
+  if (isFinanceAdministratorRole()) {
+    return canAccessFinanceAdministratorRoute(path);
   }
   if (!isStudentRole()) {
     return true;
@@ -109,8 +137,21 @@ export const canAccessRoute = (path) => {
 };
 
 export const getVisibleRoutes = (allRoutes) => {
+  // CEO, secrateAdmin, superadmin, Administrator — all pages
+  if (isFullAccessRole()) {
+    return allRoutes;
+  }
   if (isTeacherRole()) {
     return getTeacherVisibleRoutes(allRoutes).filter((route) => !route.adminOnly);
+  }
+  if (isInformationOfficeRole()) {
+    return getInformationOfficeVisibleRoutes(allRoutes);
+  }
+  if (isPrincipalRole()) {
+    return getPrincipalVisibleRoutes(allRoutes);
+  }
+  if (isFinanceAdministratorRole()) {
+    return getFinanceAdministratorVisibleRoutes(allRoutes);
   }
   if (!isStudentRole()) {
     return allRoutes;

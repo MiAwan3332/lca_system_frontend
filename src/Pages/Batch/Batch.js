@@ -42,13 +42,15 @@ import BatchDeactivateConfirmModal from "./BatchDeactivateConfirmModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
-import { isInstitutionAdmin } from "../../utlls/teacherAccess";
+import { isInstitutionAdmin, isTeacherRole } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 
 function Batch() {
   const viewOnly = isStudentViewOnly();
   const canManageInstitution = isInstitutionAdmin();
+  const isTeacher = isTeacherRole();
+  const showFeeAndDates = !isTeacher;
   const tableSearchRef = useRef();
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -148,7 +150,11 @@ function Batch() {
   };
 
   const actionColumnCount = canManageInstitution ? 2 : 0;
-  const tableColumnCount = viewOnly ? 7 : 7 + actionColumnCount;
+  const feeDateColumnCount = showFeeAndDates ? 3 : 0;
+  const baseColumnCount = 4 + feeDateColumnCount; // No, Name, Description, Batch Type (+ fee/dates)
+  const tableColumnCount = viewOnly
+    ? baseColumnCount
+    : baseColumnCount + actionColumnCount;
 
   return (
     <>
@@ -231,9 +237,9 @@ function Batch() {
                 <Th data-searchable>Name</Th>
                 <Th data-searchable>Description</Th>
                 <Th data-searchable>Batch Type</Th>
-                <Th>Batch Fee</Th>
-                <Th>Start Date</Th>
-                <Th>End Date</Th>
+                {showFeeAndDates && <Th>Batch Fee</Th>}
+                {showFeeAndDates && <Th>Start Date</Th>}
+                {showFeeAndDates && <Th>End Date</Th>}
                 {!viewOnly && canManageInstitution && <Th>Status</Th>}
                 {!viewOnly && canManageInstitution && <Th isNumeric>Action</Th>}
               </Tr>
@@ -271,17 +277,19 @@ function Batch() {
                     <Td>{batch.name}</Td>
                     <Td>{batch.description}</Td>
                     <Td>{batch.batch_type ? batch.batch_type : "N/A"}</Td>
-                    <Td>
-                      {batch.is_special_batch ? (
-                        <Badge colorScheme="purple">Special</Badge>
-                      ) : batch.batch_fee != null && batch.batch_fee !== "" ? (
-                        `${batch.batch_fee} Rs.`
-                      ) : (
-                        "N/A"
-                      )}
-                    </Td>
-                    <Td>{batch.startdate}</Td>
-                    <Td>{batch.enddate}</Td>
+                    {showFeeAndDates && (
+                      <Td>
+                        {batch.is_special_batch ? (
+                          <Badge colorScheme="purple">Special</Badge>
+                        ) : batch.batch_fee != null && batch.batch_fee !== "" ? (
+                          `${batch.batch_fee} Rs.`
+                        ) : (
+                          "N/A"
+                        )}
+                      </Td>
+                    )}
+                    {showFeeAndDates && <Td>{batch.startdate}</Td>}
+                    {showFeeAndDates && <Td>{batch.enddate}</Td>}
                     {!viewOnly && canManageInstitution && (
                       <Td>
                         <HStack spacing={2}>

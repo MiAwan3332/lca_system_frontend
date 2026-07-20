@@ -23,6 +23,15 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, addUser } from "../../Features/userSlice";
 import { config } from "../../utlls/config";
 
+const isExcludedUserFormRole = (roleName) => {
+  const name = String(roleName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+  return name === "teacher" || name === "student";
+};
+
 function AddModel({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [roles, setRoles] = useState([]);
@@ -43,7 +52,11 @@ function AddModel({ isOpen, onClose }) {
           params: { page: 1, limit: 1000, query: "" },
         });
         if (!cancelled) {
-          setRoles(response.data?.docs || []);
+          setRoles(
+            (response.data?.docs || []).filter(
+              (role) => !isExcludedUserFormRole(role.name)
+            )
+          );
         }
       } catch {
         if (!cancelled) setRoles([]);
