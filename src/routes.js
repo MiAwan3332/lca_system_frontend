@@ -16,7 +16,7 @@ import Roles from "./Pages/Roles/Roles.js";
 import Permissions from "./Pages/Permissions/Permissions.js";
 import Seminars from "./Pages/Seminar/seminar.js";
 import { FaQuestionCircle } from "react-icons/fa";
-import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell } from "lucide-react";
+import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, PlugZap } from "lucide-react";
 import Timetable from "./Pages/Timetable/Timetable.js";
 import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
@@ -28,6 +28,7 @@ import CourseQuizzes from "./Pages/CourseQuizzes/CourseQuizzes.js";
 import Complaints from "./Pages/Complaints/Complaints.js";
 import Announcements from "./Pages/Announcements/Announcements.js";
 import NotificationsPage from "./Pages/Notifications/NotificationsPage.js";
+import GoogleWorkspace from "./Pages/GoogleWorkspace/GoogleWorkspace.js";
 import {
   StudentActivityLogs,
   TeacherActivityLogs,
@@ -139,6 +140,13 @@ export const routes = [
     icon: Bell,
     component: <NotificationsPage />,
     path: "/notifications",
+    adminOnly: true,
+  },
+  {
+    name: "Google Workspace",
+    icon: PlugZap,
+    component: <GoogleWorkspace />,
+    path: "/google-workspace",
     adminOnly: true,
   },
   {
