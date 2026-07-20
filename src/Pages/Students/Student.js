@@ -61,6 +61,7 @@ import { downloadStudentTemplate } from "../../utlls/studentExcel";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
+import { hasPermission } from "../../utlls/useful";
 import { useNavigate } from "react-router-dom";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
@@ -173,16 +174,6 @@ function Student() {
       dispatch(clearStudentFilters());
     }
     loadStudents();
-  };
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
   };
 
   const viewOnly = isStudentViewOnly();

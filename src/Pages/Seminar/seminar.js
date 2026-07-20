@@ -34,6 +34,7 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
+import { hasPermission } from "../../utlls/useful";
 
 function Seminar() {
   const tableSearchRef = useRef();
@@ -49,16 +50,6 @@ function Seminar() {
 
   const loadSeminars = () => {
     dispatch(fetchSeminars({ authToken }));
-  };
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
   };
 
   useEffect(() => {

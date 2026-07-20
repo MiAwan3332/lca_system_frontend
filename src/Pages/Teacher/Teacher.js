@@ -33,7 +33,7 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
-import { getMediaUrl } from "../../utlls/useful.js";
+import { getMediaUrl, hasPermission } from "../../utlls/useful.js";
 import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
@@ -59,16 +59,6 @@ function Teacher() {
 
   const loadTeachers = () => {
     dispatch(fetchTeachers({ authToken }));
-  };
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
   };
 
   useEffect(() => {

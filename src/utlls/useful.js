@@ -11,6 +11,24 @@ const PERMISSION_ALIASES = {
   Delete_Mcq: ["Delete_Mcq", "Delete_mcq", "delete_mcq"],
 };
 
+const normalizeRoleName = (role) =>
+  String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+/** Principal / Vice-Principal: full CRUD on allocated screens. */
+const isPrincipalManageRoleName = (role) => {
+  const normalized = normalizeRoleName(role);
+  return (
+    normalized === "principal" ||
+    normalized === "vice-principal" ||
+    normalized === "viceprincipal"
+  );
+};
+
 const parseJwtPayload = (token) => {
   const base64Url = token.split(".")[1];
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -57,11 +75,9 @@ const parseStoredPermissions = (storedPermissions) => {
   return trimmed.split(",").map((p) => p.trim()).filter(Boolean);
 };
 
-const hasFullAccess = () => {
+const getCurrentRoleName = () => {
   const storedRole = sessionStorage.getItem("role");
-  if (storedRole && isFullAccessRoleName(storedRole)) {
-    return true;
-  }
+  if (storedRole) return storedRole;
 
   try {
     const authToken =
@@ -72,19 +88,29 @@ const hasFullAccess = () => {
             ?.split("=")[1]
         : null;
     if (authToken) {
-      return isFullAccessRoleName(extractRoleFromToken(authToken));
+      return extractRoleFromToken(authToken);
     }
   } catch {
-    return false;
+    return null;
   }
+  return null;
+};
 
-  return false;
+const hasFullAccess = () => {
+  const role = getCurrentRoleName();
+  return isFullAccessRoleName(role);
 };
 
 const isFullAccessRole = () => hasFullAccess();
 
-const hasPermission = (permissionsToCheck) => {
+/** Full action rights (add/update/view/delete) without opening Roles/Permissions/Logs. */
+const hasUnrestrictedActionAccess = () => {
   if (hasFullAccess()) return true;
+  return isPrincipalManageRoleName(getCurrentRoleName());
+};
+
+const hasPermission = (permissionsToCheck) => {
+  if (hasUnrestrictedActionAccess()) return true;
 
   const checks = Array.isArray(permissionsToCheck) ? permissionsToCheck : [];
   if (!checks.length) return false;

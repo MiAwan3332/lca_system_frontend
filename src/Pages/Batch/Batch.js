@@ -43,6 +43,7 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isInstitutionAdmin, isTeacherRole } from "../../utlls/teacherAccess";
+import { hasPermission } from "../../utlls/useful";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 
@@ -68,16 +69,6 @@ function Batch() {
 
   const loadBatches = () => {
     dispatch(fetchBatches({ authToken }));
-  };
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
   };
 
   useEffect(() => {

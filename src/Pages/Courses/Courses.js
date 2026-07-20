@@ -31,6 +31,7 @@ import TablePagination from "../../Components/TablePagination";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
+import { hasPermission } from "../../utlls/useful";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 
@@ -53,16 +54,6 @@ function Course() {
 
   const loadCourses = () => {
     dispatch(fetchCourses({ authToken }));
-  };
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
   };
 
   useEffect(() => {

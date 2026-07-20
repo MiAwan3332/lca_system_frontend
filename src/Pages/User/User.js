@@ -23,7 +23,7 @@ import {
   setQueryFilter,
 } from "../../Features/userSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
-import { getMediaUrl } from "../../utlls/useful.js";
+import { getMediaUrl, hasPermission } from "../../utlls/useful.js";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
@@ -44,16 +44,6 @@ function User() {
   const { fetchStatus, pagination } = useSelector((state) => state.users);
   const users = useSelector(selectAllUsers);
   const dispatch = useDispatch();
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
-  };
 
   useEffect(() => {
     dispatch(fetchUsers({ authToken }));
