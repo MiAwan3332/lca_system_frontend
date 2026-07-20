@@ -4,6 +4,7 @@ import { extractRoleFromToken } from "./useful";
 /** Screens allowed for the Finance Administrator role. */
 export const FINANCE_ADMIN_ROUTE_PATHS = [
   "/dashboard",
+  "/profile",
   "/fees",
   "/finance-report",
   "/expenses",

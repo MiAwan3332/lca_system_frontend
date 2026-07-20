@@ -3,6 +3,7 @@ import { extractRoleFromToken, extractTeacherIdFromToken } from "./useful";
 
 export const TEACHER_ROUTE_PATHS = [
   "/dashboard",
+  "/profile",
   "/student",
   "/teacher",
   "/batch",

@@ -25,6 +25,7 @@ import {
 
 export const STUDENT_ROUTE_PATHS = [
   "/dashboard",
+  "/profile",
   "/user",
   "/student",
   "/fees",
@@ -111,6 +112,9 @@ export const syncStudentProfileStatus = async () => {
 };
 
 export const canAccessRoute = (path) => {
+  if (path === "/profile" || path === "/google-workspace") {
+    return true;
+  }
   // CEO, secrateAdmin, superadmin, Administrator — all pages
   if (isFullAccessRole()) {
     return true;
@@ -137,27 +141,28 @@ export const canAccessRoute = (path) => {
 };
 
 export const getVisibleRoutes = (allRoutes) => {
+  const visibleRouteList = allRoutes.filter((route) => !route.hidden);
   // CEO, secrateAdmin, superadmin, Administrator — all pages
   if (isFullAccessRole()) {
-    return allRoutes;
+    return visibleRouteList;
   }
   if (isTeacherRole()) {
-    return getTeacherVisibleRoutes(allRoutes).filter((route) => !route.adminOnly);
+    return getTeacherVisibleRoutes(visibleRouteList).filter((route) => !route.adminOnly);
   }
   if (isInformationOfficeRole()) {
-    return getInformationOfficeVisibleRoutes(allRoutes);
+    return getInformationOfficeVisibleRoutes(visibleRouteList);
   }
   if (isPrincipalRole()) {
-    return getPrincipalVisibleRoutes(allRoutes);
+    return getPrincipalVisibleRoutes(visibleRouteList);
   }
   if (isFinanceAdministratorRole()) {
-    return getFinanceAdministratorVisibleRoutes(allRoutes);
+    return getFinanceAdministratorVisibleRoutes(visibleRouteList);
   }
   if (!isStudentRole()) {
-    return allRoutes;
+    return visibleRouteList;
   }
 
-  let routes = allRoutes.filter((route) =>
+  let routes = visibleRouteList.filter((route) =>
     STUDENT_ROUTE_PATHS.includes(route.path)
   );
 

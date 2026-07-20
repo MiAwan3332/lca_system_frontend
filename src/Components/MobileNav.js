@@ -136,6 +136,12 @@ export default function MobileNav({ onOpen, ...rest }) {
             className="p-2"
           >
             {!viewOnly && <ChangeAvatarModal user={user} />}
+            <MenuItem
+              onClick={() => navigate("/profile")}
+              className="rounded-lg"
+            >
+              Profile
+            </MenuItem>
             <MenuDivider />
             <MenuItem
               onClick={handleLogout}

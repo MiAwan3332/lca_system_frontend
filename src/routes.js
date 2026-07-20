@@ -16,7 +16,7 @@ import Roles from "./Pages/Roles/Roles.js";
 import Permissions from "./Pages/Permissions/Permissions.js";
 import Seminars from "./Pages/Seminar/seminar.js";
 import { FaQuestionCircle } from "react-icons/fa";
-import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, PlugZap } from "lucide-react";
+import { Boxes, BrainCircuit, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, UserCircle } from "lucide-react";
 import Timetable from "./Pages/Timetable/Timetable.js";
 import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
@@ -28,7 +28,8 @@ import CourseQuizzes from "./Pages/CourseQuizzes/CourseQuizzes.js";
 import Complaints from "./Pages/Complaints/Complaints.js";
 import Announcements from "./Pages/Announcements/Announcements.js";
 import NotificationsPage from "./Pages/Notifications/NotificationsPage.js";
-import GoogleWorkspace from "./Pages/GoogleWorkspace/GoogleWorkspace.js";
+import GoogleWorkspaceRedirect from "./Pages/GoogleWorkspace/GoogleWorkspaceRedirect.js";
+import Profile from "./Pages/Profile/Profile.js";
 import {
   StudentActivityLogs,
   TeacherActivityLogs,
@@ -37,6 +38,13 @@ import {
 
 export const routes = [
   { name: "Dashboard", icon: LayoutDashboard, component: <Home />, path: "/dashboard" },
+  {
+    name: "Profile",
+    icon: UserCircle,
+    component: <Profile />,
+    path: "/profile",
+    hidden: true,
+  },
   { name: "Users", icon: UsersRound, component: <User />, path: "/user" },
   {
     name: "Students",
@@ -144,10 +152,11 @@ export const routes = [
   },
   {
     name: "Google Workspace",
-    icon: PlugZap,
-    component: <GoogleWorkspace />,
+    icon: UserCircle,
+    component: <GoogleWorkspaceRedirect />,
     path: "/google-workspace",
     adminOnly: true,
+    hidden: true,
   },
   {
     name: "Roles",

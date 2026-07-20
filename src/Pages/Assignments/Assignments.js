@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
+import axios from "axios";
 import {
   Table,
   Thead,
@@ -23,9 +24,11 @@ import {
   Text,
   IconButton,
   Input,
+  Link,
+  createStandaloneToast,
 } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
-import { FileX, Plus, Eye, Send, Trash2, ClipboardList, FilterX, Pencil } from "lucide-react";
+import { Cloud, ExternalLink, FileX, Plus, Eye, Send, Trash2, ClipboardList, FilterX, Pencil } from "lucide-react";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
@@ -59,6 +62,10 @@ import AssignmentDetailModal from "./AssignmentDetailModal";
 import GradeSubmissionModal from "./GradeSubmissionModal";
 import SubmissionsListModal from "./SubmissionsListModal";
 import TeacherSubmissionMarking from "./TeacherSubmissionMarking";
+import { config } from "../../utlls/config";
+
+const { toast } = createStandaloneToast();
+const BASE_URL = config.BASE_URL;
 
 const statusColor = {
   Draft: "gray",
@@ -99,6 +106,7 @@ function Assignments() {
   const [statusFilter, setStatusFilter] = useState("");
   const [submissionStatusFilter, setSubmissionStatusFilter] = useState("");
   const [activeTab, setActiveTab] = useState(0);
+  const [syncingAssignmentId, setSyncingAssignmentId] = useState("");
 
   const loadAssignments = () => {
     dispatch(
@@ -225,6 +233,36 @@ function Assignments() {
     }
   };
 
+  const handleGoogleAssignmentSync = async (assignment) => {
+    setSyncingAssignmentId(assignment._id);
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/google/classroom/assignments/${assignment._id}/sync`,
+        {},
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      toast({
+        title: response.data?.reused
+          ? "Assignment already synced to Google Classroom"
+          : "Assignment synced to Google Classroom",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      loadAssignments();
+    } catch (error) {
+      toast({
+        title: "Google Classroom sync failed",
+        description: error.response?.data?.message || error.message,
+        status: "error",
+        duration: 7000,
+        isClosable: true,
+      });
+    } finally {
+      setSyncingAssignmentId("");
+    }
+  };
+
   const renderAssignmentRow = (item, index) => (
     <Tr key={item._id}>
       <Td>{(pagination.page - 1) * pagination.limit + index + 1}</Td>
@@ -242,6 +280,28 @@ function Assignments() {
           {item.visibility_status || item.status}
         </Badge>
       </Td>
+      {!viewOnly && (
+        <Td>
+          <HStack spacing={2} flexWrap="wrap">
+            <Badge colorScheme={item.google_classroom_coursework_id ? "green" : "gray"}>
+              {item.google_classroom_coursework_id ? "Synced" : "Not synced"}
+            </Badge>
+            {item.google_classroom_alternate_link && (
+              <Link
+                href={item.google_classroom_alternate_link}
+                isExternal
+                color="blue.500"
+                display="inline-flex"
+                alignItems="center"
+                gap={1}
+                fontSize="sm"
+              >
+                Open <ExternalLink size={12} />
+              </Link>
+            )}
+          </HStack>
+        </Td>
+      )}
       <Td>
         <ActionMenu>
           <Button leftIcon={<Eye size={14} />} onClick={() => openDetail(item)}>
@@ -271,6 +331,15 @@ function Assignments() {
                 }}
               >
                 Edit
+              </Button>
+              <Button
+                leftIcon={<Cloud size={14} />}
+                isLoading={syncingAssignmentId === item._id}
+                onClick={() => handleGoogleAssignmentSync(item)}
+              >
+                {item.google_classroom_coursework_id
+                  ? "Recheck Classroom"
+                  : "Sync Classroom"}
               </Button>
               <Button
                 colorScheme="red"
@@ -443,6 +512,7 @@ function Assignments() {
                                 <Th>Max Marks</Th>
                                 <Th>Deadline</Th>
                                 <Th>Status</Th>
+                                <Th>Google Classroom</Th>
                                 <Th>Actions</Th>
                               </Tr>
                             </Thead>
@@ -461,6 +531,32 @@ function Assignments() {
                                     <Badge colorScheme={statusColor[item.status] || "gray"}>
                                       {item.visibility_status || item.status}
                                     </Badge>
+                                  </Td>
+                                  <Td>
+                                    <HStack spacing={2} flexWrap="wrap">
+                                      <Badge
+                                        colorScheme={
+                                          item.google_classroom_coursework_id ? "green" : "gray"
+                                        }
+                                      >
+                                        {item.google_classroom_coursework_id
+                                          ? "Synced"
+                                          : "Not synced"}
+                                      </Badge>
+                                      {item.google_classroom_alternate_link && (
+                                        <Link
+                                          href={item.google_classroom_alternate_link}
+                                          isExternal
+                                          color="blue.500"
+                                          display="inline-flex"
+                                          alignItems="center"
+                                          gap={1}
+                                          fontSize="sm"
+                                        >
+                                          Open <ExternalLink size={12} />
+                                        </Link>
+                                      )}
+                                    </HStack>
                                   </Td>
                                   <Td>
                                     <ButtonGroup size="sm" variant="outline" flexWrap="wrap">
@@ -504,6 +600,16 @@ function Assignments() {
                                       >
                                         Edit
                                       </Button>
+                                      <Button
+                                        size="sm"
+                                        leftIcon={<Cloud size={14} />}
+                                        isLoading={syncingAssignmentId === item._id}
+                                        onClick={() => handleGoogleAssignmentSync(item)}
+                                      >
+                                        {item.google_classroom_coursework_id
+                                          ? "Recheck Classroom"
+                                          : "Sync Classroom"}
+                                      </Button>
                                     </ButtonGroup>
                                   </Td>
                                 </Tr>
@@ -526,15 +632,16 @@ function Assignments() {
                           <Th>Max Marks</Th>
                           <Th>Deadline</Th>
                           <Th>Status</Th>
+                          <Th>Google Classroom</Th>
                           <Th>Actions</Th>
                         </Tr>
                       </Thead>
                       <Tbody>
                         {fetchStatus === "loading" ? (
-                          <TableRowLoading nOfColumns={7} actions={["w-10", "w-10", "w-10"]} />
+                          <TableRowLoading nOfColumns={9} actions={["w-10", "w-10", "w-10"]} />
                         ) : assignments.length === 0 ? (
                           <Tr>
-                            <Td colSpan={8} textAlign="center" py={8}>
+                            <Td colSpan={9} textAlign="center" py={8}>
                               <FileX className="mx-auto mb-2 text-gray-400" />
                               No assignments found
                             </Td>

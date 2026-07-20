@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
+import axios from "axios";
 import {
   Table,
   Thead,
@@ -15,11 +16,13 @@ import {
   Select,
   Input,
   Button,
+  Link,
+  createStandaloneToast,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
-import { FileX, FilterX, Plus } from "lucide-react";
+import { Cloud, ExternalLink, FileX, FilterX, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -46,6 +49,10 @@ import { isInstitutionAdmin, isTeacherRole } from "../../utlls/teacherAccess";
 import { hasPermission } from "../../utlls/useful";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
+import { config } from "../../utlls/config";
+
+const { toast } = createStandaloneToast();
+const BASE_URL = config.BASE_URL;
 
 function Batch() {
   const viewOnly = isStudentViewOnly();
@@ -56,6 +63,7 @@ function Batch() {
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [deactivateConfirm, setDeactivateConfirm] = useState(null);
+  const [syncingBatchId, setSyncingBatchId] = useState("");
 
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
@@ -140,12 +148,45 @@ function Batch() {
       .catch(() => {});
   };
 
-  const actionColumnCount = canManageInstitution ? 2 : 0;
+  const handleGoogleBatchSync = async (batch) => {
+    setSyncingBatchId(batch._id);
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/google/classroom/batches/${batch._id}/sync-course`,
+        {},
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      toast({
+        title: response.data?.reused
+          ? "Batch already synced to Google Classroom"
+          : "Batch synced to Google Classroom",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      loadBatches();
+    } catch (error) {
+      toast({
+        title: "Google Classroom sync failed",
+        description: error.response?.data?.message || error.message,
+        status: "error",
+        duration: 7000,
+        isClosable: true,
+      });
+    } finally {
+      setSyncingBatchId("");
+    }
+  };
+
+  const canUseGoogleSync = !viewOnly && (canManageInstitution || isTeacher);
+  const statusColumnCount = !viewOnly && canManageInstitution ? 1 : 0;
+  const actionColumnCount = !viewOnly && (canManageInstitution || canUseGoogleSync) ? 1 : 0;
+  const googleColumnCount = canUseGoogleSync ? 1 : 0;
   const feeDateColumnCount = showFeeAndDates ? 3 : 0;
   const baseColumnCount = 4 + feeDateColumnCount; // No, Name, Description, Batch Type (+ fee/dates)
   const tableColumnCount = viewOnly
     ? baseColumnCount
-    : baseColumnCount + actionColumnCount;
+    : baseColumnCount + statusColumnCount + actionColumnCount + googleColumnCount;
 
   return (
     <>
@@ -231,8 +272,9 @@ function Batch() {
                 {showFeeAndDates && <Th>Batch Fee</Th>}
                 {showFeeAndDates && <Th>Start Date</Th>}
                 {showFeeAndDates && <Th>End Date</Th>}
+                {canUseGoogleSync && <Th>Google Classroom</Th>}
                 {!viewOnly && canManageInstitution && <Th>Status</Th>}
-                {!viewOnly && canManageInstitution && <Th isNumeric>Action</Th>}
+                {!viewOnly && (canManageInstitution || canUseGoogleSync) && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -281,6 +323,28 @@ function Batch() {
                     )}
                     {showFeeAndDates && <Td>{batch.startdate}</Td>}
                     {showFeeAndDates && <Td>{batch.enddate}</Td>}
+                    {canUseGoogleSync && (
+                      <Td>
+                        <HStack spacing={2} flexWrap="wrap">
+                          <Badge colorScheme={batch.google_classroom_course_id ? "green" : "gray"}>
+                            {batch.google_classroom_course_id ? "Synced" : "Not synced"}
+                          </Badge>
+                          {batch.google_classroom_course_url && (
+                            <Link
+                              href={batch.google_classroom_course_url}
+                              isExternal
+                              color="blue.500"
+                              display="inline-flex"
+                              alignItems="center"
+                              gap={1}
+                              fontSize="sm"
+                            >
+                              Open <ExternalLink size={12} />
+                            </Link>
+                          )}
+                        </HStack>
+                      </Td>
+                    )}
                     {!viewOnly && canManageInstitution && (
                       <Td>
                         <HStack spacing={2}>
@@ -298,9 +362,20 @@ function Batch() {
                         </HStack>
                       </Td>
                     )}
-                    {!viewOnly && (
+                    {!viewOnly && (canManageInstitution || canUseGoogleSync) && (
                     <Td className="space-x-3 flex justify-end" isNumeric>
                       <ActionMenu>
+                        {canUseGoogleSync && (
+                          <Button
+                            leftIcon={<Cloud size={14} />}
+                            isLoading={syncingBatchId === batch._id}
+                            onClick={() => handleGoogleBatchSync(batch)}
+                          >
+                            {batch.google_classroom_course_id
+                              ? "Recheck Classroom"
+                              : "Sync Classroom"}
+                          </Button>
+                        )}
                         {canManageInstitution && hasPermission(["Update_Batch"]) && (
                           <UpdateModal batch={batch} />
                         )}

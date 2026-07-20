@@ -1,5 +1,6 @@
 import moment from "moment";
 import Calendar from "./Calendar";
+import axios from "axios";
 import React, {
   Fragment,
   useState,
@@ -10,10 +11,15 @@ import React, {
 import { Views } from "react-big-calendar";
 import {
   Card,
+  Badge,
+  Checkbox,
   Divider,
   Heading,
+  HStack,
+  Link,
   Spinner,
   TabPanel,
+  createStandaloneToast,
   useDisclosure,
 } from "@chakra-ui/react";
 import {
@@ -43,6 +49,11 @@ import { Tab, TabList, TabPanels, Tabs } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import TimeTableEventEditForm from "./TimeTableEventEditForm";
 import { isStudentViewOnly } from "../utlls/studentAccess";
+import { CalendarPlus, ExternalLink } from "lucide-react";
+import { config } from "../utlls/config";
+
+const { toast } = createStandaloneToast();
+const BASE_URL = config.BASE_URL;
 
 export default function TimetableCalendar({
   filterBatchId = "",
@@ -72,6 +83,8 @@ export default function TimetableCalendar({
   const [eventDetails, setEventDetails] = useState({});
 
   const [selectedBatch, setSelectedBatch] = useState("");
+  const [createGoogleEvent, setCreateGoogleEvent] = useState(false);
+  const [syncingGoogleId, setSyncingGoogleId] = useState("");
 
   const { fetchStatus, addStatus, deleteStatus } = useSelector(
     (state) => state.timetable
@@ -99,6 +112,46 @@ export default function TimetableCalendar({
     setEventDetails(event);
     onEditModalOpen();
   }, [onEditModalOpen]);
+
+  const syncTimetableGoogleEvent = async (eventId) => {
+    if (!eventId) return null;
+    setSyncingGoogleId(eventId);
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/google/calendar/timetable/${eventId}/sync-event`,
+        {},
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      toast({
+        title: response.data?.reused
+          ? "Google Calendar event already exists"
+          : "Google Calendar event and Meet link created",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      return response.data?.timetable || null;
+    } catch (error) {
+      toast({
+        title: "Google Calendar sync failed",
+        description: error.response?.data?.message || error.message,
+        status: "error",
+        duration: 7000,
+        isClosable: true,
+      });
+      return null;
+    } finally {
+      setSyncingGoogleId("");
+    }
+  };
+
+  const handleSyncSelectedEvent = async () => {
+    const updated = await syncTimetableGoogleEvent(eventDetails._id);
+    if (updated) {
+      setEventDetails((current) => ({ ...current, ...updated }));
+      dispatch(fetchTimeTableEvents({ authToken }));
+    }
+  };
 
   const renderEventDetails = () => (
     <ModalBody className="!p-0 flex flex-col gap-3">
@@ -150,6 +203,43 @@ export default function TimetableCalendar({
           {moment(eventDetails.start).format("DD dddd, MMMM YYYY")}
         </Text>
       </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-4">
+        <Text as="b" className="min-w-max" fontSize="md">
+          Google
+        </Text>
+        <Divider />
+        <HStack spacing={2} flexWrap="wrap" justify="flex-end">
+          <Badge colorScheme={eventDetails.google_calendar_event_id ? "green" : "gray"}>
+            {eventDetails.google_calendar_event_id ? "Calendar synced" : "Not synced"}
+          </Badge>
+          {eventDetails.google_calendar_html_link && (
+            <Link
+              href={eventDetails.google_calendar_html_link}
+              isExternal
+              color="blue.500"
+              display="inline-flex"
+              alignItems="center"
+              gap={1}
+              fontSize="sm"
+            >
+              Calendar <ExternalLink size={12} />
+            </Link>
+          )}
+          {eventDetails.google_meet_link && (
+            <Link
+              href={eventDetails.google_meet_link}
+              isExternal
+              color="blue.500"
+              display="inline-flex"
+              alignItems="center"
+              gap={1}
+              fontSize="sm"
+            >
+              Meet <ExternalLink size={12} />
+            </Link>
+          )}
+        </HStack>
+      </div>
     </ModalBody>
   );
 
@@ -181,7 +271,10 @@ export default function TimetableCalendar({
     onSubmit: async (values) => {
       dispatch(addTimeTableEvent({ authToken, timeTable: values }))
         .unwrap()
-        .then((data) => {
+        .then(async (data) => {
+          if (createGoogleEvent && data?._id) {
+            await syncTimetableGoogleEvent(data._id);
+          }
           onAddModalClose();
           window.location.reload();
         });
@@ -391,6 +484,32 @@ export default function TimetableCalendar({
                       {formik.errors.batch}
                     </Box>
                   ) : null}
+                  {selectedBatch && (
+                    <HStack spacing={2} mt={2} flexWrap="wrap">
+                      <Badge
+                        colorScheme={
+                          selectedBatch.google_classroom_course_id ? "green" : "gray"
+                        }
+                      >
+                        {selectedBatch.google_classroom_course_id
+                          ? "Classroom course synced"
+                          : "Classroom course not synced"}
+                      </Badge>
+                      {selectedBatch.google_classroom_course_url && (
+                        <Link
+                          href={selectedBatch.google_classroom_course_url}
+                          isExternal
+                          color="blue.500"
+                          display="inline-flex"
+                          alignItems="center"
+                          gap={1}
+                          fontSize="sm"
+                        >
+                          Open Classroom <ExternalLink size={12} />
+                        </Link>
+                      )}
+                    </HStack>
+                  )}
                 </FormControl>
                 {selectedBatch && (
                   <>
@@ -438,6 +557,26 @@ export default function TimetableCalendar({
                     </FormControl>
                   </>
                 )}
+                <Box
+                  w="full"
+                  borderWidth="1px"
+                  borderColor="#E0E8EC"
+                  borderRadius="xl"
+                  p={3}
+                  bg="#F9FBFC"
+                >
+                  <Checkbox
+                    colorScheme="yellow"
+                    isChecked={createGoogleEvent}
+                    onChange={(e) => setCreateGoogleEvent(e.target.checked)}
+                  >
+                    Create Google Calendar event and Meet link after saving
+                  </Checkbox>
+                  <Text fontSize="sm" color="gray.600" mt={2}>
+                    The connected Google account will own the Calendar event and invite the
+                    teacher and students with valid emails.
+                  </Text>
+                </Box>
               </VStack>
             </ModalBody>
 
@@ -484,6 +623,19 @@ export default function TimetableCalendar({
             <TabPanels>
               <TabPanel>
                 {renderEventDetails()}
+                <ModalFooter className="!px-0 !pb-0">
+                  <Button
+                    leftIcon={<CalendarPlus size={16} />}
+                    borderRadius={"0.75rem"}
+                    variant="outline"
+                    isLoading={syncingGoogleId === eventDetails._id}
+                    onClick={handleSyncSelectedEvent}
+                  >
+                    {eventDetails.google_calendar_event_id
+                      ? "Recheck Calendar"
+                      : "Create Calendar Event"}
+                  </Button>
+                </ModalFooter>
               </TabPanel>
               <TabPanel>
                 <TimeTableEventEditForm

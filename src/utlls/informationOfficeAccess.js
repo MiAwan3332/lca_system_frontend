@@ -4,6 +4,7 @@ import { extractRoleFromToken } from "./useful";
 /** Screens allowed for the Information Office role. */
 export const INFORMATION_OFFICE_ROUTE_PATHS = [
   "/dashboard",
+  "/profile",
   "/student",
   "/fees",
   "/finance-report",
