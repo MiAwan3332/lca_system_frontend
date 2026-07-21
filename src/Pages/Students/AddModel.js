@@ -118,7 +118,7 @@ function AddStudnet({ isOpen, onClose }) {
     () =>
       Yup.object({
         name: Yup.string().required("Required"),
-        email: Yup.string().email("Invalid email address").required("Required"),
+        cnic: Yup.string(),
         phone: Yup.string().required("Required"),
         batch: Yup.string().required("Please select a batch"),
         special_test_session: Yup.boolean(),
@@ -210,7 +210,7 @@ function AddStudnet({ isOpen, onClose }) {
     enableReinitialize: true,
     initialValues: {
       name: "",
-      email: "",
+      cnic: "",
       phone: "",
       batch: "",
       paying_now: "",
@@ -305,8 +305,10 @@ function AddStudnet({ isOpen, onClose }) {
 
       const formData = new FormData();
       formData.append("name", values.name);
-      formData.append("email", values.email);
       formData.append("phone", values.phone);
+      if (values.cnic?.trim()) {
+        formData.append("cnic", values.cnic.trim());
+      }
       formData.append("batch", values.batch);
       formData.append("paying_now", String(amountToPay));
       if (discountAmount > 0) {
@@ -360,9 +362,9 @@ function AddStudnet({ isOpen, onClose }) {
           typeof error === "string"
             ? error
             : error?.message || "Failed to add student";
-        if (/email/i.test(message)) {
-          formik.setFieldError("email", message);
-          formik.setFieldTouched("email", true, false);
+        if (/phone/i.test(message)) {
+          formik.setFieldError("phone", message);
+          formik.setFieldTouched("phone", true, false);
         } else if (/installment date/i.test(message)) {
           formik.setFieldError("next_installment_date", message);
           formik.setFieldTouched("next_installment_date", true, false);
@@ -566,7 +568,7 @@ function AddStudnet({ isOpen, onClose }) {
     ) {
       formik.setTouched({
         name: true,
-        email: true,
+        cnic: true,
         phone: true,
         batch: true,
         paying_now: true,
@@ -590,7 +592,7 @@ function AddStudnet({ isOpen, onClose }) {
       const fileName = await generateAdmissionFeeSlip(
         {
           name: formik.values.name,
-          email: formik.values.email,
+          email: formik.values.cnic || "N/A",
           phone: formik.values.phone,
           batchName: selectedBatch?.name || "N/A",
           batchFee: payableFee,
@@ -984,18 +986,19 @@ function AddStudnet({ isOpen, onClose }) {
             </GridItem>
 
             <GridItem>
-              <FormControl id="email" isRequired>
-                <FormLabel fontSize={14}>Email</FormLabel>
+              <FormControl id="cnic">
+                <FormLabel fontSize={14}>CNIC</FormLabel>
                 <Input
-                  type="email"
-                  name="email"
+                  type="text"
+                  name="cnic"
                   borderRadius="0.5rem"
-                  value={formik.values.email}
+                  placeholder="Optional"
+                  value={formik.values.cnic}
                   onChange={formik.handleChange}
                 />
-                {formik.touched.email && formik.errors.email ? (
+                {formik.touched.cnic && formik.errors.cnic ? (
                   <Box color="red" fontSize="sm">
-                    {formik.errors.email}
+                    {formik.errors.cnic}
                   </Box>
                 ) : null}
               </FormControl>

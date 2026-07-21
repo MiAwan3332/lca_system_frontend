@@ -7,11 +7,15 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const deviceIdRef = useRef(null);
 
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
   const [active, setActive] = useState(false);
+  const [devices, setDevices] = useState([]);
+  const [deviceId, setDeviceId] = useState(null);
   const [facingMode, setFacingMode] = useState("user"); // user = front, environment = back
+  const [switching, setSwitching] = useState(false);
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -22,40 +26,123 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     setActive(false);
   };
 
-  const startCamera = async (mode = facingMode) => {
-    try {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
+  const refreshDevices = async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return [];
+    const all = await navigator.mediaDevices.enumerateDevices();
+    const videoInputs = all.filter((d) => d.kind === "videoinput");
+    setDevices(videoInputs);
+    return videoInputs;
+  };
 
-      let stream;
+  const openStream = async ({ preferredDeviceId = null, mode = "user" } = {}) => {
+    const attempts = [];
+
+    if (preferredDeviceId) {
+      attempts.push({ deviceId: { exact: preferredDeviceId } });
+      attempts.push({ deviceId: preferredDeviceId });
+    }
+
+    attempts.push(
+      { facingMode: { exact: mode } },
+      { facingMode: { ideal: mode } },
+      true
+    );
+
+    let lastError;
+    for (const video of attempts) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: mode } },
+        return await navigator.mediaDevices.getUserMedia({
+          video,
           audio: false,
         });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: mode } },
-          audio: false,
-        });
+      } catch (err) {
+        lastError = err;
       }
+    }
 
-      streamRef.current = stream;
-      setFacingMode(mode);
-      setError("");
-      setActive(true);
+    throw lastError || new Error("No camera stream");
+  };
+
+  const applyStream = async (stream, fallbackMode) => {
+    const track = stream.getVideoTracks()[0];
+    const settings = track?.getSettings?.() || {};
+    const nextDeviceId = settings.deviceId || null;
+    const nextFacing =
+      settings.facingMode === "environment" || settings.facingMode === "user"
+        ? settings.facingMode
+        : fallbackMode;
+
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = stream;
+    deviceIdRef.current = nextDeviceId;
+    setDeviceId(nextDeviceId);
+    setFacingMode(nextFacing);
+    setError("");
+    setActive(true);
+    await refreshDevices();
+  };
+
+  const startCamera = async ({
+    preferredDeviceId = deviceIdRef.current,
+    mode = facingMode,
+  } = {}) => {
+    try {
+      const stream = await openStream({ preferredDeviceId, mode });
+      await applyStream(stream, mode);
+      return true;
     } catch {
       setError("Unable to access camera. Use upload photo instead.");
       setActive(false);
+      return false;
     }
   };
 
   const switchCamera = async () => {
-    const nextMode = facingMode === "user" ? "environment" : "user";
-    await startCamera(nextMode);
+    if (switching) return;
+    setSwitching(true);
+    setError("");
+
+    try {
+      const videoInputs = devices.length ? devices : await refreshDevices();
+
+      // External/USB + laptop cameras: cycle by deviceId
+      if (videoInputs.length >= 2) {
+        const currentId = deviceIdRef.current;
+        const currentIndex = Math.max(
+          0,
+          videoInputs.findIndex((d) => d.deviceId === currentId)
+        );
+        const nextDevice = videoInputs[(currentIndex + 1) % videoInputs.length];
+
+        try {
+          const stream = await openStream({
+            preferredDeviceId: nextDevice.deviceId,
+            mode: facingMode === "user" ? "environment" : "user",
+          });
+          await applyStream(
+            stream,
+            facingMode === "user" ? "environment" : "user"
+          );
+        } catch {
+          setError("Could not switch camera. Keep using the current one.");
+        }
+        return;
+      }
+
+      // Phone: toggle front/back facing mode
+      const nextMode = facingMode === "user" ? "environment" : "user";
+      try {
+        const stream = await openStream({
+          preferredDeviceId: null,
+          mode: nextMode,
+        });
+        await applyStream(stream, nextMode);
+      } catch {
+        setError("Back camera is not available on this device.");
+      }
+    } finally {
+      setSwitching(false);
+    }
   };
 
   useEffect(() => {
@@ -85,7 +172,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     return () => {
       video.onloadedmetadata = null;
     };
-  }, [active, facingMode]);
+  }, [active, deviceId, facingMode]);
 
   useEffect(() => () => stopCamera(), []);
 
@@ -113,6 +200,11 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
+    const mirrorPreview = facingMode === "user" && devices.length < 2;
+    if (mirrorPreview) {
+      ctx.translate(width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0, width, height);
 
     canvas.toBlob(
@@ -139,7 +231,10 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     }
     setPreview(null);
     onCapture?.(null);
-    startCamera(facingMode);
+    startCamera({
+      preferredDeviceId: deviceIdRef.current,
+      mode: facingMode,
+    });
   };
 
   const handleFileUpload = (event) => {
@@ -150,8 +245,22 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     event.target.value = "";
   };
 
-  const cameraLabel =
-    facingMode === "user" ? "Front camera" : "Back camera";
+  const currentDeviceIndex = Math.max(
+    0,
+    devices.findIndex((d) => d.deviceId === deviceId)
+  );
+  const currentDeviceLabel =
+    devices[currentDeviceIndex]?.label ||
+    (facingMode === "environment" ? "Back camera" : "Front camera");
+
+  const switchLabel =
+    devices.length >= 2
+      ? `Next Camera (${devices.length})`
+      : facingMode === "user"
+        ? "Back Camera"
+        : "Front Camera";
+
+  const mirrorPreview = facingMode === "user" && devices.length < 2;
 
   return (
     <Box
@@ -192,9 +301,12 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
         </>
       ) : active ? (
         <>
-          <HStack justify="space-between" mb={2}>
-            <Text fontSize="xs" color="gray.500">
-              Using {cameraLabel}
+          <HStack justify="space-between" mb={2} align="flex-start">
+            <Text fontSize="xs" color="gray.500" noOfLines={2}>
+              Using {currentDeviceLabel}
+              {devices.length >= 2
+                ? ` (${currentDeviceIndex + 1}/${devices.length})`
+                : ""}
             </Text>
             <Button
               size="xs"
@@ -202,8 +314,10 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
               variant="outline"
               leftIcon={<SwitchCamera size={14} />}
               onClick={switchCamera}
+              isLoading={switching}
+              flexShrink={0}
             >
-              Switch to {facingMode === "user" ? "Back" : "Front"}
+              Switch
             </Button>
           </HStack>
           <video
@@ -216,7 +330,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
               maxHeight: "240px",
               borderRadius: "12px",
               background: "#111",
-              transform: facingMode === "user" ? "scaleX(-1)" : "none",
+              transform: mirrorPreview ? "scaleX(-1)" : "none",
             }}
           />
           <canvas ref={canvasRef} style={{ display: "none" }} />
@@ -236,8 +350,9 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
               variant="outline"
               leftIcon={<SwitchCamera size={16} />}
               onClick={switchCamera}
+              isLoading={switching}
             >
-              {facingMode === "user" ? "Back Camera" : "Front Camera"}
+              {switchLabel}
             </Button>
             <Button size="sm" type="button" variant="outline" onClick={stopCamera}>
               Stop Camera
@@ -250,7 +365,9 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
             size="sm"
             type="button"
             leftIcon={<Camera size={16} />}
-            onClick={() => startCamera(facingMode)}
+            onClick={() =>
+              startCamera({ preferredDeviceId: null, mode: facingMode })
+            }
           >
             Open Camera
           </Button>

@@ -160,8 +160,8 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
             Select a batch, download the template, fill in student details with fee
             amounts, then upload the Excel file. Each imported student gets an auto-generated
             batch roll number (for example <strong>B8-1</strong>), a login account with role{" "}
-            <strong>student</strong>, and default password <strong>lca@123456</strong>.
-            Fee records and payment logs are created automatically.
+            <strong>student</strong> (phone login), and default password{" "}
+            <strong>lca@123456</strong>. Fee records and payment logs are created automatically.
           </Text>
 
           <FormControl mb={4} isRequired>
@@ -187,7 +187,7 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
               Template columns
             </Text>
             <Text fontSize="sm" color="gray.600">
-              Name, Email, Phone, Total Fee, Paid Amount, Pending Amount, Remarks
+              Name, Phone, Total Fee, Paid Amount, Pending Amount, Remarks
               (optional)
             </Text>
             <Text fontSize="sm" color="gray.500" mt={2}>
@@ -252,8 +252,9 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
                   </Text>
                   <List spacing={1} mt={2} maxH="180px" overflowY="auto">
                     {importResult.imported_students.map((item) => (
-                      <ListItem key={`${item.row}-${item.email}`} fontSize="sm" color="gray.700">
-                        Row {item.row}: <strong>{item.roll_number || "—"}</strong> — {item.name} ({item.email})
+                      <ListItem key={`${item.row}-${item.phone || item.name}`} fontSize="sm" color="gray.700">
+                        Row {item.row}: <strong>{item.roll_number || "—"}</strong> — {item.name}
+                        {item.phone ? ` (${item.phone})` : ""}
                       </ListItem>
                     ))}
                   </List>
@@ -279,7 +280,7 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
                         color="red.600"
                       >
                         Row {item.row}
-                        {item.email ? ` (${item.email})` : ""}: {item.message}
+                        {item.phone ? ` (${item.phone})` : ""}: {item.message}
                       </ListItem>
                     ))}
                   </List>

@@ -2,7 +2,6 @@ import * as XLSX from "xlsx";
 
 export const STUDENT_TEMPLATE_HEADERS = [
   "Name",
-  "Email",
   "Phone",
   "Total Fee",
   "Paid Amount",
@@ -12,7 +11,6 @@ export const STUDENT_TEMPLATE_HEADERS = [
 
 const HEADER_ALIASES = {
   name: ["name", "student name", "full name"],
-  email: ["email", "email address", "e-mail"],
   phone: ["phone", "phone no", "phone number", "mobile", "contact"],
   total_fee: ["total fee", "total fees", "total amount", "fee total"],
   paid_fee: ["paid amount", "paid fee", "paid", "amount paid"],
@@ -61,7 +59,6 @@ export const downloadStudentTemplate = ({
     STUDENT_TEMPLATE_HEADERS,
     [
       "Ali Khan",
-      "ali.khan@example.com",
       "03001234567",
       sampleTotal,
       samplePartialPaid,
@@ -70,7 +67,6 @@ export const downloadStudentTemplate = ({
     ],
     [
       "Sara Ahmed",
-      "sara.ahmed@example.com",
       "03007654321",
       sampleTotal,
       sampleTotal,
@@ -81,7 +77,6 @@ export const downloadStudentTemplate = ({
 
   worksheet["!cols"] = [
     { wch: 22 },
-    { wch: 28 },
     { wch: 16 },
     { wch: 14 },
     { wch: 14 },
@@ -123,14 +118,14 @@ export const parseStudentExcelFile = async (file) => {
     }
   });
 
-  const requiredFields = ["name", "email", "phone", "total_fee", "paid_fee", "pending_fee"];
+  const requiredFields = ["name", "phone", "total_fee", "paid_fee", "pending_fee"];
   const missingHeaders = requiredFields.filter(
     (field) => fieldIndexes[field] === undefined
   );
 
   if (missingHeaders.length > 0) {
     throw new Error(
-      `Missing required columns. Expected: ${STUDENT_TEMPLATE_HEADERS.slice(0, 6).join(", ")}`
+      `Missing required columns. Expected: Name, Phone, Total Fee, Paid Amount, Pending Amount (Remarks optional)`
     );
   }
 
@@ -167,7 +162,6 @@ export const parseStudentExcelFile = async (file) => {
 
     students.push({
       name: String(row[fieldIndexes.name] ?? "").trim(),
-      email: String(row[fieldIndexes.email] ?? "").trim().toLowerCase(),
       phone: String(row[fieldIndexes.phone] ?? "").trim(),
       total_fee: totalFee,
       paid_fee: paidFee,
