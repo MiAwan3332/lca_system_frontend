@@ -56,22 +56,22 @@ function UpdateModal({ student }) {
     enableReinitialize: true,
     initialValues: {
       name: student?.name || "",
-      email: student?.email || "",
+      cnic: student?.cnic || "",
       phone: student?.phone || "",
       remarks: student?.remarks || "",
       skip_profile_completion: student?.skip_profile_completion === true,
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
-      email: Yup.string().email("Invalid email address").required("Required"),
+      cnic: Yup.string(),
       phone: Yup.string().required("Required"),
       remarks: Yup.string(),
     }),
     onSubmit: async (values) => {
       const formData = new FormData();
       formData.append("name", values.name);
-      formData.append("email", values.email);
       formData.append("phone", values.phone);
+      formData.append("cnic", values.cnic || "");
       formData.append("remarks", values.remarks || "");
       if (!viewOnly) {
         formData.append(
@@ -99,9 +99,9 @@ function UpdateModal({ student }) {
           typeof error === "string"
             ? error
             : error?.message || "Failed to update student";
-        if (/email/i.test(message)) {
-          formik.setFieldError("email", message);
-          formik.setFieldTouched("email", true, false);
+        if (/phone/i.test(message)) {
+          formik.setFieldError("phone", message);
+          formik.setFieldTouched("phone", true, false);
         }
       }
     },
@@ -156,18 +156,19 @@ function UpdateModal({ student }) {
               </GridItem>
 
               <GridItem>
-                <FormControl id="email" isRequired>
-                  <FormLabel fontSize={14}>Email</FormLabel>
+                <FormControl id="cnic">
+                  <FormLabel fontSize={14}>CNIC</FormLabel>
                   <Input
-                    type="email"
-                    name="email"
+                    type="text"
+                    name="cnic"
                     borderRadius="0.5rem"
-                    value={formik.values.email}
+                    placeholder="Optional"
+                    value={formik.values.cnic}
                     onChange={formik.handleChange}
                   />
-                  {formik.touched.email && formik.errors.email ? (
+                  {formik.touched.cnic && formik.errors.cnic ? (
                     <Box color="red" fontSize="sm">
-                      {formik.errors.email}
+                      {formik.errors.cnic}
                     </Box>
                   ) : null}
                 </FormControl>

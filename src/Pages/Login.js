@@ -22,7 +22,7 @@ import * as Yup from "yup";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { config } from "../utlls/config.js";
 import { storeAuthSession } from "../utlls/useful.js";
@@ -35,6 +35,14 @@ import {
   isStudentRole,
   syncStudentProfileStatus,
 } from "../utlls/studentAccess.js";
+
+const looksLikePhone = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  return !String(value || "").includes("@") && digits.length >= 10 && digits.length <= 15;
+};
+
+const looksLikeEmail = (value) =>
+  String(value || "").includes("@") && String(value || "").includes(".");
 
 const fadeUpVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -77,11 +85,17 @@ const Login = () => {
 
   const formik = useFormik({
     initialValues: {
-      email: "",
+      identifier: "",
       password: "",
     },
     validationSchema: Yup.object({
-      email: Yup.string().email("Invalid email address").required("Required"),
+      identifier: Yup.string()
+        .required("Required")
+        .test(
+          "email-or-phone",
+          "Enter a valid email or phone number",
+          (value) => looksLikeEmail(value) || looksLikePhone(value)
+        ),
       password: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
@@ -133,11 +147,27 @@ const Login = () => {
       };
 
       try {
+        const identifier = values.identifier.trim();
+        const isPhoneLogin = looksLikePhone(identifier);
         let response;
-        try {
-          response = await axios.post(`${BASE_URL}/users/adminlogin`, values);
-        } catch (adminError) {
-          response = await axios.post(`${BASE_URL}/users/login`, values);
+
+        if (isPhoneLogin) {
+          response = await axios.post(`${BASE_URL}/users/login`, {
+            phone: identifier,
+            password: values.password,
+          });
+        } else {
+          try {
+            response = await axios.post(`${BASE_URL}/users/adminlogin`, {
+              email: identifier,
+              password: values.password,
+            });
+          } catch (adminError) {
+            response = await axios.post(`${BASE_URL}/users/login`, {
+              email: identifier,
+              password: values.password,
+            });
+          }
         }
 
         if (response.status === 200) {
@@ -304,7 +334,7 @@ const Login = () => {
               Welcome Back
             </Heading>
             <Text fontSize="sm" color="gray.500">
-              Enter your credentials to access your dashboard
+              Staff: email · Students: phone number
             </Text>
           </VStack>
 
@@ -315,23 +345,31 @@ const Login = () => {
             className="flex flex-col gap-5 bg-white shadow-xl md:shadow-none md:border md:border-gray-200 md:bg-white rounded-2xl p-6 sm:p-8"
           >
             <FormControl
-              id="email"
-              isInvalid={formik.touched.email && formik.errors.email}
+              id="identifier"
+              isInvalid={formik.touched.identifier && formik.errors.identifier}
             >
-              <FormLabel fontSize={13} fontWeight="semibold" color="gray.600">Email Address</FormLabel>
+              <FormLabel fontSize={13} fontWeight="semibold" color="gray.600">
+                Email or Phone Number
+              </FormLabel>
               <InputGroup>
                 <InputLeftElement pointerEvents="none" color="gray.400" h="44px">
-                  <Mail size={18} />
+                  {looksLikePhone(formik.values.identifier) ? (
+                    <Phone size={18} />
+                  ) : (
+                    <Mail size={18} />
+                  )}
                 </InputLeftElement>
                 <Input
-                  type="email"
-                  value={formik.values.email}
+                  type="text"
+                  name="identifier"
+                  autoComplete="username"
+                  value={formik.values.identifier}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                   h="44px"
                   pl="10"
                   borderRadius="xl"
-                  placeholder="name@example.com"
+                  placeholder="Email or student phone"
                   bg="gray.50"
                   border="1px solid"
                   borderColor="gray.200"
@@ -343,9 +381,9 @@ const Login = () => {
                   }}
                 />
               </InputGroup>
-              {formik.touched.email && formik.errors.email ? (
+              {formik.touched.identifier && formik.errors.identifier ? (
                 <Text color="red.500" fontSize="xs" mt={1}>
-                  {formik.errors.email}
+                  {formik.errors.identifier}
                 </Text>
               ) : null}
             </FormControl>
@@ -361,6 +399,7 @@ const Login = () => {
                 </InputLeftElement>
                 <Input
                   type={show ? "text" : "password"}
+                  name="password"
                   value={formik.values.password}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
