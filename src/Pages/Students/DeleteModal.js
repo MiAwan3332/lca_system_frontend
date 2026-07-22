@@ -12,9 +12,10 @@ import {
 } from "@chakra-ui/react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { Pen, Trash } from "lucide-react";
+import { Trash } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteStudent, fetchStudents } from "../../Features/studentSlice";
+import ActionButton from "../../Components/ActionButton";
 
 const DeleteModal = ({ studentId }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -37,12 +38,12 @@ const DeleteModal = ({ studentId }) => {
 
   return (
     <>
-      <button
-        className="hover:bg-[#FF8A8A] hover:text-[#6D1F1F] font-medium p-[10px] rounded-xl transition-colors duration-300"
+      <ActionButton
+        variant="red"
+        icon={<Trash size={16} />}
+        label="Delete Student"
         onClick={onOpen}
-      >
-        <Trash size={18} />
-      </button>
+      />
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />

@@ -26,6 +26,7 @@ import { useDispatch, useSelector } from "react-redux";
 import moment from "moment";
 import { collectPendingFee } from "../../Features/feeSlice";
 import { fetchStudents } from "../../Features/studentSlice";
+import ActionButton from "../../Components/ActionButton";
 import {
   FEE_PAYMENT_METHODS,
   requiresPaymentEvidence,
@@ -348,12 +349,12 @@ function GeneratePendingFeeSlipAction({ student }) {
 
   return (
     <>
-      <Button
-        leftIcon={<FileText size={14} />}
+      <ActionButton
+        variant="amber"
+        icon={<FileText size={16} />}
+        label="Generate Pending Fee Slip"
         onClick={handleOpen}
-      >
-        Generate Pending Fee Slip
-      </Button>
+      />
 
       <Modal
         isOpen={isOpen}

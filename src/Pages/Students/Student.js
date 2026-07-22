@@ -264,7 +264,7 @@ function Student() {
                   Import Excel
                 </button>
                 <button
-                  className="table-action-btn"
+                  className="table-action-btn table-action-btn--primary"
                   onClick={onAddOpen}
                 >
                   <Plus size={18} />

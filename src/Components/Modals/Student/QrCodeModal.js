@@ -44,9 +44,13 @@ function QrCodeModal({ student }) {
 
   return (
     <>
-      <IconButton onClick={onOpen} colorScheme="gray">
-        <QrCode />
-      </IconButton>
+      <IconButton
+        onClick={onOpen}
+        aria-label="Student QR Code"
+        title="QR Code"
+        className="icon-action-btn icon-action-btn--qr"
+        icon={<QrCode size={18} />}
+      />
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>

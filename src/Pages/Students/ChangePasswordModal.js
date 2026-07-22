@@ -22,6 +22,7 @@ import { KeyRound } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { changeStudentPassword } from "../../Features/studentSlice";
 import { formatStudentEmail } from "../../utlls/studentEmail";
+import ActionButton from "../../Components/ActionButton";
 
 function ChangePasswordModal({ student }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -68,13 +69,13 @@ function ChangePasswordModal({ student }) {
 
   return (
     <>
-      <button
-        className="hover:bg-[#82B4FF] hover:text-[#2D4185] font-medium p-[10px] rounded-xl transition-colors duration-300"
+      <ActionButton
+        variant="blue"
+        icon={<KeyRound size={16} />}
+        label="Change Password"
         onClick={onOpen}
         title="Change Login Password"
-      >
-        <KeyRound size={18} />
-      </button>
+      />
       <Modal isOpen={isOpen} onClose={handleClose}>
         <ModalOverlay />
         <ModalContent>
