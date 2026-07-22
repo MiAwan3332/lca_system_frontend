@@ -10,9 +10,14 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useDisclosure } from "@chakra-ui/react";
-import { SquareDashedBottom } from "lucide-react";
+import { IdCard } from "lucide-react";
 import StudentCard from "../StudentCard";
 import ErrorBoundary from "../../ErrorBoundary";
+import {
+  getResponsiveModalSize,
+  responsiveModalContentProps,
+  responsiveModalProps,
+} from "../../../utlls/responsiveModal";
 
 function StudentCardModal({ student }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -24,20 +29,31 @@ function StudentCardModal({ student }) {
 
   return (
     <>
-      <IconButton onClick={onOpen} colorScheme="gray">
-        <SquareDashedBottom />
+      <IconButton
+        onClick={onOpen}
+        colorScheme="gray"
+        aria-label="Student Card"
+        title="Student Card"
+      >
+        <IdCard size={18} />
       </IconButton>
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        {...responsiveModalProps}
+        {...getResponsiveModalSize("4xl")}
+      >
         <ModalOverlay />
-        <ModalContent maxW="1000px">
+        <ModalContent {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Student Card
           </ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
+          <ModalBody pb={6}>
             {!student.batch ? (
               <Text color="gray.500" py={4}>
-                Student card cannot be generated because batch information is missing.
+                Student card cannot be generated because batch information is
+                missing.
               </Text>
             ) : (
               <ErrorBoundary

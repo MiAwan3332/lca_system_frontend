@@ -68,34 +68,45 @@ function GeneratePendingFeeSlipAction({ student }) {
   const validationSchema = useMemo(
     () =>
       Yup.object({
-        amount: Yup.number().when([], {
-          is: () => paymentOption === "partial",
-          then: (schema) =>
-            schema
-              .typeError("Enter a valid amount")
-              .required("Required")
-              .min(1, "Amount must be greater than 0")
-              .max(
-                outstanding - 1,
-                `Cannot exceed or equal outstanding balance (${outstanding})`
-              ),
-          otherwise: (schema) => schema.notRequired(),
-        }),
+        amount: Yup.number()
+          .transform((value, originalValue) =>
+            originalValue === "" ||
+            originalValue === null ||
+            originalValue === undefined
+              ? undefined
+              : value
+          )
+          .nullable()
+          .when([], {
+            is: () => paymentOption === "partial",
+            then: (schema) =>
+              schema
+                .typeError("Enter a valid amount")
+                .required("Required")
+                .min(1, "Amount must be greater than 0")
+                .max(
+                  Math.max(outstanding - 1, 0),
+                  `Cannot exceed or equal outstanding balance (${outstanding})`
+                ),
+            otherwise: (schema) => schema.notRequired(),
+          }),
         payment_method: Yup.string()
           .oneOf(FEE_PAYMENT_METHODS, "Select a payment method")
           .required("Required"),
-        next_installment_date: Yup.string().when([], {
-          is: () => paymentOption === "partial",
-          then: (schema) =>
-            schema
-              .required("Next installment due date is required")
-              .test(
-                "not-past",
-                "Date must be today or in the future",
-                (value) => !value || !moment(value).isBefore(moment(), "day")
-              ),
-          otherwise: (schema) => schema.notRequired(),
-        }),
+        next_installment_date: Yup.string()
+          .transform((value) => (value === "" ? undefined : value))
+          .when([], {
+            is: () => paymentOption === "partial",
+            then: (schema) =>
+              schema
+                .required("Next installment due date is required")
+                .test(
+                  "not-past",
+                  "Date must be today or in the future",
+                  (value) => !value || !moment(value).isBefore(moment(), "day")
+                ),
+            otherwise: (schema) => schema.notRequired(),
+          }),
         remarks: Yup.string().trim().required("Remarks are required"),
       }),
     [paymentOption, outstanding]
@@ -110,7 +121,7 @@ function GeneratePendingFeeSlipAction({ student }) {
       remarks: "",
     },
     validationSchema,
-    onSubmit: async (values) => {
+    onSubmit: async (values, { setSubmitting }) => {
       if (!hasPrintedSlip) {
         toast({
           title: "Print fee slip first",
@@ -120,11 +131,13 @@ function GeneratePendingFeeSlipAction({ student }) {
           duration: 4000,
           isClosable: true,
         });
+        setSubmitting(false);
         return;
       }
 
       if (requiresPaymentEvidence(values.payment_method) && !evidenceFile) {
         setEvidenceError("Online payment receipt/slip is required");
+        setSubmitting(false);
         return;
       }
 
@@ -132,6 +145,18 @@ function GeneratePendingFeeSlipAction({ student }) {
         paymentOption === "full"
           ? outstanding
           : Math.round(Number(values.amount) || 0);
+
+      if (!(payingNow > 0)) {
+        toast({
+          title: "Invalid payment amount",
+          description: "Payment amount must be greater than 0.",
+          status: "warning",
+          duration: 3500,
+          isClosable: true,
+        });
+        setSubmitting(false);
+        return;
+      }
 
       try {
         await dispatch(
@@ -165,12 +190,37 @@ function GeneratePendingFeeSlipAction({ student }) {
           title: "Could not record payment",
           description: error?.message || "Please try again.",
           status: "error",
-          duration: 4500,
+          duration: 5000,
           isClosable: true,
         });
+      } finally {
+        setSubmitting(false);
       }
     },
   });
+
+  const handleSubmitClick = async () => {
+    const errors = await formik.validateForm();
+    const hasErrors = Object.values(errors).some(Boolean);
+    if (hasErrors) {
+      formik.setTouched({
+        amount: true,
+        payment_method: true,
+        next_installment_date: true,
+        remarks: true,
+      });
+      const firstError = Object.values(errors).find(Boolean);
+      toast({
+        title: "Complete required fields",
+        description: String(firstError),
+        status: "warning",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+    formik.handleSubmit();
+  };
 
   const payingNow =
     paymentOption === "full"
@@ -314,8 +364,6 @@ function GeneratePendingFeeSlipAction({ student }) {
         <ModalOverlay />
         <ModalContent
           {...responsiveModalContentProps}
-          as="form"
-          onSubmit={formik.handleSubmit}
           display="flex"
           flexDirection="column"
           maxH={{ base: "100dvh", sm: "92vh" }}
@@ -568,13 +616,14 @@ function GeneratePendingFeeSlipAction({ student }) {
               Cancel
             </Button>
             <Button
-              type="submit"
+              type="button"
               backgroundColor="#82B4FF"
               color="#2D4185"
               _hover={{ backgroundColor: "#74A0E3", color: "#223163" }}
-              isLoading={updateStatus === "loading"}
+              isLoading={updateStatus === "loading" || formik.isSubmitting}
               loadingText="Submitting"
               isDisabled={!hasPrintedSlip}
+              onClick={handleSubmitClick}
             >
               Submit Payment
             </Button>
