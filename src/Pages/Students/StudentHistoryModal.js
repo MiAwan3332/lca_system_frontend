@@ -28,6 +28,7 @@ import {
 } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import moment from "moment";
+import { formatStudentEmail } from "../../utlls/studentEmail";
 import {
   Eye,
   User,
@@ -312,7 +313,7 @@ function StudentHistoryModal({ student }) {
                 >
                   <HStack spacing={1}>
                     <Mail size={14} />
-                    <Text>{profile?.email || "—"}</Text>
+                    <Text>{formatStudentEmail(profile?.email)}</Text>
                   </HStack>
                   <HStack spacing={1}>
                     <Phone size={14} />

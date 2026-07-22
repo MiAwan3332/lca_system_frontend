@@ -103,21 +103,106 @@ const createFee = createAsyncThunk('fees/createFee', async (payload) => {
 });
 
 const payFee = createAsyncThunk('fees/payFee', async (payload) => {
-    const { authToken, id, studentId, amount, payment_method } = payload;
-    const response = await fetch(`${BASE_URL}/fees/pay/${id}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({ student_id: studentId, amount, payment_method }),
-    });
+    const {
+        authToken,
+        id,
+        studentId,
+        amount,
+        payment_method,
+        description,
+        next_installment_date,
+        payment_evidence,
+    } = payload;
+
+    const hasFile = Boolean(payment_evidence);
+    let response;
+
+    if (hasFile) {
+        const formData = new FormData();
+        formData.append("student_id", studentId);
+        formData.append("amount", String(amount));
+        formData.append("payment_method", payment_method);
+        formData.append("description", description || "");
+        if (next_installment_date) {
+            formData.append("next_installment_date", next_installment_date);
+        }
+        formData.append("payment_evidence", payment_evidence);
+        response = await fetch(`${BASE_URL}/fees/pay/${id}`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: formData,
+        });
+    } else {
+        response = await fetch(`${BASE_URL}/fees/pay/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                amount,
+                payment_method,
+                description,
+                next_installment_date,
+            }),
+        });
+    }
+
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data.message || 'Failed to pay fee');
     }
     return data;
 });
+
+const collectPendingFee = createAsyncThunk(
+    'fees/collectPendingFee',
+    async (payload) => {
+        const {
+            authToken,
+            studentId,
+            amount,
+            payment_option,
+            payment_method,
+            remarks,
+            next_installment_date,
+            payment_evidence,
+        } = payload;
+
+        const formData = new FormData();
+        formData.append("payment_option", payment_option);
+        formData.append("payment_method", payment_method);
+        formData.append("remarks", remarks || "");
+        if (payment_option === "partial") {
+            formData.append("amount", String(amount));
+            if (next_installment_date) {
+                formData.append("next_installment_date", next_installment_date);
+            }
+        }
+        if (payment_evidence) {
+            formData.append("payment_evidence", payment_evidence);
+        }
+
+        const response = await fetch(
+            `${BASE_URL}/fees/collect-pending/${studentId}`,
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                body: formData,
+            }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to collect pending fee');
+        }
+        return data;
+    }
+);
 
 const discountFee = createAsyncThunk('fees/discountFee', async (payload) => {
     const { authToken, id, studentId, amount, description } = payload;
@@ -237,14 +322,25 @@ const feeSlice = createSlice({
 
             // PAY FEE
             .addCase(payFee.pending, (state) => {
-                state.addStatus = 'loading';
+                state.updateStatus = 'loading';
             })
             .addCase(payFee.fulfilled, (state, action) => {
                 state.fees = action.payload;
-                state.addStatus = 'idle';
+                state.updateStatus = 'idle';
             })
             .addCase(payFee.rejected, (state) => {
-                state.addStatus = 'failed';
+                state.updateStatus = 'failed';
+            })
+
+            // COLLECT PENDING FEE
+            .addCase(collectPendingFee.pending, (state) => {
+                state.updateStatus = 'loading';
+            })
+            .addCase(collectPendingFee.fulfilled, (state) => {
+                state.updateStatus = 'idle';
+            })
+            .addCase(collectPendingFee.rejected, (state) => {
+                state.updateStatus = 'failed';
             })
 
             // DISCOUNT FEE
@@ -322,7 +418,7 @@ export const selectFeeLogs = (state) => state.fees.feeLogs;
 export const selectFee = (state) => state.fees.fee;
 export const selectStudentFeesReport = (state) => state.fees.studentFeesReport;
 
-export { fetchFees, fetchFeeById, createFee, payFee, discountFee, deleteFee, fetchFeeLogs, fetchFeesByStudent, fetchStudentFeesReport };
+export { fetchFees, fetchFeeById, createFee, payFee, collectPendingFee, discountFee, deleteFee, fetchFeeLogs, fetchFeesByStudent, fetchStudentFeesReport };
 export const { setQueryFilter, setPageFilter, setLimitFilter } = feeSlice.actions;
 
 export default feeSlice.reducer;

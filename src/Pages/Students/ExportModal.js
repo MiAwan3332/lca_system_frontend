@@ -28,6 +28,7 @@ import {
   responsiveModalContentProps,
 } from "../../utlls/responsiveModal";
 import { downloadExcel } from "react-export-table-to-excel";
+import { formatStudentEmail } from "../../utlls/studentEmail";
 import TablePagination from "../../Components/TablePagination";
 import { fetchBatches } from "../../Features/batchSlice";
 import { Select, FormControl } from "@chakra-ui/react";
@@ -119,7 +120,7 @@ const ExportModal = () => {
             body: students.map((student) => [
               students.indexOf(student) + 1,
               student.name,
-              student.email,
+              formatStudentEmail(student.email),
               student.phone,
               student.cnic,
               moment(student.admission_date).format("DD/MM/YYYY"),
@@ -227,7 +228,7 @@ const ExportModal = () => {
                             <Tr key={student._id}>
                               <Td>{index + 1}</Td>
                               <Td>{student.name}</Td>
-                              <Td>{student.email}</Td>
+                              <Td>{formatStudentEmail(student.email)}</Td>
                               <Td>{student.phone}</Td>
                               <Td>{student.cnic}</Td>
                               <Td>{moment(student.admission_date).format("DD/MM/YYYY")}</Td>

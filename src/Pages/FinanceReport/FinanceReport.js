@@ -81,7 +81,8 @@ const ACTION_TYPE_OPTIONS = [
 const PAYMENT_METHOD_OPTIONS = [
   { value: "", label: "All Payments" },
   { value: "Cash", label: "Cash" },
-  { value: "Online", label: "Online" },
+  { value: "Online Payment", label: "Online Payment" },
+  { value: "Online", label: "Online (legacy)" },
 ];
 
 const PENDING_DUES_OPTIONS = [
@@ -666,7 +667,9 @@ function FinanceReport() {
                       (transaction.action_type === "Paid" ? "Cash" : null) ? (
                         <Badge
                           colorScheme={
-                            (transaction.payment_method || "Cash") === "Online"
+                            ["Online", "Online Payment"].includes(
+                              transaction.payment_method || ""
+                            )
                               ? "purple"
                               : "teal"
                           }

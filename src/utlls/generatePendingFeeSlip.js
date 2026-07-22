@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import moment from "moment";
+import { formatStudentEmail } from "./studentEmail";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -106,7 +107,7 @@ export const generatePendingFeeSlipPdf = async (data = {}) => {
   drawSectionHeader("Student Information");
   drawInfoRow("Name:", name, { bold: true });
   drawInfoRow("Roll No:", rollNumber || "—");
-  drawInfoRow("Email:", email || "N/A");
+  drawInfoRow("Email:", formatStudentEmail(email));
   drawInfoRow("Phone:", phone || "N/A");
   drawInfoRow("Current Batch:", batchName, { bold: true });
   y += 4;

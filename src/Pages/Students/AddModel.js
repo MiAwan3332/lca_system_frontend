@@ -40,7 +40,10 @@ import {
 } from "../../utlls/responsiveModal";
 import { generateAdmissionFeeSlip } from "../../utlls/generateAdmissionFeeSlip";
 
-const ADMISSION_PAYMENT_METHODS = ["Cash", "Online"];
+import {
+  FEE_PAYMENT_METHODS,
+  requiresPaymentEvidence,
+} from "../../utlls/paymentMethods";
 
 const SPECIAL_OPTION_FIELDS = [
   {
@@ -175,7 +178,7 @@ function AddStudnet({ isOpen, onClose }) {
           is: () => paymentOption === "partial" || paymentOption === "full",
           then: (schema) =>
             schema
-              .oneOf(ADMISSION_PAYMENT_METHODS, "Select Cash or Online")
+              .oneOf(FEE_PAYMENT_METHODS, "Select a payment method")
               .required("Payment method is required"),
           otherwise: (schema) => schema.notRequired(),
         }),
@@ -291,7 +294,11 @@ function AddStudnet({ isOpen, onClose }) {
         return;
       }
 
-      if (amountToPay > 0 && values.payment_method === "Online" && !paymentEvidenceFile) {
+      if (
+        amountToPay > 0 &&
+        requiresPaymentEvidence(values.payment_method) &&
+        !paymentEvidenceFile
+      ) {
         setPaymentEvidenceError("Please attach online payment evidence");
         toast({
           title: "Payment evidence required",
@@ -321,7 +328,7 @@ function AddStudnet({ isOpen, onClose }) {
       }
       if (amountToPay > 0) {
         formData.append("payment_method", values.payment_method);
-        if (values.payment_method === "Online" && paymentEvidenceFile) {
+        if (requiresPaymentEvidence(values.payment_method) && paymentEvidenceFile) {
           formData.append("payment_evidence", paymentEvidenceFile);
         }
       }
@@ -592,7 +599,7 @@ function AddStudnet({ isOpen, onClose }) {
       const fileName = await generateAdmissionFeeSlip(
         {
           name: formik.values.name,
-          email: formik.values.cnic || "N/A",
+          cnic: formik.values.cnic || "N/A",
           phone: formik.values.phone,
           batchName: selectedBatch?.name || "N/A",
           batchFee: payableFee,
@@ -806,7 +813,7 @@ function AddStudnet({ isOpen, onClose }) {
         <FormControl id="payment_method" mt={4} isRequired>
           <FormLabel fontSize={14}>Payment Method</FormLabel>
           <HStack spacing={2} flexWrap="wrap">
-            {ADMISSION_PAYMENT_METHODS.map((method) => (
+            {FEE_PAYMENT_METHODS.map((method) => (
               <Button
                 key={method}
                 size="sm"
@@ -830,7 +837,7 @@ function AddStudnet({ isOpen, onClose }) {
                 }
                 onClick={() => {
                   formik.setFieldValue("payment_method", method);
-                  if (method === "Cash") {
+                  if (!requiresPaymentEvidence(method)) {
                     setPaymentEvidenceFile(null);
                     setPaymentEvidenceError("");
                   }
@@ -850,7 +857,7 @@ function AddStudnet({ isOpen, onClose }) {
       )}
 
       {resolvedPaymentOption !== "later" &&
-        formik.values.payment_method === "Online" && (
+        requiresPaymentEvidence(formik.values.payment_method) && (
           <FormControl mt={4} isRequired>
             <FormLabel fontSize={14}>Online Payment Evidence</FormLabel>
             <Input

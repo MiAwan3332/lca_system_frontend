@@ -21,6 +21,7 @@ import Cookies from "js-cookie";
 import { KeyRound } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { changeStudentPassword } from "../../Features/studentSlice";
+import { formatStudentEmail } from "../../utlls/studentEmail";
 
 function ChangePasswordModal({ student }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -89,7 +90,10 @@ function ChangePasswordModal({ student }) {
                     Student: <strong>{student.name}</strong>
                   </Text>
                   <Text fontSize="sm" color="gray.600">
-                    Login Email: <strong>{student.email}</strong>
+                    Login Phone: <strong>{student.phone || "N/A"}</strong>
+                  </Text>
+                  <Text fontSize="sm" color="gray.600">
+                    Email: <strong>{formatStudentEmail(student.email)}</strong>
                   </Text>
                 </Box>
                 <FormControl isRequired>
