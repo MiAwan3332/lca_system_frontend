@@ -25,6 +25,7 @@ import UpdateModal from "./UpdateModal";
 import ShiftBatchModal from "./ShiftBatchModal";
 import StudentHistoryModal from "./StudentHistoryModal";
 import GeneratePendingFeeSlipAction from "./GeneratePendingFeeSlipAction";
+import { formatStudentEmail } from "../../utlls/studentEmail";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -512,7 +513,7 @@ function Student() {
                     )}
                     <Td>{student.roll_number || "—"}</Td>
                     <Td>{student.name}</Td>
-                    <Td>{student.email}</Td>
+                    <Td>{formatStudentEmail(student.email)}</Td>
                     <Td>{student.phone}</Td>
                     <Td>{student.city || "-"}</Td>
                     <Td>{student.batch ? student.batch.name : "No Batch"}</Td>

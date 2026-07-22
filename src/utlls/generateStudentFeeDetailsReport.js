@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import moment from "moment";
+import { formatStudentEmail } from "./studentEmail";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -115,7 +116,7 @@ export const generateStudentFeeDetailsReport = async (fee, feeLogs = [], mode = 
   const studentName = fee?.student?.name || "N/A";
   const batchName = fee?.batch?.name || "N/A";
   const phone = fee?.student?.phone || "N/A";
-  const email = fee?.student?.email || "N/A";
+  const email = formatStudentEmail(fee?.student?.email);
   const rollNumber = fee?.student?.roll_number || "—";
   const feeAmount = fee?.amount ?? 0;
   const dueDate = fee?.due_date

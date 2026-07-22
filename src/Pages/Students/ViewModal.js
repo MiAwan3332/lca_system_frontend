@@ -37,6 +37,7 @@ import {
   responsiveModalProps,
   getResponsiveModalSize,
 } from "../../utlls/responsiveModal";
+import { formatStudentEmail } from "../../utlls/studentEmail";
 
 function ViewModal({ student, forced = false, onComplete }) {
   const [isOpen, setIsOpen] = useState(forced);
@@ -332,7 +333,7 @@ function ViewModal({ student, forced = false, onComplete }) {
                       <Input
                         type="email"
                         borderRadius="0.5rem"
-                        value={student.email}
+                        value={formatStudentEmail(student.email)}
                         isReadOnly
                       />
                     </FormControl>

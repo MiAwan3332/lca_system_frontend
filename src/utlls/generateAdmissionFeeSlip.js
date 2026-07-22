@@ -54,6 +54,7 @@ const getStatusColors = (paymentStatus) => {
 export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const {
     name,
+    cnic,
     email,
     phone,
     batchName,
@@ -91,6 +92,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
 
   const paymentLabel = getPaymentLabel(paymentOption);
   const statusColors = getStatusColors(paymentStatus);
+  const cnicValue = String(cnic || "").trim() || "N/A";
 
   doc.setFillColor(...COLORS.white);
   doc.setDrawColor(...COLORS.border);
@@ -183,7 +185,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
 
   drawSectionHeader("Student Information");
   drawInfoRow("Name:", name, { bold: true });
-  drawInfoRow("Email:", email || "N/A");
+  drawInfoRow("CNIC:", cnicValue);
   drawInfoRow("Phone:", phone || "N/A");
   drawInfoRow("Batch:", batchName, { bold: true });
   y += 4;
@@ -278,12 +280,10 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const signY = Math.min(y, cardY + cardH - 18);
   doc.setDrawColor(...COLORS.textMuted);
   doc.line(innerX, signY, innerX + 58, signY);
-  doc.line(innerX + innerW - 58, signY, innerX + innerW, signY);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.textMuted);
   doc.text("Authorized Signature", innerX, signY + 5);
-  doc.text("Student / Guardian Signature", innerX + innerW - 58, signY + 5);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
