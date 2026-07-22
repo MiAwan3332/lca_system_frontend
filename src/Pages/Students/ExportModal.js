@@ -156,10 +156,10 @@ const ExportModal = () => {
   return (
     <>
       <button
-        className="bg-white hover:bg-[#FFCB82] hover:text-[#85652D] font-medium pl-[14px] pr-[18px] py-[10px] rounded-xl flex gap-1.5 transition-colors duration-300 border border-[#E0E8EC] hover:border-[#FFCB82]"
+        className="table-action-btn"
         onClick={handleModalOpen}
       >
-        <Download size={20} />
+        <Download size={18} />
         Excel File
       </button>
 

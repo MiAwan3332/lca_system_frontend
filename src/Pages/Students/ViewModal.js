@@ -246,11 +246,11 @@ function ViewModal({ student, forced = false, onComplete }) {
       {!forced && (
       <IconButton
         onClick={onOpen}
-        colorScheme="gray"
-        style={student.image ? { backgroundColor: "#ffcb82" } : {}}
-      >
-        <View />
-      </IconButton>
+        aria-label="View student"
+        title="View Student"
+        className="icon-action-btn icon-action-btn--view"
+        icon={<View size={18} />}
+      />
       )}
 
       <Modal

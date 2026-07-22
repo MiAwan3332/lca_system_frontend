@@ -24,7 +24,7 @@ const isInsideOpenModal = (target) => {
   );
 };
 
-function ActionMenu({ children, placement = "left-start", width = "220px" }) {
+function ActionMenu({ children, placement = "left-start", width = "250px" }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const triggerRef = useRef(null);
   const contentRef = useRef(null);
@@ -125,9 +125,8 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
           <IconButton
             aria-label="More actions"
             icon={<MoreVertical size={18} />}
-            variant="outline"
             size="sm"
-            borderRadius="lg"
+            className="action-menu-trigger"
             onClick={handleToggle}
           />
         </span>
@@ -137,12 +136,14 @@ function ActionMenu({ children, placement = "left-start", width = "220px" }) {
           ref={contentRef}
           w={width}
           bg="white"
-          borderColor="#E0E8EC"
-          boxShadow="xl"
+          borderColor="#E8EEF4"
+          borderRadius="1rem"
+          boxShadow="0 18px 40px rgba(15, 23, 42, 0.16)"
           zIndex={1400}
+          overflow="hidden"
         >
-          <PopoverBody onClick={handleMenuActionClick}>
-            <VStack align="stretch" spacing={2}>
+          <PopoverBody p={2.5} onClick={handleMenuActionClick}>
+            <VStack align="stretch" spacing={1.5}>
               {children}
             </VStack>
           </PopoverBody>

@@ -55,6 +55,7 @@ import {
   responsiveModalContentProps,
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import ActionButton from "../../Components/ActionButton";
 
 const formatRs = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-PK", {
@@ -214,14 +215,13 @@ function StudentHistoryModal({ student }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="hover:bg-[#82B4FF] hover:text-[#2D4185] font-medium p-[10px] rounded-xl transition-colors duration-300"
+      <ActionButton
+        variant="blue"
+        icon={<Eye size={16} />}
+        label="Student History"
         onClick={onOpen}
         title="View student history"
-      >
-        <Eye size={18} />
-      </button>
+      />
 
       <Modal
         isOpen={isOpen}

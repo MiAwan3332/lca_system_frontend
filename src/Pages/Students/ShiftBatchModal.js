@@ -41,6 +41,7 @@ import {
   responsiveModalContentProps,
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import ActionButton from "../../Components/ActionButton";
 
 const formatPendingAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -251,14 +252,13 @@ function ShiftBatchModal({ student }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="hover:bg-[#7AEF85] hover:text-[#257947] font-medium p-[10px] rounded-xl transition-colors duration-300"
+      <ActionButton
+        variant="green"
+        icon={<ArrowRightLeft size={16} />}
+        label="Shift Batch"
         onClick={onOpen}
         title="Shift Batch"
-      >
-        <ArrowRightLeft size={18} />
-      </button>
+      />
 
       <Modal
         isOpen={isOpen}

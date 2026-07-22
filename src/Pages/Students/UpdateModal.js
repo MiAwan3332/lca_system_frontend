@@ -28,6 +28,7 @@ import { basicUpdate, fetchStudents } from "../../Features/studentSlice";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { getMediaUrl } from "../../utlls/useful.js";
 import CameraCapture from "../../Components/CameraCapture";
+import ActionButton from "../../Components/ActionButton";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -109,13 +110,12 @@ function UpdateModal({ student }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="hover:bg-[#FFCB82] hover:text-[#85652D] font-medium p-[10px] rounded-xl transition-colors duration-300"
+      <ActionButton
+        variant="gold"
+        icon={<Pen size={16} />}
+        label="Update Student"
         onClick={onOpen}
-      >
-        <Pen size={18} />
-      </button>
+      />
       <Modal
         isOpen={isOpen}
         onClose={onClose}

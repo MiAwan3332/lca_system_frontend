@@ -34,9 +34,9 @@ function StudentCardModal({ student }) {
         colorScheme="gray"
         aria-label="Student Card"
         title="Student Card"
-      >
-        <IdCard size={18} />
-      </IconButton>
+        className="icon-action-btn icon-action-btn--card"
+        icon={<IdCard size={18} />}
+      />
       <Modal
         isOpen={isOpen}
         onClose={onClose}
