@@ -185,6 +185,43 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     onCapture?.(file);
   };
 
+  const normalizeImageFile = async (file) => {
+    if (!file) return null;
+    if (file.type === "image/jpeg" || file.type === "image/jpg") {
+      return file;
+    }
+
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      const img = await new Promise((resolve, reject) => {
+        const image = new window.Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = objectUrl;
+      });
+      URL.revokeObjectURL(objectUrl);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width || 1;
+      canvas.height = img.height || 1;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.92)
+      );
+      if (!blob) return file;
+      return new File([blob], `student-photo-${Date.now()}.jpg`, {
+        type: "image/jpeg",
+      });
+    } catch {
+      return file;
+    }
+  };
+
   const handleCapture = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -237,10 +274,11 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     });
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    setCapturedFile(file);
+    const normalized = await normalizeImageFile(file);
+    setCapturedFile(normalized);
     stopCamera();
     event.target.value = "";
   };

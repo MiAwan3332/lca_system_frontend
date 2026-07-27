@@ -234,7 +234,7 @@ const StudentCard = ({ student, qrCode }) => {
     </style>
   </head>
   <body>
-    <h1>LCA Student Card — ${studentName}</h1>
+    <h1>Lahore CSS Academy — Student Card · ${studentName}</h1>
     <div class="pages">
       <div class="side">
         <div class="label">Front</div>
@@ -291,7 +291,7 @@ const StudentCard = ({ student, qrCode }) => {
   };
 
   const instructions = [
-    "This card is the property of Learning & Career Academy.",
+    "This card is the property of Lahore CSS Academy.",
     "For personal use only — not transferable.",
     "If found, return to the address below.",
   ];
@@ -423,7 +423,7 @@ const StudentCard = ({ student, qrCode }) => {
                           letterSpacing: "0.04em",
                         }}
                       >
-                        Learning & Career
+                        Lahore CSS
                       </div>
                       <div
                         style={{
@@ -680,7 +680,7 @@ const StudentCard = ({ student, qrCode }) => {
                   letterSpacing: "0.16em",
                 }}
               >
-                LEARNING & CAREER ACADEMY
+                LAHORE CSS ACADEMY
               </div>
               <div
                 style={{

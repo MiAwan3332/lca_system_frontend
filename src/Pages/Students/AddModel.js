@@ -27,10 +27,10 @@ import { Printer } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { selectActiveBatches, fetchBatches } from "../../Features/batchSlice";
-import { useDispatch } from "react-redux";
 import { addStudent, fetchStudents } from "../../Features/studentSlice";
+import { selectUser } from "../../Features/authSlice";
 import CameraCapture from "../../Components/CameraCapture";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import {
@@ -98,6 +98,7 @@ function AddStudnet({ isOpen, onClose }) {
 
   const { addStatus } = useSelector((state) => state.students);
   const batches = useSelector(selectActiveBatches);
+  const currentUser = useSelector(selectUser);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -609,6 +610,7 @@ function AddStudnet({ isOpen, onClose }) {
           paymentOption: resolvedPaymentOption,
           paymentMethod: paymentMethodLabel,
           photoFile,
+          authorizedBy: currentUser?.name || "",
         },
         "print"
       );
