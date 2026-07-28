@@ -16,8 +16,23 @@ const buildReportParams = (payload = {}) => {
 
   params.append("period", period);
   if (date) params.append("date", date);
-  if (batch_id) params.append("batch_id", batch_id);
-  if (changed_by) params.append("changed_by", changed_by);
+
+  const toList = (value) => {
+    if (Array.isArray(value)) {
+      return value.map(String).map((item) => item.trim()).filter(Boolean);
+    }
+    if (value == null || value === "") return [];
+    return String(value)
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
+  const batchIds = toList(batch_id);
+  const changedByIds = toList(changed_by);
+
+  if (batchIds.length) params.append("batch_id", batchIds.join(","));
+  if (changedByIds.length) params.append("changed_by", changedByIds.join(","));
 
   return params.toString();
 };

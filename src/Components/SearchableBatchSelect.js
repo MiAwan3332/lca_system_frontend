@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Input, List, ListItem, Text } from "@chakra-ui/react";
+import {
+  Badge,
+  Box,
+  Checkbox,
+  Flex,
+  Input,
+  List,
+  ListItem,
+  Text,
+  Wrap,
+  WrapItem,
+} from "@chakra-ui/react";
+import { X } from "lucide-react";
 import { filterActiveBatches } from "../Features/batchSlice";
 
 function SearchableBatchSelect({
@@ -11,10 +23,20 @@ function SearchableBatchSelect({
   activeOnly = true,
   showClearOption = true,
   size = "lg",
+  isMulti = false,
 }) {
   const containerRef = useRef(null);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+
+  const selectedIds = useMemo(() => {
+    if (isMulti) {
+      return Array.isArray(value) ? value.map(String) : [];
+    }
+    return value ? [String(value)] : [];
+  }, [isMulti, value]);
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   const visibleBatches = useMemo(
     () => (activeOnly ? filterActiveBatches(batches) : batches),
@@ -39,20 +61,26 @@ function SearchableBatchSelect({
   }, [sortedBatches, search]);
 
   const selectedBatch = useMemo(
-    () => sortedBatches.find((batch) => batch._id === value),
+    () => sortedBatches.find((batch) => String(batch._id) === String(value)),
     [sortedBatches, value]
   );
 
+  const selectedBatches = useMemo(
+    () =>
+      sortedBatches.filter((batch) => selectedSet.has(String(batch._id))),
+    [sortedBatches, selectedSet]
+  );
+
   useEffect(() => {
+    if (isMulti) return;
     if (!value) {
       setSearch("");
       return;
     }
-
     if (selectedBatch) {
       setSearch(selectedBatch.name);
     }
-  }, [value, selectedBatch]);
+  }, [value, selectedBatch, isMulti]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -61,27 +89,39 @@ function SearchableBatchSelect({
         !containerRef.current.contains(event.target)
       ) {
         setIsOpen(false);
-        if (value && selectedBatch) {
+        if (!isMulti && value && selectedBatch) {
           setSearch(selectedBatch.name);
+        }
+        if (isMulti) {
+          setSearch("");
         }
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [value, selectedBatch]);
+  }, [value, selectedBatch, isMulti]);
 
   const handleInputChange = (e) => {
     const nextSearch = e.target.value;
     setSearch(nextSearch);
     setIsOpen(true);
 
-    if (!nextSearch.trim()) {
+    if (!isMulti && !nextSearch.trim()) {
       onChange("");
     }
   };
 
   const handleSelectBatch = (batch) => {
+    if (isMulti) {
+      const id = String(batch._id);
+      const next = selectedSet.has(id)
+        ? selectedIds.filter((item) => item !== id)
+        : [...selectedIds, id];
+      onChange(next);
+      setSearch("");
+      return;
+    }
     setSearch(batch.name);
     setIsOpen(false);
     onChange(batch._id);
@@ -90,7 +130,12 @@ function SearchableBatchSelect({
   const handleClearSelection = () => {
     setSearch("");
     setIsOpen(false);
-    onChange("");
+    onChange(isMulti ? [] : "");
+  };
+
+  const removeSelected = (batchId) => {
+    const id = String(batchId);
+    onChange(selectedIds.filter((item) => item !== id));
   };
 
   const showEmptySearch =
@@ -98,14 +143,49 @@ function SearchableBatchSelect({
   const showEmptyList = isOpen && !search.trim() && sortedBatches.length === 0;
   const showList = isOpen && filteredBatches.length > 0;
 
+  const multiPlaceholder =
+    selectedIds.length === 0
+      ? placeholder
+      : selectedIds.length === 1
+        ? selectedBatches[0]?.name || "1 batch selected"
+        : `${selectedIds.length} batches selected`;
+
   return (
     <Box ref={containerRef} position="relative" w={width} zIndex={isOpen ? 1500 : "auto"}>
+      {isMulti && selectedBatches.length > 0 && (
+        <Wrap spacing={1} mb={2}>
+          {selectedBatches.map((batch) => (
+            <WrapItem key={batch._id}>
+              <Badge
+                colorScheme="yellow"
+                borderRadius="md"
+                px={2}
+                py={1}
+                display="flex"
+                alignItems="center"
+                gap={1}
+              >
+                {batch.name}
+                <Box
+                  as="button"
+                  type="button"
+                  aria-label={`Remove ${batch.name}`}
+                  onClick={() => removeSelected(batch._id)}
+                  lineHeight={0}
+                >
+                  <X size={12} />
+                </Box>
+              </Badge>
+            </WrapItem>
+          ))}
+        </Wrap>
+      )}
       <Input
-        value={search}
+        value={isMulti ? search : search}
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
         onClick={() => setIsOpen(true)}
-        placeholder={placeholder}
+        placeholder={isMulti ? multiPlaceholder : placeholder}
         size={size}
         borderRadius="xl"
         borderColor="#E0E8EC"
@@ -139,23 +219,37 @@ function SearchableBatchSelect({
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleClearSelection}
             >
-              All batches
+              {isMulti ? "Clear selection" : "All batches"}
             </ListItem>
           )}
-          {filteredBatches.map((batch) => (
-            <ListItem
-              key={batch._id}
-              px={4}
-              py={2}
-              cursor="pointer"
-              bg={value === batch._id ? "#FFCB82" : "white"}
-              _hover={{ bg: "#FFCB82" }}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => handleSelectBatch(batch)}
-            >
-              {batch.name}
-            </ListItem>
-          ))}
+          {filteredBatches.map((batch) => {
+            const isSelected = selectedSet.has(String(batch._id));
+            return (
+              <ListItem
+                key={batch._id}
+                px={4}
+                py={2}
+                cursor="pointer"
+                bg={isSelected ? "#FFCB82" : "white"}
+                _hover={{ bg: "#FFCB82" }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelectBatch(batch)}
+              >
+                {isMulti ? (
+                  <Flex align="center" gap={2}>
+                    <Checkbox
+                      isChecked={isSelected}
+                      pointerEvents="none"
+                      colorScheme="yellow"
+                    />
+                    <Text fontSize="sm">{batch.name}</Text>
+                  </Flex>
+                ) : (
+                  batch.name
+                )}
+              </ListItem>
+            );
+          })}
         </List>
       )}
       {showEmptySearch && (

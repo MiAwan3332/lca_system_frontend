@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { createStandaloneToast } from "@chakra-ui/react";
 import { config } from "../utlls/config.js";
+import { appendPaymentEvidenceFiles } from "../utlls/paymentEvidence.js";
 import axios from 'axios';
 
 const { toast } = createStandaloneToast();
@@ -114,10 +115,15 @@ const payFee = createAsyncThunk('fees/payFee', async (payload) => {
         payment_evidence,
     } = payload;
 
-    const hasFile = Boolean(payment_evidence);
+    const evidenceList = Array.isArray(payment_evidence)
+        ? payment_evidence.filter(Boolean)
+        : payment_evidence
+          ? [payment_evidence]
+          : [];
+
     let response;
 
-    if (hasFile) {
+    if (evidenceList.length > 0) {
         const formData = new FormData();
         formData.append("student_id", studentId);
         formData.append("amount", String(amount));
@@ -126,7 +132,7 @@ const payFee = createAsyncThunk('fees/payFee', async (payload) => {
         if (next_installment_date) {
             formData.append("next_installment_date", next_installment_date);
         }
-        formData.append("payment_evidence", payment_evidence);
+        appendPaymentEvidenceFiles(formData, evidenceList);
         response = await fetch(`${BASE_URL}/fees/pay/${id}`, {
             method: 'POST',
             headers: {
@@ -182,9 +188,7 @@ const collectPendingFee = createAsyncThunk(
                 formData.append("next_installment_date", next_installment_date);
             }
         }
-        if (payment_evidence) {
-            formData.append("payment_evidence", payment_evidence);
-        }
+        appendPaymentEvidenceFiles(formData, payment_evidence);
 
         const response = await fetch(
             `${BASE_URL}/fees/collect-pending/${studentId}`,

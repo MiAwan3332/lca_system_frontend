@@ -20,11 +20,12 @@ import {
   HStack,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
-import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
 import ShiftBatchModal from "./ShiftBatchModal";
 import StudentHistoryModal from "./StudentHistoryModal";
 import GeneratePendingFeeSlipAction from "./GeneratePendingFeeSlipAction";
+import RefundRequestAction from "./RefundRequestAction";
+import ProcessRefundAction from "./ProcessRefundAction";
 import { formatStudentEmail } from "../../utlls/studentEmail";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -547,9 +548,8 @@ function Student() {
                               <ChangePasswordModal student={student} />
                             </>
                           )}
-                          {hasPermission(["Delete_Student"]) && (
-                            <DeleteModal studentId={student._id} />
-                          )}
+                          <RefundRequestAction student={student} />
+                          <ProcessRefundAction student={student} />
                         </ActionMenu>
                       </div>
                     </Td>

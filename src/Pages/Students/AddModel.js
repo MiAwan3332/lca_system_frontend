@@ -90,7 +90,7 @@ const getSpecialTotalFromBatch = (batch, values) => {
 function AddStudnet({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [photoFile, setPhotoFile] = useState(null);
-  const [paymentEvidenceFile, setPaymentEvidenceFile] = useState(null);
+  const [paymentEvidenceFiles, setPaymentEvidenceFiles] = useState([]);
   const [paymentEvidenceError, setPaymentEvidenceError] = useState("");
   const [paymentOption, setPaymentOption] = useState("later");
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
@@ -112,7 +112,7 @@ function AddStudnet({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) {
       setPhotoFile(null);
-      setPaymentEvidenceFile(null);
+      setPaymentEvidenceFiles([]);
       setPaymentEvidenceError("");
       setPaymentOption("later");
     }
@@ -298,7 +298,7 @@ function AddStudnet({ isOpen, onClose }) {
       if (
         amountToPay > 0 &&
         requiresPaymentEvidence(values.payment_method) &&
-        !paymentEvidenceFile
+        paymentEvidenceFiles.length === 0
       ) {
         setPaymentEvidenceError("Please attach online payment evidence");
         toast({
@@ -329,8 +329,13 @@ function AddStudnet({ isOpen, onClose }) {
       }
       if (amountToPay > 0) {
         formData.append("payment_method", values.payment_method);
-        if (requiresPaymentEvidence(values.payment_method) && paymentEvidenceFile) {
-          formData.append("payment_evidence", paymentEvidenceFile);
+        if (
+          requiresPaymentEvidence(values.payment_method) &&
+          paymentEvidenceFiles.length > 0
+        ) {
+          paymentEvidenceFiles.forEach((file) => {
+            formData.append("payment_evidence", file);
+          });
         }
       }
       if (isPartialPayment) {
@@ -361,7 +366,7 @@ function AddStudnet({ isOpen, onClose }) {
         dispatch(fetchStudents({ authToken }));
         formik.resetForm();
         setPhotoFile(null);
-        setPaymentEvidenceFile(null);
+        setPaymentEvidenceFiles([]);
         setPaymentEvidenceError("");
         setPaymentOption("later");
         onClose();
@@ -458,7 +463,7 @@ function AddStudnet({ isOpen, onClose }) {
     if (option === "later") {
       formik.setFieldValue("paying_now", "");
       formik.setFieldValue("next_installment_date", "");
-      setPaymentEvidenceFile(null);
+      setPaymentEvidenceFiles([]);
       setPaymentEvidenceError("");
     } else if (option === "full") {
       formik.setFieldValue("paying_now", String(payableFee));
@@ -483,7 +488,7 @@ function AddStudnet({ isOpen, onClose }) {
     Object.entries(EMPTY_SPECIAL_VALUES).forEach(([field, value]) => {
       formik.setFieldValue(field, value);
     });
-    setPaymentEvidenceFile(null);
+    setPaymentEvidenceFiles([]);
     setPaymentEvidenceError("");
     setPaymentOption("later");
   };
@@ -840,7 +845,7 @@ function AddStudnet({ isOpen, onClose }) {
                 onClick={() => {
                   formik.setFieldValue("payment_method", method);
                   if (!requiresPaymentEvidence(method)) {
-                    setPaymentEvidenceFile(null);
+                    setPaymentEvidenceFiles([]);
                     setPaymentEvidenceError("");
                   }
                 }}
@@ -864,22 +869,28 @@ function AddStudnet({ isOpen, onClose }) {
             <FormLabel fontSize={14}>Online Payment Evidence</FormLabel>
             <Input
               type="file"
+              multiple
               accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
               borderRadius="0.5rem"
               pt={1}
               onChange={(event) => {
-                const file = event.target.files?.[0] || null;
-                setPaymentEvidenceFile(file);
+                const files = Array.from(event.target.files || []);
+                setPaymentEvidenceFiles(files);
                 setPaymentEvidenceError("");
               }}
             />
             <Text fontSize="xs" color="gray.500" mt={2}>
-              Upload payment screenshot, bank receipt, or transfer proof (image or PDF).
+              Upload one or more payment screenshots, bank receipts, or transfer
+              proofs (image or PDF).
             </Text>
-            {paymentEvidenceFile && (
-              <Text fontSize="sm" color="green.600" mt={1}>
-                Selected: {paymentEvidenceFile.name}
-              </Text>
+            {paymentEvidenceFiles.length > 0 && (
+              <Box mt={1}>
+                {paymentEvidenceFiles.map((file) => (
+                  <Text key={`${file.name}-${file.size}`} fontSize="sm" color="green.600">
+                    Selected: {file.name}
+                  </Text>
+                ))}
+              </Box>
             )}
             {paymentEvidenceError ? (
               <Box color="red" fontSize="sm" mt={1}>

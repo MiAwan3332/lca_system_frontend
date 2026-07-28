@@ -22,6 +22,7 @@ import {
   canAccessFinanceAdministratorRoute,
   getFinanceAdministratorVisibleRoutes,
 } from "./financeAdministratorAccess";
+import { canAccessRequestManagement } from "./refundAccess";
 
 export const STUDENT_ROUTE_PATHS = [
   "/dashboard",
@@ -115,6 +116,9 @@ export const canAccessRoute = (path) => {
   if (path === "/profile" || path === "/google-workspace") {
     return true;
   }
+  if (path === "/request-management" && !canAccessRequestManagement()) {
+    return false;
+  }
   // CEO, secrateAdmin, superadmin, Administrator — all pages
   if (isFullAccessRole()) {
     return true;
@@ -141,7 +145,13 @@ export const canAccessRoute = (path) => {
 };
 
 export const getVisibleRoutes = (allRoutes) => {
-  const visibleRouteList = allRoutes.filter((route) => !route.hidden);
+  const visibleRouteList = allRoutes.filter((route) => {
+    if (route.hidden) return false;
+    if (route.path === "/request-management" && !canAccessRequestManagement()) {
+      return false;
+    }
+    return true;
+  });
   // CEO, secrateAdmin, superadmin, Administrator — all pages
   if (isFullAccessRole()) {
     return visibleRouteList;

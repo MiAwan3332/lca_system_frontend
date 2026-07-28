@@ -22,6 +22,7 @@ import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
 import FinanceReport from "./Pages/FinanceReport/FinanceReport.js";
 import Expense from "./Pages/Expense/Expense.js";
+import RequestManagement from "./Pages/RequestManagement/RequestManagement.js";
 import Quiz from "./Pages/Quiz/Quiz.js";
 import Assignments from "./Pages/Assignments/Assignments.js";
 import CourseQuizzes from "./Pages/CourseQuizzes/CourseQuizzes.js";
@@ -70,6 +71,12 @@ export const routes = [
     icon: Receipt,
     component: <Expense />,
     path: "/expenses",
+  },
+  {
+    name: "Request Management",
+    icon: ClipboardList,
+    component: <RequestManagement />,
+    path: "/request-management",
   },
   {
     name: "Teachers",

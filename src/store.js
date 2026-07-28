@@ -18,6 +18,7 @@ import mcqReducer from './Features/mcqSlice';
 import feeReducer from './Features/feeSlice';
 import financeReportReducer from './Features/financeReportSlice';
 import expenseReducer from './Features/expenseSlice';
+import refundRequestReducer from './Features/refundRequestSlice';
 import quizReducer from './Features/quizSlice';
 import assignmentReducer from './Features/assignmentSlice';
 import courseQuizReducer from './Features/courseQuizSlice';
@@ -46,6 +47,7 @@ export const store = configureStore({
     fees: feeReducer,
     financeReport: financeReportReducer,
     expenses: expenseReducer,
+    refundRequests: refundRequestReducer,
     quiz: quizReducer,
     assignments: assignmentReducer,
     courseQuizzes: courseQuizReducer,

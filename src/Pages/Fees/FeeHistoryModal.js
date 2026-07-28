@@ -50,6 +50,8 @@ import {
     responsiveModalContentProps,
     responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import { getPaymentEvidenceUrls } from "../../utlls/paymentEvidence";
+import { getMediaUrl } from "../../utlls/useful.js";
 
 const ACTION_CONFIG = {
     Created: { label: "Fee Created", color: "blue", icon: Receipt, accent: "#2D4185" },
@@ -475,23 +477,42 @@ function FeeHistoryModal({ fee }) {
                                                                         </Badge>
                                                                     )}
                                                             {log.action_type === "Paid" &&
-                                                                log.payment_method === "Online" &&
-                                                                log.payment_evidence && (
-                                                                    <Link
-                                                                        href={log.payment_evidence}
-                                                                        isExternal
-                                                                        mt={2}
-                                                                        display="inline-flex"
-                                                                        alignItems="center"
-                                                                        gap={1}
-                                                                        fontSize="sm"
-                                                                        color="#2D4185"
-                                                                        fontWeight="medium"
+                                                                (log.payment_method === "Online" ||
+                                                                  log.payment_method ===
+                                                                    "Online Payment") &&
+                                                                (() => {
+                                                                  const urls =
+                                                                    getPaymentEvidenceUrls(
+                                                                      log.payment_evidence
+                                                                    );
+                                                                  if (!urls.length) return null;
+                                                                  return (
+                                                                    <VStack
+                                                                      align="start"
+                                                                      spacing={1}
+                                                                      mt={2}
                                                                     >
-                                                                        <Paperclip size={14} />
-                                                                        View payment evidence
-                                                                    </Link>
-                                                                )}
+                                                                      {urls.map((url, idx) => (
+                                                                        <Link
+                                                                          key={`${url}-${idx}`}
+                                                                          href={getMediaUrl(url)}
+                                                                          isExternal
+                                                                          display="inline-flex"
+                                                                          alignItems="center"
+                                                                          gap={1}
+                                                                          fontSize="sm"
+                                                                          color="#2D4185"
+                                                                          fontWeight="medium"
+                                                                        >
+                                                                          <Paperclip size={14} />
+                                                                          {urls.length > 1
+                                                                            ? `View evidence ${idx + 1}`
+                                                                            : "View payment evidence"}
+                                                                        </Link>
+                                                                      ))}
+                                                                    </VStack>
+                                                                  );
+                                                                })()}
                                                         </Box>
                                                     </HStack>
                                                 </Box>

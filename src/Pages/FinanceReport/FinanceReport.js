@@ -6,6 +6,7 @@ import {
   Button,
   ButtonGroup,
   FormControl,
+  FormLabel,
   IconButton,
   Input,
   InputGroup,
@@ -54,7 +55,7 @@ import {
   setLimitFilter as setUserLimitFilter,
 } from "../../Features/userSlice";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
-import SearchableUserSelect from "../../Components/SearchableUserSelect";
+import FilterMultiSelect from "../../Components/FilterMultiSelect";
 import FinanceReportChart from "../../Components/FinanceReportChart";
 import TableRowLoading from "../../Components/TableRowLoading";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
@@ -62,31 +63,44 @@ import VoucherPreviewModal from "../../Components/FinanceReport/VoucherPreviewMo
 import { exportFinanceTransactionsExcel } from "../../utlls/generateFinanceTransactionsReport";
 import { exportFinanceTransactionsPdf } from "../../utlls/generateFinanceTransactionsPdf";
 
+const ALL_ADMIN_USERS_VALUE = "";
+
+const isExcludedExportRole = (role) => {
+  const normalized = String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+  return (
+    normalized === "student" ||
+    normalized === "teacher" ||
+    normalized === "secrateadmin" ||
+    normalized === "secrate admin"
+  );
+};
+
 const TRANSACTION_TYPE_OPTIONS = [
-  { value: "", label: "All Types" },
   { value: "fee", label: "Fee" },
   { value: "expense", label: "Expense" },
 ];
 
 const ACTION_TYPE_OPTIONS = [
-  { value: "", label: "All Actions" },
   { value: "Paid", label: "Paid" },
   { value: "Created", label: "Created" },
   { value: "Discounted", label: "Discounted" },
   { value: "Deleted", label: "Deleted" },
+  { value: "Refund", label: "Refund" },
   { value: "Pending", label: "Pending" },
   { value: "Expense", label: "Expense" },
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
-  { value: "", label: "All Payments" },
   { value: "Cash", label: "Cash" },
   { value: "Online Payment", label: "Online Payment" },
   { value: "Online", label: "Online (legacy)" },
 ];
 
 const PENDING_DUES_OPTIONS = [
-  { value: "", label: "All Dues" },
   { value: "pending", label: "Pending Dues" },
   { value: "cleared", label: "No Pending / Paid" },
 ];
@@ -142,6 +156,12 @@ const SUMMARY_CARDS = [
     icon: <Receipt size={32} color="#d69e2e" />,
   },
   {
+    key: "total_fee_refunded",
+    title: "Refunds",
+    helpText: "Student refunds deducted from finance",
+    icon: <HandCoins size={32} color="#d69e2e" />,
+  },
+  {
     key: "total_pending_expenses",
     title: "Pending Expenses",
     helpText: "Awaiting approval, not yet deducted",
@@ -150,7 +170,7 @@ const SUMMARY_CARDS = [
   {
     key: "net_balance",
     title: "Net Balance",
-    helpText: "Fee recovered minus approved expenses",
+    helpText: "Recovered minus expenses and refunds",
     icon: <Wallet size={32} color="#d69e2e" />,
   },
 ];
@@ -160,12 +180,12 @@ function FinanceReport() {
   const [authToken] = useState(Cookies.get("authToken"));
   const [period, setPeriod] = useState("daily");
   const [reportDate, setReportDate] = useState(moment().format("YYYY-MM-DD"));
-  const [formBatch, setFormBatch] = useState("");
-  const [formChangedBy, setFormChangedBy] = useState("");
-  const [txnTypeFilter, setTxnTypeFilter] = useState("");
-  const [txnActionFilter, setTxnActionFilter] = useState("");
-  const [txnPaymentMethodFilter, setTxnPaymentMethodFilter] = useState("");
-  const [txnPendingDuesFilter, setTxnPendingDuesFilter] = useState("");
+  const [formBatch, setFormBatch] = useState([]);
+  const [formChangedBy, setFormChangedBy] = useState(ALL_ADMIN_USERS_VALUE);
+  const [txnTypeFilter, setTxnTypeFilter] = useState([]);
+  const [txnActionFilter, setTxnActionFilter] = useState([]);
+  const [txnPaymentMethodFilter, setTxnPaymentMethodFilter] = useState([]);
+  const [txnPendingDuesFilter, setTxnPendingDuesFilter] = useState([]);
   const [txnSearch, setTxnSearch] = useState("");
   const [previewTransaction, setPreviewTransaction] = useState(null);
   const [isVoucherPreviewOpen, setIsVoucherPreviewOpen] = useState(false);
@@ -174,6 +194,28 @@ function FinanceReport() {
   const { report, status } = useSelector((state) => state.financeReport);
   const batches = useSelector(selectActiveBatches);
   const users = useSelector(selectAllUsers);
+
+  const adminUsers = useMemo(
+    () =>
+      [...(users || [])]
+        .filter((user) => !isExcludedExportRole(user.role))
+        .sort((a, b) =>
+          (a.name || "").localeCompare(b.name || "", undefined, {
+            sensitivity: "base",
+          })
+        ),
+    [users]
+  );
+
+  const selectedAdminUser = useMemo(
+    () =>
+      adminUsers.find(
+        (user) => String(user._id) === String(formChangedBy)
+      ) || null,
+    [adminUsers, formChangedBy]
+  );
+
+  const collectedByLabel = selectedAdminUser?.name || "All admin users";
 
   const loadReport = (filters = {}) => {
     dispatch(
@@ -199,58 +241,69 @@ function FinanceReport() {
   };
 
   const handleBatchChange = (batch_id) => {
-    setFormBatch(batch_id);
-    loadReport({ batch_id });
+    const next = Array.isArray(batch_id) ? batch_id : [];
+    setFormBatch(next);
+    loadReport({ batch_id: next });
   };
 
-  const handleChangedByChange = (changed_by) => {
-    setFormChangedBy(changed_by);
-    loadReport({ changed_by });
+  const handleAdminUserChange = (changed_by) => {
+    const next = changed_by || ALL_ADMIN_USERS_VALUE;
+    setFormChangedBy(next);
+    loadReport({ changed_by: next });
   };
 
   const handleClearFilters = () => {
     const today = moment().format("YYYY-MM-DD");
     setPeriod("daily");
     setReportDate(today);
-    setFormBatch("");
-    setFormChangedBy("");
-    setTxnTypeFilter("");
-    setTxnActionFilter("");
-    setTxnPaymentMethodFilter("");
-    setTxnPendingDuesFilter("");
+    setFormBatch([]);
+    setFormChangedBy(ALL_ADMIN_USERS_VALUE);
+    setTxnTypeFilter([]);
+    setTxnActionFilter([]);
+    setTxnPaymentMethodFilter([]);
+    setTxnPendingDuesFilter([]);
     setTxnSearch("");
     loadReport({
       period: "daily",
       date: today,
-      batch_id: "",
-      changed_by: "",
+      batch_id: [],
+      changed_by: ALL_ADMIN_USERS_VALUE,
     });
   };
 
   const handleClearTxnFilters = () => {
-    setTxnTypeFilter("");
-    setTxnActionFilter("");
-    setTxnPaymentMethodFilter("");
-    setTxnPendingDuesFilter("");
+    setTxnTypeFilter([]);
+    setTxnActionFilter([]);
+    setTxnPaymentMethodFilter([]);
+    setTxnPendingDuesFilter([]);
     setTxnSearch("");
   };
 
+  const selectedBatchNames = useMemo(
+    () =>
+      (batches || [])
+        .filter((batch) => formBatch.map(String).includes(String(batch._id)))
+        .map((batch) => batch.name)
+        .filter(Boolean),
+    [batches, formBatch]
+  );
+
+  const getExportPayload = () => ({
+    transactions: filteredTransactions,
+    period,
+    date: reportDate,
+    batchName: selectedBatchNames.join(", ") || undefined,
+    collectedBy: collectedByLabel,
+  });
+
   const handleExportTransactions = () => {
-    exportFinanceTransactionsExcel({
-      transactions: filteredTransactions,
-      period,
-      date: reportDate,
-      batchName: batches?.find((b) => b._id === formBatch)?.name,
-    });
+    exportFinanceTransactionsExcel(getExportPayload());
   };
 
   const handleExportTransactionsPdf = async () => {
     try {
       await exportFinanceTransactionsPdf({
-        transactions: filteredTransactions,
-        period,
-        date: reportDate,
-        batchName: batches?.find((b) => b._id === formBatch)?.name,
+        ...getExportPayload(),
         mode: "download",
       });
     } catch (error) {
@@ -267,10 +320,7 @@ function FinanceReport() {
   const handlePrintTransactions = async () => {
     try {
       await exportFinanceTransactionsPdf({
-        transactions: filteredTransactions,
-        period,
-        date: reportDate,
-        batchName: batches?.find((b) => b._id === formBatch)?.name,
+        ...getExportPayload(),
         mode: "print",
       });
       toast({
@@ -309,8 +359,8 @@ function FinanceReport() {
     loadReport({
       period: "daily",
       date: moment().format("YYYY-MM-DD"),
-      batch_id: "",
-      changed_by: "",
+      batch_id: [],
+      changed_by: ALL_ADMIN_USERS_VALUE,
     });
   }, []);
 
@@ -322,37 +372,48 @@ function FinanceReport() {
   const filteredTransactions = useMemo(() => {
     const list = report?.transactions || [];
     const query = txnSearch.trim().toLowerCase();
+    const typeSet = new Set(txnTypeFilter.map(String));
+    const actionSet = new Set(txnActionFilter.map(String));
+    const paymentSet = new Set(txnPaymentMethodFilter.map(String));
+    const duesSet = new Set(txnPendingDuesFilter.map(String));
+    const selectedAdminName = selectedAdminUser?.name?.trim().toLowerCase() || "";
 
     return list.filter((transaction) => {
-      if (txnTypeFilter && transaction.type !== txnTypeFilter) {
-        return false;
-      }
-      if (txnActionFilter && transaction.action_type !== txnActionFilter) {
-        return false;
-      }
-      if (txnPaymentMethodFilter) {
-        const method =
-          transaction.payment_method ||
-          (transaction.action_type === "Paid" ? "Cash" : "");
-        if (method !== txnPaymentMethodFilter) {
+      if (formChangedBy && selectedAdminName) {
+        const by = String(transaction.action_by || "").trim().toLowerCase();
+        if (transaction.type === "expense" && by !== selectedAdminName) {
           return false;
         }
       }
-      if (txnPendingDuesFilter === "pending") {
+      if (typeSet.size && !typeSet.has(String(transaction.type))) {
+        return false;
+      }
+      if (actionSet.size && !actionSet.has(String(transaction.action_type))) {
+        return false;
+      }
+      if (paymentSet.size) {
+        const method =
+          transaction.payment_method ||
+          (transaction.action_type === "Paid" ? "Cash" : "");
+        if (!paymentSet.has(String(method))) {
+          return false;
+        }
+      }
+      if (duesSet.size) {
         const hasPending =
           transaction.has_pending_dues === true ||
           transaction.action_type === "Pending" ||
           (transaction.fee_status === "Pending" &&
             Number(transaction.fee_pending_amount) > 0);
-        if (!hasPending) return false;
-      }
-      if (txnPendingDuesFilter === "cleared") {
-        if (transaction.type !== "fee") return false;
-        if (
-          transaction.has_pending_dues === true ||
-          transaction.action_type === "Pending" ||
-          transaction.fee_status === "Pending"
-        ) {
+        const isClearedFee =
+          transaction.type === "fee" &&
+          transaction.has_pending_dues !== true &&
+          transaction.action_type !== "Pending" &&
+          transaction.fee_status !== "Pending";
+
+        const matchesPending = duesSet.has("pending") && hasPending;
+        const matchesCleared = duesSet.has("cleared") && isClearedFee;
+        if (!matchesPending && !matchesCleared) {
           return false;
         }
       }
@@ -382,6 +443,8 @@ function FinanceReport() {
     txnPaymentMethodFilter,
     txnPendingDuesFilter,
     txnSearch,
+    formChangedBy,
+    selectedAdminUser,
   ]);
 
   return (
@@ -414,23 +477,31 @@ function FinanceReport() {
             onChange={handleDateChange}
           />
         </FormControl>
-        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+        <FormControl className="responsive-input" w={{ base: "full", md: "14rem" }}>
           <SearchableBatchSelect
             batches={batches}
             value={formBatch}
             onChange={handleBatchChange}
             placeholder="All batches"
             width="100%"
+            isMulti
           />
         </FormControl>
-        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-          <SearchableUserSelect
-            users={users}
+        <FormControl className="responsive-input" w={{ base: "full", md: "14rem" }}>
+          <Select
+            size="lg"
+            borderRadius="xl"
             value={formChangedBy}
-            onChange={handleChangedByChange}
-            placeholder="Changed by"
-            width="100%"
-          />
+            onChange={(e) => handleAdminUserChange(e.target.value)}
+          >
+            <option value={ALL_ADMIN_USERS_VALUE}>All admin users</option>
+            {adminUsers.map((user) => (
+              <option key={user._id} value={user._id}>
+                {user.name}
+                {user.role ? ` (${user.role})` : ""}
+              </option>
+            ))}
+          </Select>
         </FormControl>
         <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
           <FilterX className="h-4 w-4" />
@@ -483,16 +554,41 @@ function FinanceReport() {
             <div>
               <h2 className="text-lg font-semibold dash-text">Finance Transactions</h2>
               <p className="text-sm dash-text-muted">
-                Includes fee income and approved expense deductions
+                {formChangedBy
+                  ? `Fee collections by ${collectedByLabel}`
+                  : "Includes fee income and approved expense deductions for all admin users"}
               </p>
             </div>
             <FilterStack className="filter-stack--actions mt-0">
+              <FormControl
+                className="responsive-input"
+                w={{ base: "full", sm: "14rem" }}
+              >
+                <FormLabel fontSize="xs" mb={1} color="gray.500">
+                  Admin user (export)
+                </FormLabel>
+                <Select
+                  size="md"
+                  borderRadius="xl"
+                  value={formChangedBy}
+                  onChange={(e) => handleAdminUserChange(e.target.value)}
+                >
+                  <option value={ALL_ADMIN_USERS_VALUE}>All admin users</option>
+                  {adminUsers.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.name}
+                      {user.role ? ` (${user.role})` : ""}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
               <Button
                 size="sm"
                 borderRadius="xl"
                 variant="outline"
                 onClick={handlePrintTransactions}
                 isDisabled={status === "loading" || filteredTransactions.length === 0}
+                alignSelf={{ base: "stretch", sm: "flex-end" }}
               >
                 <Printer size={16} className="mr-1" />
                 Print
@@ -503,6 +599,7 @@ function FinanceReport() {
                 variant="outline"
                 onClick={handleExportTransactionsPdf}
                 isDisabled={status === "loading" || filteredTransactions.length === 0}
+                alignSelf={{ base: "stretch", sm: "flex-end" }}
               >
                 <FileText size={16} className="mr-1" />
                 Export PDF
@@ -513,69 +610,42 @@ function FinanceReport() {
                 variant="outline"
                 onClick={handleExportTransactions}
                 isDisabled={status === "loading" || filteredTransactions.length === 0}
+                alignSelf={{ base: "stretch", sm: "flex-end" }}
               >
                 <FileDown size={16} className="mr-1" />
                 Export {period === "daily" ? "Daily" : "Report"}
               </Button>
               <FormControl className="responsive-input" w={{ base: "full", sm: "9rem" }}>
-                <Select
-                  size="md"
-                  borderRadius="xl"
+                <FilterMultiSelect
+                  options={TRANSACTION_TYPE_OPTIONS}
                   value={txnTypeFilter}
-                  onChange={(e) => setTxnTypeFilter(e.target.value)}
+                  onChange={setTxnTypeFilter}
                   placeholder="All Types"
-                >
-                  {TRANSACTION_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value || "all"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+                />
               </FormControl>
               <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
-                <Select
-                  size="md"
-                  borderRadius="xl"
+                <FilterMultiSelect
+                  options={ACTION_TYPE_OPTIONS}
                   value={txnActionFilter}
-                  onChange={(e) => setTxnActionFilter(e.target.value)}
+                  onChange={setTxnActionFilter}
                   placeholder="All Actions"
-                >
-                  {ACTION_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value || "all"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+                />
               </FormControl>
               <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
-                <Select
-                  size="md"
-                  borderRadius="xl"
+                <FilterMultiSelect
+                  options={PAYMENT_METHOD_OPTIONS}
                   value={txnPaymentMethodFilter}
-                  onChange={(e) => setTxnPaymentMethodFilter(e.target.value)}
+                  onChange={setTxnPaymentMethodFilter}
                   placeholder="All Payments"
-                >
-                  {PAYMENT_METHOD_OPTIONS.map((option) => (
-                    <option key={option.value || "all-payments"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+                />
               </FormControl>
               <FormControl className="responsive-input" w={{ base: "full", sm: "11rem" }}>
-                <Select
-                  size="md"
-                  borderRadius="xl"
+                <FilterMultiSelect
+                  options={PENDING_DUES_OPTIONS}
                   value={txnPendingDuesFilter}
-                  onChange={(e) => setTxnPendingDuesFilter(e.target.value)}
+                  onChange={setTxnPendingDuesFilter}
                   placeholder="All Dues"
-                >
-                  {PENDING_DUES_OPTIONS.map((option) => (
-                    <option key={option.value || "all-dues"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+                />
               </FormControl>
               <FormControl className="responsive-input" w={{ base: "full", sm: "12rem" }}>
                 <InputGroup size="md">
@@ -590,10 +660,10 @@ function FinanceReport() {
                   />
                 </InputGroup>
               </FormControl>
-              {(txnTypeFilter ||
-                txnActionFilter ||
-                txnPaymentMethodFilter ||
-                txnPendingDuesFilter ||
+              {(txnTypeFilter.length > 0 ||
+                txnActionFilter.length > 0 ||
+                txnPaymentMethodFilter.length > 0 ||
+                txnPendingDuesFilter.length > 0 ||
                 txnSearch) && (
                 <Button size="sm" borderRadius="xl" variant="outline" onClick={handleClearTxnFilters}>
                   <FilterX size={16} className="mr-1" />
@@ -654,6 +724,8 @@ function FinanceReport() {
                                 ? "blue"
                                 : transaction.action_type === "Discounted"
                                   ? "orange"
+                                  : transaction.action_type === "Refund"
+                                    ? "red"
                                   : transaction.action_type === "Pending"
                                     ? "yellow"
                                     : "gray"

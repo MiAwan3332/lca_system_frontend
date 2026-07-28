@@ -55,7 +55,7 @@ function GeneratePendingFeeSlipAction({ student }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [paymentOption, setPaymentOption] = useState("full");
-  const [evidenceFile, setEvidenceFile] = useState(null);
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [evidenceError, setEvidenceError] = useState("");
   const [hasPrintedSlip, setHasPrintedSlip] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -136,7 +136,10 @@ function GeneratePendingFeeSlipAction({ student }) {
         return;
       }
 
-      if (requiresPaymentEvidence(values.payment_method) && !evidenceFile) {
+      if (
+        requiresPaymentEvidence(values.payment_method) &&
+        evidenceFiles.length === 0
+      ) {
         setEvidenceError("Online payment receipt/slip is required");
         setSubmitting(false);
         return;
@@ -172,7 +175,7 @@ function GeneratePendingFeeSlipAction({ student }) {
               paymentOption === "partial"
                 ? values.next_installment_date
                 : undefined,
-            payment_evidence: evidenceFile || undefined,
+            payment_evidence: evidenceFiles,
           })
         ).unwrap();
 
@@ -232,7 +235,7 @@ function GeneratePendingFeeSlipAction({ student }) {
   const handleClose = () => {
     setIsOpen(false);
     setPaymentOption("full");
-    setEvidenceFile(null);
+    setEvidenceFiles([]);
     setEvidenceError("");
     setHasPrintedSlip(false);
     formik.resetForm();
@@ -279,7 +282,10 @@ function GeneratePendingFeeSlipAction({ student }) {
       return;
     }
 
-    if (requiresPaymentEvidence(formik.values.payment_method) && !evidenceFile) {
+    if (
+      requiresPaymentEvidence(formik.values.payment_method) &&
+      evidenceFiles.length === 0
+    ) {
       setEvidenceError("Online payment receipt/slip is required");
       return;
     }
@@ -504,7 +510,7 @@ function GeneratePendingFeeSlipAction({ student }) {
                         setHasPrintedSlip(false);
                         formik.setFieldValue("payment_method", method);
                         if (!requiresPaymentEvidence(method)) {
-                          setEvidenceFile(null);
+                          setEvidenceFiles([]);
                           setEvidenceError("");
                         }
                       }}
@@ -529,31 +535,50 @@ function GeneratePendingFeeSlipAction({ student }) {
                   <Input
                     ref={evidenceInputRef}
                     type="file"
+                    multiple
                     accept="image/*,.pdf"
                     display="none"
                     onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setEvidenceFile(file);
-                      setEvidenceError(file ? "" : "Online payment receipt/slip is required");
+                      const files = Array.from(e.target.files || []);
+                      setEvidenceFiles(files);
+                      setEvidenceError(
+                        files.length
+                          ? ""
+                          : "Online payment receipt/slip is required"
+                      );
                       setHasPrintedSlip(false);
                       e.target.value = "";
                     }}
                   />
-                  <HStack>
+                  <HStack align="flex-start">
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       onClick={() => evidenceInputRef.current?.click()}
                     >
-                      {evidenceFile ? "Change attachment" : "Upload attachment"}
+                      {evidenceFiles.length
+                        ? "Change attachments"
+                        : "Upload attachments"}
                     </Button>
-                    {evidenceFile ? (
-                      <Text fontSize="sm" color="gray.600" noOfLines={1}>
-                        {evidenceFile.name}
-                      </Text>
+                    {evidenceFiles.length > 0 ? (
+                      <VStack align="start" spacing={0}>
+                        {evidenceFiles.map((file) => (
+                          <Text
+                            key={`${file.name}-${file.size}`}
+                            fontSize="sm"
+                            color="gray.600"
+                            noOfLines={1}
+                          >
+                            {file.name}
+                          </Text>
+                        ))}
+                      </VStack>
                     ) : null}
                   </HStack>
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    You can select more than one file.
+                  </Text>
                   {evidenceError ? (
                     <Text color="red.500" fontSize="sm" mt={1}>
                       {evidenceError}

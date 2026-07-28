@@ -11,6 +11,7 @@ export const exportFinanceTransactionsExcel = ({
   period = "daily",
   date,
   batchName,
+  collectedBy,
 }) => {
   const safeDate = date ? moment(date).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD");
   const label = period ? String(period).toLowerCase() : "daily";
@@ -40,6 +41,7 @@ export const exportFinanceTransactionsExcel = ({
     ["Period", label],
     ["Date", safeDate],
     ["Batch", batchName || "All"],
+    ["Collected by", collectedBy || "All admin users"],
     ["Total Rows", rows.length],
     [],
   ]);

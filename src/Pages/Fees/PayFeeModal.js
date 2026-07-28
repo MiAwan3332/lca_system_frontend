@@ -36,7 +36,7 @@ function PayFeeModal({ fee, isDisabled }) {
 
   const [authToken] = useState(Cookies.get("authToken"));
   const [inputAmount, setInputAmount] = useState(0);
-  const [evidenceFile, setEvidenceFile] = useState(null);
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [evidenceError, setEvidenceError] = useState("");
   const evidenceInputRef = useRef(null);
   const { updateStatus } = useSelector((state) => state.fees);
@@ -75,7 +75,10 @@ function PayFeeModal({ fee, isDisabled }) {
       remarks: Yup.string().trim().required("Remarks are required"),
     }),
     onSubmit: async (values) => {
-      if (requiresPaymentEvidence(values.payment_method) && !evidenceFile) {
+      if (
+        requiresPaymentEvidence(values.payment_method) &&
+        evidenceFiles.length === 0
+      ) {
         setEvidenceError("Online payment receipt/slip is required");
         return;
       }
@@ -95,12 +98,12 @@ function PayFeeModal({ fee, isDisabled }) {
             next_installment_date: isPartialPayment
               ? values.next_installment_date
               : undefined,
-            payment_evidence: evidenceFile || undefined,
+            payment_evidence: evidenceFiles,
           })
         ).unwrap();
         dispatch(fetchFees({ authToken }));
         setIsOpen(false);
-        setEvidenceFile(null);
+        setEvidenceFiles([]);
         setEvidenceError("");
         setInputAmount(0);
         formik.resetForm();
@@ -112,7 +115,7 @@ function PayFeeModal({ fee, isDisabled }) {
 
   const onClose = () => {
     setIsOpen(false);
-    setEvidenceFile(null);
+    setEvidenceFiles([]);
     setEvidenceError("");
     setInputAmount(0);
     formik.resetForm();
@@ -212,7 +215,7 @@ function PayFeeModal({ fee, isDisabled }) {
                         onClick={() => {
                           formik.setFieldValue("payment_method", method);
                           if (!requiresPaymentEvidence(method)) {
-                            setEvidenceFile(null);
+                            setEvidenceFiles([]);
                             setEvidenceError("");
                           }
                         }}
@@ -235,13 +238,16 @@ function PayFeeModal({ fee, isDisabled }) {
                     <Input
                       ref={evidenceInputRef}
                       type="file"
+                      multiple
                       accept="image/*,.pdf"
                       display="none"
                       onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setEvidenceFile(file);
+                        const files = Array.from(e.target.files || []);
+                        setEvidenceFiles(files);
                         setEvidenceError(
-                          file ? "" : "Online payment receipt/slip is required"
+                          files.length
+                            ? ""
+                            : "Online payment receipt/slip is required"
                         );
                         e.target.value = "";
                       }}
@@ -252,13 +258,26 @@ function PayFeeModal({ fee, isDisabled }) {
                       variant="outline"
                       onClick={() => evidenceInputRef.current?.click()}
                     >
-                      {evidenceFile ? "Change attachment" : "Upload attachment"}
+                      {evidenceFiles.length
+                        ? "Change attachments"
+                        : "Upload attachments"}
                     </Button>
-                    {evidenceFile ? (
-                      <Text fontSize="sm" mt={1} color="gray.600">
-                        {evidenceFile.name}
-                      </Text>
+                    {evidenceFiles.length > 0 ? (
+                      <Box mt={1}>
+                        {evidenceFiles.map((file) => (
+                          <Text
+                            key={`${file.name}-${file.size}`}
+                            fontSize="sm"
+                            color="gray.600"
+                          >
+                            {file.name}
+                          </Text>
+                        ))}
+                      </Box>
                     ) : null}
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      You can select more than one file.
+                    </Text>
                     {evidenceError ? (
                       <Text color="red.500" fontSize="sm" mt={1}>
                         {evidenceError}

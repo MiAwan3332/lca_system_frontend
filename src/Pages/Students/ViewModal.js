@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -19,19 +19,27 @@ import {
   GridItem,
   Flex,
   Text,
+  Link,
+  Spinner,
   useToast,
 } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { LogOut, View } from "lucide-react";
+import { LogOut, Paperclip, View } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchStudents, updateStudentInfo } from "../../Features/studentSlice";
+import {
+  fetchStudents,
+  fetchStudentHistory,
+  selectStudentHistory,
+  updateStudentInfo,
+} from "../../Features/studentSlice";
 import { setUser } from "../../Features/authSlice";
 import { isStudentViewOnly, setProfileUpdatedOnce } from "../../utlls/studentAccess";
 import { clearAuthSession } from "../../utlls/authSession";
 import { getMediaUrl } from "../../utlls/useful.js";
+import { getPaymentEvidenceUrls } from "../../utlls/paymentEvidence";
 import {
   responsiveModalContentProps,
   responsiveModalProps,
@@ -52,7 +60,10 @@ function ViewModal({ student, forced = false, onComplete }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const toast = useToast();
-  const { updateStatus } = useSelector((state) => state.students);
+  const { updateStatus, fetchStudentHistoryStatus } = useSelector(
+    (state) => state.students
+  );
+  const history = useSelector(selectStudentHistory);
 
   const viewOnlyStudent = isStudentViewOnly();
   const canEditProfile =
@@ -60,11 +71,39 @@ function ViewModal({ student, forced = false, onComplete }) {
   const profileLocked = viewOnlyStudent && student.profile_updated_once;
   const isForcedCompletion = forced && canEditProfile;
 
+  const historyReady =
+    fetchStudentHistoryStatus === "succeeded" &&
+    history?.student &&
+    String(history.student._id) === String(student._id);
+
+  const paymentEvidenceItems = useMemo(() => {
+    if (!historyReady || !Array.isArray(history?.payment_logs)) return [];
+    const items = [];
+    history.payment_logs.forEach((log) => {
+      if (log.action_type !== "Paid") return;
+      const urls = getPaymentEvidenceUrls(log.payment_evidence);
+      urls.forEach((url, idx) => {
+        items.push({
+          url,
+          key: `${log._id}-${idx}`,
+          paymentMethod: log.payment_method || "Online Payment",
+          date: log.action_date,
+        });
+      });
+    });
+    return items;
+  }, [historyReady, history]);
+
   useEffect(() => {
     if (forced && canEditProfile) {
       setIsOpen(true);
     }
   }, [forced, canEditProfile]);
+
+  useEffect(() => {
+    if (!isOpen || !student?._id || !authToken) return;
+    dispatch(fetchStudentHistory({ authToken, studentId: student._id }));
+  }, [isOpen, student?._id, authToken, dispatch]);
 
   const onOpen = () => {
     setFiles({
@@ -350,7 +389,7 @@ function ViewModal({ student, forced = false, onComplete }) {
                 </GridItem>
 
                 <GridItem colSpan={1}>
-                  <VStack spacing={4}>
+                  <VStack spacing={4} align="stretch">
                     {renderImageField("image", "Student Image")}
                     {renderImageField("cnic_image", "CNIC Front Image")}
                     {renderImageField("cnic_back_image", "CNIC Back Image")}
@@ -358,6 +397,90 @@ function ViewModal({ student, forced = false, onComplete }) {
                       "latest_degree_image",
                       "Latest Degree Image"
                     )}
+
+                    <FormControl>
+                      <FormLabel fontSize={14}>
+                        Online Payment Evidence
+                      </FormLabel>
+                      {fetchStudentHistoryStatus === "loading" && !historyReady ? (
+                        <Flex align="center" gap={2} py={2}>
+                          <Spinner size="sm" color="#2D4185" />
+                          <Text fontSize="sm" color="gray.500">
+                            Loading attachments…
+                          </Text>
+                        </Flex>
+                      ) : paymentEvidenceItems.length === 0 ? (
+                        <Text fontSize="sm" color="gray.500">
+                          No payment evidence attached
+                        </Text>
+                      ) : (
+                        <VStack align="stretch" spacing={2}>
+                          {paymentEvidenceItems.map((item, index) => {
+                            const href = getMediaUrl(item.url);
+                            const isImage = /\.(jpe?g|png|webp|gif)$/i.test(
+                              item.url
+                            );
+                            return (
+                              <Flex
+                                key={item.key}
+                                align="center"
+                                gap={3}
+                                p={2}
+                                border="1px solid"
+                                borderColor="gray.200"
+                                borderRadius="md"
+                              >
+                                {isImage ? (
+                                  <Image
+                                    src={href}
+                                    alt={`Payment evidence ${index + 1}`}
+                                    boxSize="64px"
+                                    objectFit="cover"
+                                    borderRadius="md"
+                                    flexShrink={0}
+                                  />
+                                ) : (
+                                  <Flex
+                                    boxSize="64px"
+                                    align="center"
+                                    justify="center"
+                                    bg="gray.50"
+                                    borderRadius="md"
+                                    flexShrink={0}
+                                  >
+                                    <Paperclip size={20} color="#2D4185" />
+                                  </Flex>
+                                )}
+                                <Box flex="1" minW={0}>
+                                  <Text fontSize="sm" fontWeight="600" noOfLines={1}>
+                                    Evidence {index + 1}
+                                  </Text>
+                                  <Text fontSize="xs" color="gray.500" noOfLines={1}>
+                                    {item.paymentMethod}
+                                  </Text>
+                                  <Link
+                                    href={href}
+                                    isExternal
+                                    fontSize="sm"
+                                    color="#2D4185"
+                                    fontWeight="600"
+                                  >
+                                    View attachment
+                                  </Link>
+                                </Box>
+                                <IconButton
+                                  icon={<View size={16} />}
+                                  onClick={() => window.open(href, "_blank")}
+                                  colorScheme="blue"
+                                  aria-label={`View evidence ${index + 1}`}
+                                  size="sm"
+                                />
+                              </Flex>
+                            );
+                          })}
+                        </VStack>
+                      )}
+                    </FormControl>
                   </VStack>
                 </GridItem>
               </Grid>

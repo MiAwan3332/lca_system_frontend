@@ -73,10 +73,12 @@ export const exportFinanceTransactionsPdf = async ({
   period = "daily",
   date,
   batchName,
+  collectedBy,
   mode = "download",
 }) => {
   const safeDate = date ? moment(date).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD");
   const label = period ? String(period).toLowerCase() : "daily";
+  const collectedByLabel = collectedBy || "All admin users";
   const fileName = `finance_transactions_${label}_${safeDate}.pdf`;
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
@@ -155,7 +157,7 @@ export const exportFinanceTransactionsPdf = async ({
     doc.setTextColor(...COLORS.text);
     doc.text("Finance Transactions", reportX, titleY);
 
-    const metaText = `${label.toUpperCase()} report · ${safeDate} · Batch: ${batchName || "All"}`;
+    const metaText = `${label.toUpperCase()} report · ${safeDate} · Batch: ${batchName || "All"} · By: ${collectedByLabel}`;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...COLORS.gray);

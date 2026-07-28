@@ -50,6 +50,7 @@ import {
   selectStudentHistory,
 } from "../../Features/studentSlice";
 import { getMediaUrl } from "../../utlls/useful.js";
+import { getPaymentEvidenceUrls } from "../../utlls/paymentEvidence";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -79,6 +80,15 @@ const ACTION_STYLES = {
   Paid: { color: "green", label: "Paid" },
   Discounted: { color: "orange", label: "Discounted" },
   Deleted: { color: "red", label: "Deleted" },
+  Refund: { color: "purple", label: "Refunded" },
+};
+
+const getRefundStatusStyle = (status) => {
+  if (status === "Refunded") return { color: "purple", label: "Refunded" };
+  if (status === "Approved") return { color: "green", label: "Approved" };
+  if (status === "Pending") return { color: "orange", label: "Pending" };
+  if (status === "Rejected") return { color: "red", label: "Rejected" };
+  return { color: "gray", label: status || "—" };
 };
 
 const StatCard = ({ label, value, hint, accent = "#85652D", bg = "#FFF8EE" }) => (
@@ -293,6 +303,20 @@ function StudentHistoryModal({ student }) {
                   >
                     {profile?.is_active !== false ? "Active" : "Inactive"}
                   </Badge>
+                  {isReady &&
+                  (summary?.refund_status === "Refunded" || summary?.is_refunded) ? (
+                    <Badge colorScheme="purple" borderRadius="full" px={2}>
+                      Refunded
+                    </Badge>
+                  ) : isReady && summary?.refund_status ? (
+                    <Badge
+                      colorScheme={getRefundStatusStyle(summary.refund_status).color}
+                      borderRadius="full"
+                      px={2}
+                    >
+                      Refund {summary.refund_status}
+                    </Badge>
+                  ) : null}
                 </HStack>
                 <HStack spacing={4} flexWrap="wrap" color="gray.600" fontSize="sm">
                   <HStack spacing={1}>
@@ -382,10 +406,31 @@ function StudentHistoryModal({ student }) {
                     bg="#FFF5EB"
                   />
                   <StatCard
-                    label="BATCHES"
-                    value={summary?.batches_touched || 0}
-                    hint={`${summary?.fee_records || 0} fee records`}
-                    accent="#85652D"
+                    label={
+                      summary?.is_refunded || summary?.refund_status === "Refunded"
+                        ? "REFUNDED"
+                        : "BATCHES"
+                    }
+                    value={
+                      summary?.is_refunded || summary?.refund_status === "Refunded"
+                        ? formatRs(summary?.refunded_amount)
+                        : summary?.batches_touched || 0
+                    }
+                    hint={
+                      summary?.is_refunded || summary?.refund_status === "Refunded"
+                        ? `Status: Refunded · ${summary?.fee_records || 0} fee records`
+                        : `${summary?.fee_records || 0} fee records`
+                    }
+                    accent={
+                      summary?.is_refunded || summary?.refund_status === "Refunded"
+                        ? "#6B46C1"
+                        : "#85652D"
+                    }
+                    bg={
+                      summary?.is_refunded || summary?.refund_status === "Refunded"
+                        ? "#F5F0FF"
+                        : "#FFF8EE"
+                    }
                   />
                 </SimpleGrid>
 
@@ -482,6 +527,36 @@ function StudentHistoryModal({ student }) {
                             subtitle="Current outstanding status"
                           />
                           <VStack align="stretch" spacing={3}>
+                            <Flex justify="space-between" align="center">
+                              <Text fontSize="sm" color="gray.500">
+                                Refund status
+                              </Text>
+                              <Badge
+                                colorScheme={
+                                  getRefundStatusStyle(
+                                    summary?.is_refunded
+                                      ? "Refunded"
+                                      : summary?.refund_status
+                                  ).color
+                                }
+                                borderRadius="full"
+                              >
+                                {summary?.is_refunded
+                                  ? "Refunded"
+                                  : summary?.refund_status || "None"}
+                              </Badge>
+                            </Flex>
+                            {(summary?.is_refunded ||
+                              Number(summary?.refunded_amount) > 0) && (
+                              <Flex justify="space-between" align="center">
+                                <Text fontSize="sm" color="gray.500">
+                                  Refunded amount
+                                </Text>
+                                <Text fontWeight="700" color="#6B46C1">
+                                  {formatRs(summary?.refunded_amount)}
+                                </Text>
+                              </Flex>
+                            )}
                             <Flex justify="space-between">
                               <Text fontSize="sm" color="gray.500">
                                 Payment events
@@ -517,6 +592,73 @@ function StudentHistoryModal({ student }) {
                           </VStack>
                         </Box>
                       </SimpleGrid>
+
+                      {history.refund_requests?.length > 0 ? (
+                        <Box
+                          mt={4}
+                          p={5}
+                          borderRadius="2xl"
+                          border="1px solid"
+                          borderColor="#E9D8FD"
+                          bg="#FAF5FF"
+                        >
+                          <SectionTitle
+                            icon={Receipt}
+                            title="Refund requests"
+                            subtitle="Approval and payout history"
+                          />
+                          <VStack align="stretch" spacing={3}>
+                            {history.refund_requests.map((request) => {
+                              const statusLabel = request.is_refunded
+                                ? "Refunded"
+                                : request.status;
+                              const statusStyle = getRefundStatusStyle(statusLabel);
+                              const displayAmount = request.is_refunded
+                                ? request.refunded_amount ?? request.amount
+                                : request.amount;
+                              return (
+                                <Box
+                                  key={request._id}
+                                  p={3}
+                                  borderRadius="xl"
+                                  bg="white"
+                                  border="1px solid"
+                                  borderColor="#E9D8FD"
+                                >
+                                  <Flex
+                                    justify="space-between"
+                                    align="flex-start"
+                                    gap={3}
+                                    wrap="wrap"
+                                  >
+                                    <Box>
+                                      <Text fontWeight="700" fontSize="sm">
+                                        {formatRs(displayAmount)}
+                                      </Text>
+                                      <Text fontSize="xs" color="gray.500" mt={1}>
+                                        {formatDate(
+                                          request.refunded_at ||
+                                            request.approved_at ||
+                                            request.createdAt
+                                        )}
+                                        {request.reason
+                                          ? ` · ${request.reason}`
+                                          : ""}
+                                      </Text>
+                                    </Box>
+                                    <Badge
+                                      colorScheme={statusStyle.color}
+                                      borderRadius="full"
+                                    >
+                                      {statusStyle.label}
+                                    </Badge>
+                                  </Flex>
+                                </Box>
+                              );
+                            })}
+                          </VStack>
+                        </Box>
+                      ) : null}
 
                       {history.pending_fee_slips?.length > 0 ? (
                         <Box
@@ -753,7 +895,7 @@ function StudentHistoryModal({ student }) {
                       <SectionTitle
                         icon={Clock3}
                         title="Payment timeline"
-                        subtitle="Created, paid, discounted, and deleted fee events"
+                        subtitle="Created, paid, discounted, refunded, and deleted fee events"
                       />
                       {!history.payment_logs?.length ? (
                         <EmptyState message="No payment history yet." />
@@ -797,6 +939,34 @@ function StudentHistoryModal({ student }) {
                                     Method: {log.payment_method}
                                   </Text>
                                 ) : null}
+                                {log.action_type === "Paid" &&
+                                (log.payment_method === "Online" ||
+                                  log.payment_method === "Online Payment")
+                                  ? (() => {
+                                      const urls = getPaymentEvidenceUrls(
+                                        log.payment_evidence
+                                      );
+                                      if (!urls.length) return null;
+                                      return (
+                                        <VStack align="start" spacing={1} mt={1}>
+                                          {urls.map((url, idx) => (
+                                            <Link
+                                              key={`${url}-${idx}`}
+                                              href={getMediaUrl(url)}
+                                              isExternal
+                                              fontSize="xs"
+                                              color="#2D4185"
+                                              fontWeight="600"
+                                            >
+                                              {urls.length > 1
+                                                ? `View evidence ${idx + 1}`
+                                                : "View payment evidence"}
+                                            </Link>
+                                          ))}
+                                        </VStack>
+                                      );
+                                    })()
+                                  : null}
                               </TimelineItem>
                             );
                           })}
