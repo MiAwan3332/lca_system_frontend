@@ -16,12 +16,14 @@ import {
   Box,
   Checkbox,
   Text,
+  HStack,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBatches, addBatch } from "../../Features/batchSlice";
+import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
 
 const SPECIAL_FEE_FIELDS = [
   { name: "test_session_fee", label: "Test Session fee (Rs.)" },
@@ -30,7 +32,7 @@ const SPECIAL_FEE_FIELDS = [
 ];
 
 function AddModel({ isOpen, onClose }) {
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+  const [authToken] = useState(Cookies.get("authToken"));
   const { addStatus } = useSelector((state) => state.batches);
   const dispatch = useDispatch();
 
@@ -46,6 +48,8 @@ function AddModel({ isOpen, onClose }) {
       compulsory_revision_fee: "",
       startdate: "",
       enddate: "",
+      class_start_time: "",
+      class_end_time: "",
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
@@ -81,6 +85,18 @@ function AddModel({ isOpen, onClose }) {
         .min(0, "Fee cannot be negative"),
       startdate: Yup.string().required("Required"),
       enddate: Yup.string().required("Required"),
+      class_start_time: Yup.string().required("Required"),
+      class_end_time: Yup.string()
+        .required("Required")
+        .test(
+          "after-start",
+          "End time must be after start time",
+          function (value) {
+            const start = this.parent.class_start_time;
+            if (!start || !value) return true;
+            return String(value) > String(start);
+          }
+        ),
     }).test(
       "special-fees-required",
       "Enter at least one special option fee greater than 0",
@@ -99,35 +115,38 @@ function AddModel({ isOpen, onClose }) {
     ),
     onSubmit: async (values) => {
       const isSpecial = values.is_special_batch === true;
-      dispatch(
-        addBatch({
-          authToken,
-          values: {
-            name: values.name,
-            description: values.description,
-            batch_type: values.batch_type,
-            startdate: values.startdate,
-            enddate: values.enddate,
-            is_special_batch: isSpecial,
-            batch_fee: isSpecial ? "0" : String(values.batch_fee),
-            test_session_fee: isSpecial
-              ? Number(values.test_session_fee) || 0
-              : 0,
-            optional_revision_fee: isSpecial
-              ? Number(values.optional_revision_fee) || 0
-              : 0,
-            compulsory_revision_fee: isSpecial
-              ? Number(values.compulsory_revision_fee) || 0
-              : 0,
-          },
-        })
-      )
-        .unwrap()
-        .then(() => {
-          onClose();
-          formik.resetForm();
-          dispatch(fetchBatches({ authToken }));
-        });
+      try {
+        await dispatch(
+          addBatch({
+            authToken,
+            values: {
+              name: values.name,
+              description: values.description,
+              batch_type: values.batch_type,
+              startdate: values.startdate,
+              enddate: values.enddate,
+              class_start_time: values.class_start_time,
+              class_end_time: values.class_end_time,
+              is_special_batch: isSpecial,
+              batch_fee: isSpecial ? "0" : String(values.batch_fee),
+              test_session_fee: isSpecial
+                ? Number(values.test_session_fee) || 0
+                : 0,
+              optional_revision_fee: isSpecial
+                ? Number(values.optional_revision_fee) || 0
+                : 0,
+              compulsory_revision_fee: isSpecial
+                ? Number(values.compulsory_revision_fee) || 0
+                : 0,
+            },
+          })
+        ).unwrap();
+        onClose();
+        formik.resetForm();
+        dispatch(fetchBatches({ authToken }));
+      } catch {
+        // Error toast is handled by batchSlice
+      }
     },
   });
 
@@ -312,6 +331,78 @@ function AddModel({ isOpen, onClose }) {
                   </Box>
                 ) : null}
               </FormControl>
+
+              <Box
+                w="100%"
+                border="1px solid"
+                borderColor="#E0E8EC"
+                borderRadius="xl"
+                p={4}
+                bg="#FAFBFC"
+              >
+                <Text fontWeight="600" fontSize="sm" mb={1}>
+                  Daily Class Duration
+                </Text>
+                <Text fontSize="xs" color="gray.500" mb={3}>
+                  Class timing for each day (from – to), shown in 12-hour time
+                </Text>
+                <HStack spacing={3} align="flex-start">
+                  <FormControl id="class_start_time">
+                    <FormLabel fontSize={13}>From</FormLabel>
+                    <Input
+                      type="time"
+                      name="class_start_time"
+                      borderRadius="0.5rem"
+                      value={formik.values.class_start_time}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    {formik.values.class_start_time ? (
+                      <Text fontSize="xs" color="gray.600" mt={1}>
+                        {formatTime12Hour(formik.values.class_start_time)}
+                      </Text>
+                    ) : null}
+                    {formik.touched.class_start_time &&
+                    formik.errors.class_start_time ? (
+                      <Box color="red" fontSize="sm">
+                        {formik.errors.class_start_time}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                  <FormControl id="class_end_time">
+                    <FormLabel fontSize={13}>To</FormLabel>
+                    <Input
+                      type="time"
+                      name="class_end_time"
+                      borderRadius="0.5rem"
+                      value={formik.values.class_end_time}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    {formik.values.class_end_time ? (
+                      <Text fontSize="xs" color="gray.600" mt={1}>
+                        {formatTime12Hour(formik.values.class_end_time)}
+                      </Text>
+                    ) : null}
+                    {formik.touched.class_end_time &&
+                    formik.errors.class_end_time ? (
+                      <Box color="red" fontSize="sm">
+                        {formik.errors.class_end_time}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                </HStack>
+                {formik.values.class_start_time &&
+                formik.values.class_end_time ? (
+                  <Text fontSize="sm" fontWeight="600" color="#2D3748" mt={3}>
+                    Duration:{" "}
+                    {formatClassTimeRange(
+                      formik.values.class_start_time,
+                      formik.values.class_end_time
+                    )}
+                  </Text>
+                ) : null}
+              </Box>
             </VStack>
           </ModalBody>
 

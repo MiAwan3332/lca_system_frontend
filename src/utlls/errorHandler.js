@@ -22,12 +22,20 @@ export const setupGlobalErrorHandlers = () => {
   const handleUnhandledRejection = (event) => {
     event.preventDefault();
     const reason = event.reason;
-    const message =
-      reason?.message ||
-      reason?.response?.data?.message ||
-      (typeof reason === "string" ? reason : null) ||
-      (reason && typeof reason === "object" ? JSON.stringify(reason) : null) ||
-      "Request failed.";
+    let message = "Request failed.";
+    if (typeof reason === "string") {
+      message = reason;
+    } else if (reason?.message) {
+      message = reason.message;
+    } else if (reason?.response?.data?.message) {
+      message = reason.response.data.message;
+    } else if (reason && typeof reason === "object") {
+      try {
+        message = JSON.stringify(reason);
+      } catch {
+        message = "Request failed.";
+      }
+    }
     showErrorPopup("Request Error", message);
   };
 

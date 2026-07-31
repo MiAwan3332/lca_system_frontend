@@ -1,21 +1,17 @@
 import jsPDF from "jspdf";
 import moment from "moment";
+import { formatClassTimeRange } from "./classTime";
 
+/** High-contrast palette — stays readable on B&W / grayscale printers. */
 const COLORS = {
-  gold: [245, 185, 66],
-  goldSoft: [255, 230, 168],
-  goldDark: [122, 90, 34],
-  ink: [20, 24, 32],
-  muted: [92, 101, 112],
-  dark: [15, 17, 21],
-  darkMid: [28, 31, 38],
-  cream: [255, 249, 239],
-  creamBorder: [240, 224, 184],
+  black: [0, 0, 0],
+  ink: [15, 15, 15],
+  muted: [55, 55, 55],
+  border: [30, 30, 30],
+  rule: [80, 80, 80],
   white: [255, 255, 255],
-  green: [56, 161, 105],
-  orange: [221, 107, 32],
-  gray: [113, 128, 150],
-  grayLight: [247, 250, 252],
+  lightGray: [245, 245, 245],
+  midGray: [220, 220, 220],
 };
 
 const formatCurrency = (value) =>
@@ -103,7 +99,8 @@ const svgUrlToPngDataUrl = async (svgUrl, widthPx = 360, options = {}) => {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (iconOnly) {
       ctx.drawImage(
         img,
@@ -132,7 +129,7 @@ const getPaymentLabel = (paymentOption) => {
 };
 
 /**
- * Admission fee slip using the Student Card visual template.
+ * Admission fee slip — high-contrast layout for clear B&W printing.
  */
 export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const {
@@ -148,15 +145,21 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     paymentMethod = "N/A",
     photoFile = null,
     authorizedBy = "",
+    classStartTime = "",
+    classEndTime = "",
   } = data || {};
 
-  if (!name?.trim()) {
+  const studentName = String(name || "").trim();
+  if (!studentName) {
     throw new Error("Student name is required to print the fee slip.");
   }
 
   if (!batchName) {
     throw new Error("Please select a batch to print the fee slip.");
   }
+
+  const classTimeLabel =
+    formatClassTimeRange(classStartTime, classEndTime) || "N/A";
 
   const [photoDataUrl, logoPng] = await Promise.all([
     toJpegDataUrl(photoFile),
@@ -167,11 +170,10 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // Card proportions matching student ID template (centered on A4)
-  const cardW = 95;
-  const cardH = 172;
+  const cardW = 100;
+  const cardH = 186;
   const cardX = (pageWidth - cardW) / 2;
-  const cardY = 16;
+  const cardY = 14;
   const pad = 5;
   const innerX = cardX + pad;
   const innerW = cardW - pad * 2;
@@ -180,34 +182,29 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const cnicValue = String(cnic || "").trim() || "N/A";
   const issuedAt = moment().format("DD MMM YYYY, hh:mm A");
 
-  // Card shadow / outer frame
-  doc.setFillColor(226, 232, 240);
-  doc.roundedRect(cardX + 1.2, cardY + 1.5, cardW, cardH, 5, 5, "F");
-
+  // Outer card — white with strong black border
   doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.gold);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(cardX, cardY, cardW, cardH, 5, 5, "FD");
+  doc.setDrawColor(...COLORS.black);
+  doc.setLineWidth(0.9);
+  doc.roundedRect(cardX, cardY, cardW, cardH, 3, 3, "FD");
 
-  // Inner gold frame
-  doc.setDrawColor(...COLORS.gold);
+  doc.setDrawColor(...COLORS.black);
   doc.setLineWidth(0.35);
-  doc.setLineDashPattern([0.8, 0.6], 0);
-  doc.roundedRect(cardX + 2, cardY + 2, cardW - 4, cardH - 4, 3.5, 3.5, "S");
-  doc.setLineDashPattern([], 0);
+  doc.roundedRect(cardX + 2, cardY + 2, cardW - 4, cardH - 4, 2, 2, "S");
 
-  // ===== Dark header =====
-  const headerH = 36;
-  doc.setFillColor(...COLORS.dark);
-  doc.roundedRect(cardX, cardY, cardW, headerH + 4, 5, 5, "F");
-  doc.rect(cardX, cardY + headerH - 2, cardW, 8, "F");
+  // ===== Header (black bar, white text) =====
+  const headerH = 22;
+  doc.setFillColor(...COLORS.black);
+  doc.rect(cardX, cardY, cardW, headerH, "F");
+  // Cover top rounded corners of outer stroke
+  doc.rect(cardX, cardY, cardW, 4, "F");
 
-  // LCA logo (left) + titles
-  const logoBox = 11;
+  const logoBox = 12;
   const logoBoxX = innerX;
   const logoBoxY = cardY + 5;
   doc.setFillColor(...COLORS.white);
-  doc.roundedRect(logoBoxX, logoBoxY, logoBox, logoBox, 2, 2, "F");
+  doc.setDrawColor(...COLORS.white);
+  doc.roundedRect(logoBoxX, logoBoxY, logoBox, logoBox, 1.5, 1.5, "F");
 
   if (logoPng) {
     try {
@@ -223,130 +220,151 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     } catch {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(6);
-      doc.setTextColor(...COLORS.ink);
-      doc.text("LCA", logoBoxX + logoBox / 2, logoBoxY + 6.8, {
+      doc.setTextColor(...COLORS.black);
+      doc.text("LCA", logoBoxX + logoBox / 2, logoBoxY + 7.2, {
         align: "center",
       });
     }
   } else {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6);
-    doc.setTextColor(...COLORS.ink);
-    doc.text("LCA", logoBoxX + logoBox / 2, logoBoxY + 6.8, {
+    doc.setTextColor(...COLORS.black);
+    doc.text("LCA", logoBoxX + logoBox / 2, logoBoxY + 7.2, {
       align: "center",
     });
   }
 
   const titleX = logoBoxX + logoBox + 3;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.gold);
-  doc.text("Lahore CSS Academy", titleX, cardY + 9.5);
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.white);
+  doc.text("Lahore CSS Academy", titleX, cardY + 10);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.white);
-  doc.text("Admission Slip", titleX, cardY + 15.5);
+  doc.text("ADMISSION SLIP", titleX, cardY + 16);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(5);
-  doc.setTextColor(154, 163, 178);
-  doc.text(`Issued: ${issuedAt}`, titleX, cardY + 21);
+  // ===== Photo + student name (white area — high contrast) =====
+  let y = cardY + headerH + 5;
 
-  // ===== Photo + identity =====
-  const photoW = 24;
-  const photoH = 29;
+  const photoW = 26;
+  const photoH = 32;
   const photoX = innerX;
-  const photoY = cardY + headerH - 4;
+  const photoY = y;
 
-  // Gold photo frame
-  doc.setFillColor(...COLORS.gold);
-  doc.roundedRect(photoX - 0.8, photoY - 0.8, photoW + 1.6, photoH + 1.6, 2.5, 2.5, "F");
+  doc.setDrawColor(...COLORS.black);
+  doc.setLineWidth(0.55);
   doc.setFillColor(...COLORS.white);
-  doc.roundedRect(photoX, photoY, photoW, photoH, 2, 2, "F");
+  doc.roundedRect(photoX, photoY, photoW, photoH, 1.5, 1.5, "FD");
 
   if (photoDataUrl) {
     try {
       const format = String(photoDataUrl).startsWith("data:image/png")
         ? "PNG"
         : "JPEG";
-      doc.addImage(photoDataUrl, format, photoX, photoY, photoW, photoH);
+      doc.addImage(
+        photoDataUrl,
+        format,
+        photoX + 0.6,
+        photoY + 0.6,
+        photoW - 1.2,
+        photoH - 1.2
+      );
     } catch {
-      doc.setFillColor(...COLORS.grayLight);
-      doc.roundedRect(photoX, photoY, photoW, photoH, 2, 2, "F");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(5);
-      doc.setTextColor(...COLORS.gray);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6);
+      doc.setTextColor(...COLORS.ink);
       doc.text("Photo", photoX + photoW / 2, photoY + photoH / 2, {
         align: "center",
       });
     }
   } else {
-    doc.setFillColor(...COLORS.grayLight);
-    doc.roundedRect(photoX, photoY, photoW, photoH, 2, 2, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(5);
-    doc.setTextColor(...COLORS.gray);
-    doc.text("No Photo", photoX + photoW / 2, photoY + photoH / 2 - 1.5, {
-      align: "center",
-    });
-    doc.text("Captured", photoX + photoW / 2, photoY + photoH / 2 + 2, {
+    doc.setFillColor(...COLORS.lightGray);
+    doc.roundedRect(
+      photoX + 0.6,
+      photoY + 0.6,
+      photoW - 1.2,
+      photoH - 1.2,
+      1,
+      1,
+      "F"
+    );
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(...COLORS.ink);
+    doc.text("No Photo", photoX + photoW / 2, photoY + photoH / 2, {
       align: "center",
     });
   }
 
-  // Name + status
   const infoX = photoX + photoW + 4;
   const infoMaxW = cardX + cardW - pad - infoX;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.ink);
-  const nameLines = doc.splitTextToSize(String(name), infoMaxW);
-  doc.text(nameLines.slice(0, 2), infoX, photoY + 6);
 
-  // Status pill (dark)
-  const statusY = photoY + 6 + nameLines.slice(0, 2).length * 3.5 + 2;
-  doc.setFillColor(...COLORS.darkMid);
+  // Explicit STUDENT NAME label + large black name
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6);
+  doc.setTextColor(...COLORS.black);
+  doc.text("STUDENT NAME", infoX, photoY + 4);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...COLORS.black);
+  const nameLines = doc.splitTextToSize(studentName, infoMaxW);
+  doc.text(nameLines.slice(0, 3), infoX, photoY + 10);
+
+  const afterNameY =
+    photoY + 10 + Math.min(nameLines.length, 3) * 4.2 + 2;
+
+  // Status badge — black outline, black text on white
   const statusLabel = String(paymentStatus || "Unpaid").toUpperCase();
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5);
-  const statusTextW = doc.getTextWidth(statusLabel) + 6;
-  doc.roundedRect(infoX, statusY, Math.min(statusTextW, infoMaxW), 5.5, 2.5, 2.5, "F");
-  doc.setFillColor(...COLORS.gold);
-  doc.circle(infoX + 2.5, statusY + 2.75, 0.9, "F");
-  doc.setTextColor(...COLORS.gold);
-  doc.text(statusLabel, infoX + 5, statusY + 3.7);
+  doc.setFontSize(6);
+  const statusTextW = Math.min(doc.getTextWidth(statusLabel) + 6, infoMaxW);
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(...COLORS.black);
+  doc.setLineWidth(0.45);
+  doc.roundedRect(infoX, afterNameY, statusTextW, 6, 1.2, 1.2, "FD");
+  doc.setTextColor(...COLORS.black);
+  doc.text(statusLabel, infoX + 3, afterNameY + 4.1);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.ink);
+  doc.text(`Phone: ${phone || "N/A"}`, infoX, afterNameY + 11);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6);
   doc.setTextColor(...COLORS.muted);
-  doc.text(`Phone: ${phone || "N/A"}`, infoX, statusY + 10);
+  doc.text(`Issued: ${issuedAt}`, infoX, afterNameY + 15.5);
 
-  // ===== Cream detail chips =====
-  let y = Math.max(photoY + photoH + 4, statusY + 14);
+  y = Math.max(photoY + photoH + 5, afterNameY + 19);
 
-  const drawChip = (x, chipY, w, h, label, value, valueColor = COLORS.ink) => {
-    doc.setFillColor(...COLORS.cream);
-    doc.setDrawColor(...COLORS.creamBorder);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(x, chipY, w, h, 2, 2, "FD");
+  const drawChip = (x, chipY, w, h, label, value) => {
+    doc.setFillColor(...COLORS.white);
+    doc.setDrawColor(...COLORS.black);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(x, chipY, w, h, 1.5, 1.5, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(5);
-    doc.setTextColor(...COLORS.goldDark);
+    doc.setFontSize(5.5);
+    doc.setTextColor(...COLORS.black);
     doc.text(String(label).toUpperCase(), x + 2.5, chipY + 4);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...valueColor);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...COLORS.ink);
     const lines = doc.splitTextToSize(String(value || "N/A"), w - 5);
-    doc.text(lines[0], x + 2.5, chipY + 8.5);
+    doc.text(lines[0], x + 2.5, chipY + 9);
   };
 
-  const chipH = 12;
+  const chipH = 13;
   const gap = 2.5;
   const halfW = (innerW - gap) / 2;
 
   drawChip(innerX, y, halfW, chipH, "Batch", batchName);
   drawChip(innerX + halfW + gap, y, halfW, chipH, "CNIC", cnicValue);
+  y += chipH + gap;
+
+  drawChip(innerX, y, innerW, chipH, "Daily Class Time", classTimeLabel);
   y += chipH + gap;
 
   drawChip(innerX, y, halfW, chipH, "Payment Type", paymentLabel);
@@ -358,9 +376,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     "Method",
     payingNow > 0 ? paymentMethod : "N/A"
   );
-  y += chipH + gap + 1;
+  y += chipH + gap;
 
-  // Fee chips
   drawChip(innerX, y, halfW, chipH, "Total Fee", formatCurrency(batchFee));
   drawChip(
     innerX + halfW + gap,
@@ -368,87 +385,91 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     halfW,
     chipH,
     "Remaining",
-    formatCurrency(remainingFee),
-    remainingFee > 0 ? COLORS.orange : COLORS.green
+    formatCurrency(remainingFee)
   );
-  y += chipH + gap + 2;
+  y += chipH + gap + 1;
 
-  // Amount received banner
-  const bannerH = 16;
-  doc.setFillColor(...COLORS.cream);
-  doc.setDrawColor(...COLORS.gold);
-  doc.setLineWidth(0.55);
-  doc.roundedRect(innerX, y, innerW, bannerH, 2.5, 2.5, "FD");
+  // Amount received — bold black box
+  const bannerH = 15;
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(...COLORS.black);
+  doc.setLineWidth(0.7);
+  doc.roundedRect(innerX, y, innerW, bannerH, 1.5, 1.5, "FD");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5.5);
-  doc.setTextColor(...COLORS.goldDark);
+  doc.setFontSize(6);
+  doc.setTextColor(...COLORS.black);
   doc.text("AMOUNT RECEIVED", innerX + 3, y + 5);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(...COLORS.ink);
-  doc.text(formatCurrency(payingNow), innerX + 3, y + 12.5);
+  doc.setFontSize(13);
+  doc.setTextColor(...COLORS.black);
+  doc.text(formatCurrency(payingNow), innerX + 3, y + 12);
+  y += bannerH + 5;
 
-  y += bannerH + 4;
-
-  // Divider
-  doc.setDrawColor(...COLORS.gold);
-  doc.setLineWidth(0.35);
-  doc.line(innerX + 8, y, cardX + cardW - pad - 8, y);
+  doc.setDrawColor(...COLORS.black);
+  doc.setLineWidth(0.4);
+  doc.line(innerX + 4, y, cardX + cardW - pad - 4, y);
   y += 4;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5);
-  doc.setTextColor(...COLORS.muted);
+  doc.setFontSize(6);
+  doc.setTextColor(...COLORS.black);
   doc.text("AUTHENTICATED ADMISSION RECEIPT", cardX + cardW / 2, y, {
     align: "center",
   });
   y += 4;
 
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(4.5);
-  doc.setTextColor(...COLORS.gray);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5);
+  doc.setTextColor(...COLORS.muted);
   const note =
     "Provisional slip. Final records are created after Add Student.";
   const noteLines = doc.splitTextToSize(note, innerW - 4);
   doc.text(noteLines, cardX + cardW / 2, y, { align: "center" });
-  y += noteLines.length * 2.2 + 5;
+  y += noteLines.length * 2.4 + 5;
 
-  // Signature — show logged-in user name by default
-  const signerName = String(authorizedBy || "").trim() || "Administration Office";
+  const signerName =
+    String(authorizedBy || "").trim() || "Administration Office";
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.setTextColor(...COLORS.ink);
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.black);
   doc.text(signerName, innerX, y);
   y += 2;
-  doc.setDrawColor(...COLORS.ink);
-  doc.setLineWidth(0.35);
-  doc.line(innerX, y, innerX + 32, y);
+  doc.setDrawColor(...COLORS.black);
+  doc.setLineWidth(0.4);
+  doc.line(innerX, y, innerX + 36, y);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5);
-  doc.setTextColor(...COLORS.ink);
-  doc.text("Authorized Signature", innerX, y + 3.5);
+  doc.setFontSize(5.5);
+  doc.setTextColor(...COLORS.black);
+  doc.text("Authorized Signature", innerX, y + 3.8);
 
-  // ===== Gold footer =====
-  const footerH = 10;
+  // Footer bar — black with white text
+  const footerH = 14;
   const footerY = cardY + cardH - footerH;
-  doc.setFillColor(...COLORS.gold);
-  doc.rect(cardX, footerY - 2, cardW, 4, "F");
-  doc.roundedRect(cardX, footerY - 2, cardW, footerH + 2, 5, 5, "F");
-  doc.rect(cardX, footerY - 2, cardW, 5, "F");
+  doc.setFillColor(...COLORS.black);
+  doc.rect(cardX, footerY, cardW, footerH, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6);
-  doc.setTextColor(...COLORS.ink);
-  doc.text("0331-000-111-0  ·  0333-9800938", cardX + cardW / 2, footerY + 4.5, {
+  doc.setFontSize(6.5);
+  doc.setTextColor(...COLORS.white);
+  doc.text("0331-000-111-0  ·  0333-9800938", cardX + cardW / 2, footerY + 5, {
     align: "center",
   });
 
-  // Page footer outside card
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...COLORS.gray);
+  doc.setFontSize(5.5);
+  doc.setTextColor(...COLORS.white);
+  doc.text(
+    "13-Sher Shah, New Garden Town, Barkat Market, Lahore",
+    cardX + cardW / 2,
+    footerY + 10,
+    { align: "center" }
+  );
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.black);
   doc.text(
     "Lahore CSS Academy  ·  Admission Fee Slip",
     pageWidth / 2,
@@ -456,7 +477,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     { align: "center" }
   );
 
-  const fileName = buildFileName(name);
+  const fileName = buildFileName(studentName);
 
   if (mode === "print") {
     const blobUrl = doc.output("bloburl");

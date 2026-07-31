@@ -616,6 +616,8 @@ function AddStudnet({ isOpen, onClose }) {
           paymentMethod: paymentMethodLabel,
           photoFile,
           authorizedBy: currentUser?.name || "",
+          classStartTime: selectedBatch?.class_start_time || "",
+          classEndTime: selectedBatch?.class_end_time || "",
         },
         "print"
       );

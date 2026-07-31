@@ -50,6 +50,7 @@ import { hasPermission } from "../../utlls/useful";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 import { config } from "../../utlls/config";
+import { formatClassTimeRange } from "../../utlls/classTime";
 
 const { toast } = createStandaloneToast();
 const BASE_URL = config.BASE_URL;
@@ -182,8 +183,8 @@ function Batch() {
   const statusColumnCount = !viewOnly && canManageInstitution ? 1 : 0;
   const actionColumnCount = !viewOnly && (canManageInstitution || canUseGoogleSync) ? 1 : 0;
   const googleColumnCount = canUseGoogleSync ? 1 : 0;
-  const feeDateColumnCount = showFeeAndDates ? 3 : 0;
-  const baseColumnCount = 4 + feeDateColumnCount; // No, Name, Description, Batch Type (+ fee/dates)
+  const feeDateColumnCount = showFeeAndDates ? 4 : 0;
+  const baseColumnCount = 4 + feeDateColumnCount; // No, Name, Description, Batch Type (+ fee/dates/class time)
   const tableColumnCount = viewOnly
     ? baseColumnCount
     : baseColumnCount + statusColumnCount + actionColumnCount + googleColumnCount;
@@ -272,6 +273,7 @@ function Batch() {
                 {showFeeAndDates && <Th>Batch Fee</Th>}
                 {showFeeAndDates && <Th>Start Date</Th>}
                 {showFeeAndDates && <Th>End Date</Th>}
+                {showFeeAndDates && <Th>Class Time</Th>}
                 {canUseGoogleSync && <Th>Google Classroom</Th>}
                 {!viewOnly && canManageInstitution && <Th>Status</Th>}
                 {!viewOnly && (canManageInstitution || canUseGoogleSync) && <Th isNumeric>Action</Th>}
@@ -323,6 +325,16 @@ function Batch() {
                     )}
                     {showFeeAndDates && <Td>{batch.startdate}</Td>}
                     {showFeeAndDates && <Td>{batch.enddate}</Td>}
+                    {showFeeAndDates && (
+                      <Td>
+                        {batch.class_start_time && batch.class_end_time
+                          ? formatClassTimeRange(
+                              batch.class_start_time,
+                              batch.class_end_time
+                            )
+                          : "N/A"}
+                      </Td>
+                    )}
                     {canUseGoogleSync && (
                       <Td>
                         <HStack spacing={2} flexWrap="wrap">

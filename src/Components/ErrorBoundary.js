@@ -32,8 +32,20 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const err = this.state.error;
       const message =
-        this.state.error?.message || "An unexpected error occurred.";
+        typeof err === "string"
+          ? err
+          : err?.message ||
+            (err && typeof err === "object"
+              ? (() => {
+                  try {
+                    return JSON.stringify(err);
+                  } catch {
+                    return "An unexpected error occurred.";
+                  }
+                })()
+              : "An unexpected error occurred.");
 
       return (
         <>

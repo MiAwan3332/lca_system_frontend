@@ -56,33 +56,53 @@ const fetchBatches = createAsyncThunk(
   }
 );
 
-const addBatch = createAsyncThunk("batches/addBatch", async (payload) => {
-  const { authToken, values } = payload;
-  const response = await fetch(`${BASE_URL}/batches/add`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
-    },
-    body: JSON.stringify(values),
-  });
-  const data = await response.json();
-  return data;
-});
+const addBatch = createAsyncThunk(
+  "batches/addBatch",
+  async (payload, { rejectWithValue }) => {
+    const { authToken, values } = payload;
+    try {
+      const response = await fetch(`${BASE_URL}/batches/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(values),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return rejectWithValue(data.message || "Failed to add batch");
+      }
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to add batch");
+    }
+  }
+);
 
-const updateBatch = createAsyncThunk("batches/updateBatch", async (payload) => {
-  const { authToken, values, id } = payload;
-  const response = await fetch(`${BASE_URL}/batches/update/${id}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
-    },
-    body: JSON.stringify(values),
-  });
-  const data = await response.json();
-  return data;
-});
+const updateBatch = createAsyncThunk(
+  "batches/updateBatch",
+  async (payload, { rejectWithValue }) => {
+    const { authToken, values, id } = payload;
+    try {
+      const response = await fetch(`${BASE_URL}/batches/update/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(values),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return rejectWithValue(data.message || "Failed to update batch");
+      }
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to update batch");
+    }
+  }
+);
 
 const deleteBatch = createAsyncThunk("batches/deleteBatch", async (payload) => {
   const { authToken, id } = payload;
@@ -300,9 +320,13 @@ const batchSlice = createSlice({
       })
       .addCase(addBatch.rejected, (state, action) => {
         state.addStatus = "failure";
-        state.error.push(action.error.message);
+        state.error.push(action.payload || action.error.message);
         toast({
           title: "Batch Adding Failed",
+          description:
+            typeof action.payload === "string"
+              ? action.payload
+              : action.error?.message || "Please try again.",
           status: "error",
           duration: 9000,
           isClosable: true,
@@ -337,9 +361,13 @@ const batchSlice = createSlice({
       })
       .addCase(updateBatch.rejected, (state, action) => {
         state.updateStatus = "failure";
-        state.error.push(action.error.message);
+        state.error.push(action.payload || action.error.message);
         toast({
           title: "Batch Update Failed",
+          description:
+            typeof action.payload === "string"
+              ? action.payload
+              : action.error?.message || "Please try again.",
           status: "error",
           duration: 9000,
           isClosable: true,
