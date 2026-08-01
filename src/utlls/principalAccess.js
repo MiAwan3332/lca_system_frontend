@@ -3,9 +3,20 @@ import { extractRoleFromToken } from "./useful";
 
 /**
  * Principal and Vice-Principal share the same access:
- * all screens except Roles, Permissions, and all activity logs.
+ * all screens except Super-Admin-only academic/system pages
+ * (Teachers, Courses, Timetable, Attendance, MCQs, Quizzes, Assignments,
+ * Roles, Permissions, and activity logs).
  */
 export const PRINCIPAL_BLOCKED_ROUTE_PATHS = [
+  "/teacher",
+  "/course",
+  "/timetable",
+  "/attendance",
+  "/mcq",
+  "/quiz",
+  "/assignments",
+  "/course-quizzes",
+  "/complaints",
   "/role",
   "/permission",
   "/activity-logs/students",

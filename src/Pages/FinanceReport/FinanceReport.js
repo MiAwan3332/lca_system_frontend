@@ -30,6 +30,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   AlertTriangle,
   ArrowDown01,
+  Banknote,
   CircleDollarSign,
   DollarSign,
   FilterX,
@@ -42,6 +43,7 @@ import {
   FileText,
   FileDown,
   Printer,
+  Smartphone,
 } from "lucide-react";
 import { fetchFinanceReport } from "../../Features/financeReportSlice";
 import {
@@ -111,6 +113,11 @@ const PERIOD_OPTIONS = [
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
 ];
+
+const formatRs = (value) =>
+  `Rs. ${Number(value || 0).toLocaleString("en-PK", {
+    maximumFractionDigits: 0,
+  })}`;
 
 const SUMMARY_CARDS = [
   {
@@ -294,6 +301,9 @@ function FinanceReport() {
     date: reportDate,
     batchName: selectedBatchNames.join(", ") || undefined,
     collectedBy: collectedByLabel,
+    totalCash: summary.total_cash,
+    totalOnline: summary.total_online,
+    batchWise: summary.batch_wise || [],
   });
 
   const handleExportTransactions = () => {
@@ -365,6 +375,7 @@ function FinanceReport() {
   }, []);
 
   const summary = report?.summary || {};
+  const batchWiseCollections = summary.batch_wise || [];
   const periodLabel = PERIOD_OPTIONS.find((item) => item.value === period)?.label;
   const reportSubtitle =
     report && `${periodLabel} report: ${report.start_date} to ${report.end_date}`;
@@ -672,6 +683,74 @@ function FinanceReport() {
               )}
             </FilterStack>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+            <div className="bg-[#F8FAFC] rounded-xl border border-[#E0E8EC] p-4 flex justify-between items-start">
+              <Stat>
+                <StatLabel>Total Cash</StatLabel>
+                {status === "loading" ? (
+                  <div className="animate-pulse h-4 my-3 w-24 bg-gray-300 rounded-lg" />
+                ) : (
+                  <StatNumber fontSize="xl">{formatRs(summary.total_cash)}</StatNumber>
+                )}
+                <StatHelpText>Cash collections in this period</StatHelpText>
+              </Stat>
+              <div className="p-2 bg-[#d69e2e]/30 rounded-lg">
+                <Banknote size={28} color="#d69e2e" />
+              </div>
+            </div>
+            <div className="bg-[#F8FAFC] rounded-xl border border-[#E0E8EC] p-4 flex justify-between items-start">
+              <Stat>
+                <StatLabel>Total Online</StatLabel>
+                {status === "loading" ? (
+                  <div className="animate-pulse h-4 my-3 w-24 bg-gray-300 rounded-lg" />
+                ) : (
+                  <StatNumber fontSize="xl">{formatRs(summary.total_online)}</StatNumber>
+                )}
+                <StatHelpText>Online / bank collections in this period</StatHelpText>
+              </Stat>
+              <div className="p-2 bg-[#d69e2e]/30 rounded-lg">
+                <Smartphone size={28} color="#d69e2e" />
+              </div>
+            </div>
+          </div>
+
+          {(status === "loading" || batchWiseCollections.length > 0) && (
+            <div className="mt-4">
+              <Text fontSize="sm" fontWeight="600" color="gray.600" mb={2}>
+                Batch-wise collections
+              </Text>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                {status === "loading"
+                  ? [1, 2, 3].map((item) => (
+                      <div
+                        key={item}
+                        className="bg-white rounded-xl border border-[#E0E8EC] p-4"
+                      >
+                        <div className="animate-pulse h-4 w-28 bg-gray-300 rounded-lg mb-3" />
+                        <div className="animate-pulse h-5 w-20 bg-gray-300 rounded-lg" />
+                      </div>
+                    ))
+                  : batchWiseCollections.map((batch) => (
+                      <div
+                        key={batch.batch_id || batch.batch_name}
+                        className="bg-white rounded-xl border border-[#E0E8EC] p-4"
+                      >
+                        <Text fontSize="sm" fontWeight="600" noOfLines={1}>
+                          {batch.batch_name || "Unassigned"}
+                        </Text>
+                        <Text fontSize="lg" fontWeight="700" mt={1}>
+                          {formatRs(batch.total)}
+                        </Text>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-gray-500">
+                          <span>Cash: {formatRs(batch.total_cash)}</span>
+                          <span>Online: {formatRs(batch.total_online)}</span>
+                        </div>
+                      </div>
+                    ))}
+              </div>
+            </div>
+          )}
         </div>
         <TableContainer>
           <Table variant="simple">
@@ -680,7 +759,6 @@ function FinanceReport() {
                 <Th>No</Th>
                 <Th>Date</Th>
                 <Th>Type</Th>
-                <Th>Details</Th>
                 <Th>Category / Batch</Th>
                 <Th>Action</Th>
                 <Th>Payment</Th>
@@ -692,8 +770,8 @@ function FinanceReport() {
             <Tbody>
               {status === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={10}
-                  actions={["w-10", "w-24", "w-16", "w-24", "w-24", "w-20", "w-16", "w-20", "w-24", "w-16"]}
+                  nOfColumns={9}
+                  actions={["w-10", "w-24", "w-16", "w-24", "w-20", "w-16", "w-20", "w-24", "w-16"]}
                 />
               ) : filteredTransactions.length > 0 ? (
                 filteredTransactions.map((transaction, index) => (
@@ -706,11 +784,6 @@ function FinanceReport() {
                       <Badge colorScheme={transaction.type === "expense" ? "red" : "blue"}>
                         {transaction.type === "expense" ? "Expense" : "Fee"}
                       </Badge>
-                    </Td>
-                    <Td>
-                      {transaction.type === "expense"
-                        ? transaction.title
-                        : transaction.student_name}
                     </Td>
                     <Td>{transaction.batch_name}</Td>
                     <Td>
@@ -784,7 +857,7 @@ function FinanceReport() {
                 ))
               ) : (
                 <Tr>
-                  <Td colSpan={10}>
+                  <Td colSpan={9}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1] py-6">
                       {report?.transactions?.length > 0
                         ? "No transactions match the selected filters"

@@ -26,6 +26,7 @@ import { useDispatch, useSelector } from "react-redux";
 import moment from "moment";
 import { collectPendingFee } from "../../Features/feeSlice";
 import { fetchStudents } from "../../Features/studentSlice";
+import { selectUser } from "../../Features/authSlice";
 import ActionButton from "../../Components/ActionButton";
 import {
   FEE_PAYMENT_METHODS,
@@ -52,6 +53,7 @@ function GeneratePendingFeeSlipAction({ student }) {
   const toast = useToast();
   const evidenceInputRef = useRef(null);
   const { updateStatus } = useSelector((state) => state.fees);
+  const currentUser = useSelector(selectUser);
 
   const [isOpen, setIsOpen] = useState(false);
   const [paymentOption, setPaymentOption] = useState("full");
@@ -317,14 +319,22 @@ function GeneratePendingFeeSlipAction({ student }) {
         {
           name: student.name,
           phone: student.phone,
+          cnic: student.cnic || "",
           rollNumber: student.roll_number,
           batchName: student.batch?.name || "N/A",
+          batchFee: Number(student.batch?.batch_fee) || 0,
+          totalFee: Number(student.total_fee) || Number(student.batch?.batch_fee) || 0,
+          paidFee: Number(student.paid_fee) || 0,
           outstandingBalance: outstanding,
           payingNow,
           remainingAfter,
           paymentOption,
           paymentMethod: formik.values.payment_method,
           nextInstallmentDate: formik.values.next_installment_date,
+          photoUrl: student.image || "",
+          authorizedBy: currentUser?.name || "",
+          classStartTime: student.batch?.class_start_time || "",
+          classEndTime: student.batch?.class_end_time || "",
         },
         "print"
       );

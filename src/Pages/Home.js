@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
+import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchStatistics } from "../Features/statisticsSlice";
+import { fetchFinanceReport } from "../Features/financeReportSlice";
 import {
   fetchBatches,
   selectActiveBatches,
@@ -12,12 +14,14 @@ import { selectUser } from "../Features/authSlice";
 import { isStudentViewOnly } from "../utlls/studentAccess";
 import { isTeacherRole } from "../utlls/teacherAccess";
 import { hasPermission } from "../utlls/useful";
+import { canViewDashboardCollections } from "../utlls/refundAccess";
 import DashboardHeader from "../Components/Dashboard/DashboardHeader";
 import KpiCard from "../Components/Dashboard/KpiCard";
 import QuickActions from "../Components/Dashboard/QuickActions";
 import ActivityFeed from "../Components/Dashboard/ActivityFeed";
 import UpcomingSchedule from "../Components/Dashboard/UpcomingSchedule";
 import DashboardChartCard from "../Components/Dashboard/DashboardChartCard";
+import TodayCollectionsSection from "../Components/Dashboard/TodayCollectionsSection";
 import {
   ADMIN_KPI_CONFIG,
   TEACHER_KPI_CONFIG,
@@ -32,8 +36,11 @@ import OverdueFeeAlert from "../Components/OverdueFeeAlert";
 function Home() {
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
+  const showTodayCollections = canViewDashboardCollections();
   const user = useSelector(selectUser);
   const { status } = useSelector((state) => state.statistics);
+  const financeReport = useSelector((state) => state.financeReport.report);
+  const financeStatus = useSelector((state) => state.financeReport.status);
   const notifications = useSelector((state) => state.notifications.notifications);
   const batches = useSelector(selectActiveBatches);
   const dispatch = useDispatch();
@@ -45,7 +52,9 @@ function Home() {
   const [formEndDate, setFormEndDate] = useState("");
 
   const loading = status === "loading";
+  const collectionsLoading = financeStatus === "loading";
   const chartData = statistics.chart_data || {};
+  const todaySummary = financeReport?.summary || {};
 
   const dashboardFilters = {
     batch_id: formBatch,
@@ -60,6 +69,17 @@ function Home() {
       .catch(() => setStatistics({}));
   };
 
+  const loadTodayCollections = () => {
+    if (!showTodayCollections || !authToken) return;
+    dispatch(
+      fetchFinanceReport({
+        authToken,
+        period: "daily",
+        date: moment().format("YYYY-MM-DD"),
+      })
+    );
+  };
+
   useEffect(() => {
     if (!viewOnly && !isTeacher) {
       dispatch(setLimitFilter(100));
@@ -69,6 +89,7 @@ function Home() {
       dispatch(fetchNotifications({ authToken }));
     }
     loadStatistics({ batch_id: "", start_date: "", end_date: "" });
+    loadTodayCollections();
   }, []);
 
   const kpiConfig = isTeacher
@@ -153,7 +174,10 @@ function Home() {
           setFormEndDate("");
           loadStatistics({ batch_id: "", start_date: "", end_date: "" });
         }}
-        onReload={() => loadStatistics()}
+        onReload={() => {
+          loadStatistics();
+          loadTodayCollections();
+        }}
       />
 
       {viewOnly && statistics.fee_is_overdue && (
@@ -162,6 +186,16 @@ function Home() {
           amount={statistics.total_fee_pending}
           status="Pending"
           mb={6}
+        />
+      )}
+
+      {showTodayCollections && (
+        <TodayCollectionsSection
+          totalCash={todaySummary.total_cash}
+          totalOnline={todaySummary.total_online}
+          expensesToday={todaySummary.total_approved_expenses}
+          batchWise={todaySummary.batch_wise || []}
+          loading={collectionsLoading}
         />
       )}
 

@@ -54,6 +54,19 @@ export const isPrincipalFamilyRole = (role) => {
 };
 
 /**
+ * Today's collection cards on the dashboard:
+ * Principal, Vice Principal, CEO, and all Super Admins.
+ */
+export const canViewDashboardCollections = (role) => {
+  const current = role ?? getCurrentRoleName();
+  return (
+    isCeoRole(current) ||
+    isPrincipalFamilyRole(current) ||
+    isSuperAdminRole(current)
+  );
+};
+
+/**
  * Create refund requests from Students actions:
  * CEO, Principal, Vice Principal, Super Admin.
  */

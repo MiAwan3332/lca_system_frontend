@@ -8,13 +8,8 @@ export const INFORMATION_OFFICE_ROUTE_PATHS = [
   "/student",
   "/fees",
   "/finance-report",
-  "/teacher",
-  "/course",
-  "/timetable",
   "/batch",
-  "/attendance",
   "/seminar",
-  "/complaints",
   "/announcements",
   "/notifications",
 ];

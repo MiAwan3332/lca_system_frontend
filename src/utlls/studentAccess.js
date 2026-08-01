@@ -1,7 +1,11 @@
 import Cookies from "js-cookie";
 import axios from "axios";
 import { config } from "./config";
-import { extractRoleFromToken, isFullAccessRole } from "./useful";
+import {
+  extractRoleFromToken,
+  isFullAccessRole,
+  isPlatformSuperAdminRole,
+} from "./useful";
 import {
   isTeacherRole,
   canAccessTeacherRoute,
@@ -38,9 +42,47 @@ export const STUDENT_ROUTE_PATHS = [
   "/quiz",
   "/assignments",
   "/course-quizzes",
-  "/complaints",
   "/announcements",
 ];
+
+/** Only Super Admin / Super Admin Development (teachers & students keep their own allowlists). */
+export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
+  "/teacher",
+  "/course",
+  "/timetable",
+  "/attendance",
+  "/mcq",
+  "/quiz",
+  "/assignments",
+  "/course-quizzes",
+  "/role",
+  "/permission",
+  "/activity-logs/students",
+  "/activity-logs/teachers",
+  "/activity-logs/admins",
+];
+
+export const isSuperAdminOnlyRoute = (path) => {
+  const normalized = String(path || "");
+  if (SUPER_ADMIN_ONLY_ROUTE_PATHS.includes(normalized)) return true;
+  if (normalized.startsWith("/activity-logs")) return true;
+  return false;
+};
+
+/**
+ * Restricted system/academic pages: Super Admin + Super Admin Development only.
+ * Teachers and students still use their dedicated allowlists.
+ */
+export const canAccessSuperAdminOnlyRoute = (path) => {
+  if (!isSuperAdminOnlyRoute(path)) return true;
+  if (isPlatformSuperAdminRole()) return true;
+  if (isTeacherRole()) return canAccessTeacherRoute(path);
+  if (isStudentRole()) {
+    if (isStudentProfileIncomplete() && path !== "/student") return false;
+    return STUDENT_ROUTE_PATHS.includes(path);
+  }
+  return false;
+};
 
 export const isStudentRole = () => {
   const storedRole = sessionStorage.getItem("role");
@@ -116,10 +158,16 @@ export const canAccessRoute = (path) => {
   if (path === "/profile" || path === "/google-workspace") {
     return true;
   }
+  if (path === "/complaints") {
+    return false;
+  }
   if (path === "/request-management" && !canAccessRequestManagement()) {
     return false;
   }
-  // CEO, secrateAdmin, superadmin, Administrator — all pages
+  if (!canAccessSuperAdminOnlyRoute(path)) {
+    return false;
+  }
+  // CEO, secrateAdmin, superadmin, Administrator — remaining pages
   if (isFullAccessRole()) {
     return true;
   }
@@ -150,9 +198,12 @@ export const getVisibleRoutes = (allRoutes) => {
     if (route.path === "/request-management" && !canAccessRequestManagement()) {
       return false;
     }
+    if (!canAccessSuperAdminOnlyRoute(route.path)) {
+      return false;
+    }
     return true;
   });
-  // CEO, secrateAdmin, superadmin, Administrator — all pages
+  // CEO, secrateAdmin, superadmin, Administrator — remaining pages
   if (isFullAccessRole()) {
     return visibleRouteList;
   }

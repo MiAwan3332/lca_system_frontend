@@ -74,12 +74,20 @@ export const exportFinanceTransactionsPdf = async ({
   date,
   batchName,
   collectedBy,
+  totalCash = 0,
+  totalOnline = 0,
+  batchWise = [],
   mode = "download",
 }) => {
   const safeDate = date ? moment(date).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD");
   const label = period ? String(period).toLowerCase() : "daily";
   const collectedByLabel = collectedBy || "All admin users";
   const fileName = `finance_transactions_${label}_${safeDate}.pdf`;
+  const cashTotal = toNumber(totalCash);
+  const onlineTotal = toNumber(totalOnline);
+  const batchList = Array.isArray(batchWise) ? batchWise : [];
+  const formatAmount = (value) =>
+    toNumber(value).toLocaleString("en-PK", { maximumFractionDigits: 0 });
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
   const margin = 12;
@@ -192,6 +200,117 @@ export const exportFinanceTransactionsPdf = async ({
     drawCard(margin + (cardW + gap) * 3, "Net", `Rs. ${net}`, COLORS.goldDark);
   };
 
+  const drawPaymentSummary = (startY) => {
+    const cardH = 14;
+    const gap = 4;
+    const cardW = (contentWidth - gap) / 2;
+
+    const drawCard = (x, labelText, valueText, accent) => {
+      doc.setFillColor(...COLORS.white);
+      doc.setDrawColor(...COLORS.border);
+      doc.roundedRect(x, startY, cardW, cardH, 2, 2, "FD");
+      doc.setFillColor(...accent);
+      doc.roundedRect(x, startY, cardW, 3, 2, 2, "F");
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(...COLORS.gray);
+      doc.text(labelText, x + 3, startY + 7.5);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...COLORS.text);
+      doc.text(`Rs. ${formatAmount(valueText)}`, x + 3, startY + 12);
+    };
+
+    drawCard(margin, "Total Cash", cashTotal, COLORS.goldDark);
+    drawCard(margin + cardW + gap, "Total Online", onlineTotal, COLORS.fee);
+    return startY + cardH + 4;
+  };
+
+  const drawBatchWiseSection = (startY) => {
+    let yPos = startY;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.text);
+    doc.text("Batch-wise collections", margin, yPos + 4);
+    yPos += 7;
+
+    if (!batchList.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.gray);
+      doc.text("No batch collections in this period.", margin, yPos + 3);
+      return yPos + 8;
+    }
+
+    const col = {
+      batch: 70,
+      cash: 40,
+      online: 40,
+      total: 40,
+    };
+    const tableW = col.batch + col.cash + col.online + col.total;
+    const rowH = 8;
+
+    const drawBatchHeader = () => {
+      doc.setFillColor(...COLORS.grayLight);
+      doc.setDrawColor(...COLORS.border);
+      doc.roundedRect(margin, yPos, tableW, rowH, 1.5, 1.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.text);
+      let x = margin;
+      const put = (txt, w, align = "left") => {
+        const tx = align === "right" ? x + w - 2 : x + 2;
+        doc.text(String(txt), tx, yPos + 5.5, { align });
+        x += w;
+      };
+      put("Batch", col.batch);
+      put("Cash", col.cash, "right");
+      put("Online", col.online, "right");
+      put("Total", col.total, "right");
+      yPos += rowH + 1.5;
+    };
+
+    drawBatchHeader();
+
+    batchList.forEach((batch) => {
+      if (yPos + rowH > pageHeight - margin - 8) {
+        drawFooter();
+        doc.addPage();
+        drawHeader();
+        yPos = 30;
+        drawBatchHeader();
+      }
+
+      doc.setDrawColor(...COLORS.border);
+      doc.setFillColor(...COLORS.white);
+      doc.roundedRect(margin, yPos, tableW, rowH, 1.2, 1.2, "FD");
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.text);
+
+      let x = margin;
+      const put = (txt, w, align = "left") => {
+        const tx = align === "right" ? x + w - 2 : x + 2;
+        doc.text(String(txt ?? ""), tx, yPos + 5.5, {
+          align,
+          maxWidth: w - 4,
+        });
+        x += w;
+      };
+
+      put(batch.batch_name || "Unassigned", col.batch);
+      put(`Rs. ${formatAmount(batch.total_cash)}`, col.cash, "right");
+      put(`Rs. ${formatAmount(batch.total_online)}`, col.online, "right");
+      put(`Rs. ${formatAmount(batch.total)}`, col.total, "right");
+      yPos += rowH + 1.5;
+    });
+
+    return yPos + 2;
+  };
+
   const txns = Array.isArray(transactions) ? transactions : [];
 
   const totals = txns.reduce(
@@ -216,24 +335,25 @@ export const exportFinanceTransactionsPdf = async ({
   let y = 30;
   drawSummaryRow(y, totals.count, feeTotal, expenseTotal, netTotal);
   y += 20;
+  y = drawPaymentSummary(y);
+  y = drawBatchWiseSection(y);
+  y += 2;
 
   // Table layout (landscape A4)
   const col = {
-    no: 8,
-    date: 26,
-    type: 14,
-    details: 48,
-    batch: 30,
-    action: 16,
-    payment: 16,
-    amount: 22,
-    by: 26,
+    no: 10,
+    date: 32,
+    type: 18,
+    batch: 48,
+    action: 22,
+    payment: 24,
+    amount: 28,
+    by: 36,
   };
   const tableW =
     col.no +
     col.date +
     col.type +
-    col.details +
     col.batch +
     col.action +
     col.payment +
@@ -261,7 +381,6 @@ export const exportFinanceTransactionsPdf = async ({
     put("#", col.no);
     put("Date", col.date);
     put("Type", col.type);
-    put("Details", col.details);
     put("Batch", col.batch);
     put("Action", col.action);
     put("Payment", col.payment);
@@ -278,11 +397,16 @@ export const exportFinanceTransactionsPdf = async ({
       doc.addPage();
       drawHeader();
       y = 30;
-      drawSummaryRow(y, totals.count, feeTotal, expenseTotal, netTotal);
-      y += 20;
       drawTableHeader();
     }
   };
+
+  if (y + headerH + 20 > pageHeight - margin - 8) {
+    drawFooter();
+    doc.addPage();
+    drawHeader();
+    y = 30;
+  }
 
   drawTableHeader();
 
@@ -295,15 +419,14 @@ export const exportFinanceTransactionsPdf = async ({
       (isExpense ? -1 : 1) * toNumber(t.action_amount ?? t.amount);
     const amountLabel = amount.toLocaleString("en-PK", { maximumFractionDigits: 0 });
     const typeLabel = isExpense ? "Expense" : "Fee";
-    const details = isExpense ? t.title : t.student_name;
     const dateLabel = t.action_date ? moment(t.action_date).format("DD/MM/YYYY HH:mm") : "";
     const paymentLabel =
       t.payment_method ||
       (t.action_type === "Paid" ? "Cash" : "—");
 
-    const detailLines = wrapText(doc, details || "—", col.details - 4);
+    const batchLines = wrapText(doc, t.batch_name || "—", col.batch - 4);
     const byLines = wrapText(doc, t.action_by || "—", col.by - 4);
-    const maxLines = Math.min(2, Math.max(detailLines.length, byLines.length, 1));
+    const maxLines = Math.min(2, Math.max(batchLines.length, byLines.length, 1));
     const textBlockH = 4 + (maxLines - 1) * 4;
     const h = Math.max(8, textBlockH + 4);
 
@@ -337,8 +460,7 @@ export const exportFinanceTransactionsPdf = async ({
     cellText(index + 1, col.no);
     cellText(dateLabel, col.date, "left", COLORS.gray);
     cellText(typeLabel, col.type, "left", isExpense ? COLORS.expense : COLORS.fee);
-    cellLines(detailLines, col.details);
-    cellText(t.batch_name || "—", col.batch);
+    cellLines(batchLines, col.batch);
     cellText(t.action_type || "—", col.action);
     cellText(paymentLabel, col.payment);
     cellText(`Rs. ${amountLabel}`, col.amount, "right", isExpense ? COLORS.expense : COLORS.text);

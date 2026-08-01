@@ -505,160 +505,240 @@
 
   .voucher-print-sheet {
     width: 210mm;
-    height: 297mm;
     min-height: 297mm;
-    max-height: 297mm;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 14mm 0;
     background: #fff;
     color: #111;
     box-sizing: border-box;
-    font-family: "Inter", Arial, sans-serif;
-    overflow: hidden;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    font-family: Arial, Helvetica, sans-serif;
   }
 
   .voucher-slip {
-    padding: 5mm;
-    border: 1px solid #222;
+    width: 100mm;
+    border: 1.5px solid #000;
+    border-radius: 3mm;
     display: flex;
     flex-direction: column;
-    gap: 2mm;
-    min-height: 0;
-    height: 100%;
-    font-size: 8pt;
-    line-height: 1.3;
+    gap: 2.2mm;
+    font-size: 7.5pt;
+    line-height: 1.25;
     box-sizing: border-box;
     background: #fff;
     overflow: hidden;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  .voucher-slip:nth-child(1) {
-    border-bottom-style: dashed;
-    border-bottom-color: #888;
+    position: relative;
   }
 
   .voucher-slip__header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 4mm;
-    border-bottom: 1px solid #222;
-    padding-bottom: 2mm;
+    align-items: center;
+    gap: 3mm;
+    background: #000;
+    color: #fff;
+    padding: 3.5mm 4mm;
+  }
+
+  .voucher-slip__brand {
+    display: flex;
+    align-items: center;
+    gap: 2.5mm;
+  }
+
+  .voucher-slip__logo {
+    width: 10mm;
+    height: 10mm;
+    background: #fff;
+    color: #000;
+    border-radius: 1.5mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7pt;
+    font-weight: 800;
   }
 
   .voucher-slip__org {
-    font-size: 7pt;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    font-size: 9pt;
+    font-weight: 700;
     margin: 0;
-    color: #444;
+    color: #fff;
   }
 
   .voucher-slip__title {
-    margin: 1mm 0 0;
-    font-size: 10pt;
-    font-weight: 700;
-    color: #111;
-  }
-
-  .voucher-slip__copy-badge {
-    border: 1px solid #222;
-    padding: 1.5mm 3mm;
+    margin: 0.8mm 0 0;
     font-size: 7.5pt;
     font-weight: 700;
-    text-transform: uppercase;
-    white-space: nowrap;
+    color: #fff;
+    letter-spacing: 0.04em;
   }
 
-  .voucher-slip__body {
+  .voucher-slip__identity {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 26mm 1fr;
     gap: 3mm;
-    flex: 1;
-  }
-
-  .voucher-slip__fields {
-    display: grid;
-    gap: 1.5mm;
-  }
-
-  .voucher-slip__field {
-    display: grid;
-    grid-template-columns: 28mm 1fr;
-    gap: 2mm;
     align-items: start;
+    padding: 3mm 4mm 0;
   }
 
-  .voucher-slip__label {
+  .voucher-slip__photo {
+    width: 26mm;
+    height: 32mm;
+    border: 1px solid #000;
+    border-radius: 1.5mm;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7pt;
+    font-weight: 800;
+  }
+
+  .voucher-slip__name-label {
+    display: block;
+    font-size: 6pt;
     font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #000;
+  }
+
+  .voucher-slip__name {
+    margin: 1mm 0;
+    font-size: 11pt;
+    font-weight: 800;
+    color: #000;
+    line-height: 1.15;
+    word-break: break-word;
+  }
+
+  .voucher-slip__status {
+    display: inline-block;
+    border: 1px solid #000;
+    border-radius: 1mm;
+    padding: 0.8mm 2mm;
+    font-size: 6pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .voucher-slip__meta-line {
+    margin: 1mm 0 0;
+    font-size: 6.5pt;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .voucher-slip__chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2mm;
+    padding: 0 4mm;
+  }
+
+  .voucher-slip__chip {
+    border: 1px solid #000;
+    border-radius: 1.2mm;
+    padding: 1.6mm 2mm;
+    background: #fff;
+  }
+
+  .voucher-slip__chip--full {
+    grid-column: 1 / -1;
+  }
+
+  .voucher-slip__chip-label {
+    display: block;
+    font-size: 5.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #000;
+    margin-bottom: 0.6mm;
+  }
+
+  .voucher-slip__chip-value {
+    display: block;
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #111;
+    word-break: break-word;
+  }
+
+  .voucher-slip__amount {
+    margin: 0 4mm;
+    border: 1.4px solid #000;
+    border-radius: 1.5mm;
+    padding: 2.2mm 2.5mm;
+  }
+
+  .voucher-slip__amount-label {
+    display: block;
+    font-size: 6pt;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #000;
+  }
+
+  .voucher-slip__amount-value {
+    display: block;
+    margin-top: 0.8mm;
+    font-size: 12pt;
+    font-weight: 800;
+    color: #000;
+  }
+
+  .voucher-slip__receipt-label {
+    margin: 0 4mm;
+    text-align: center;
+    font-size: 6pt;
+    font-weight: 700;
+    color: #000;
+  }
+
+  .voucher-slip__note {
+    margin: 0 4mm;
+    text-align: center;
+    font-size: 5.5pt;
     color: #333;
   }
 
-  .voucher-slip__value {
-    color: #111;
-    word-break: break-word;
-  }
-
-  .voucher-slip__qr-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1mm;
-  }
-
-  .voucher-slip__qr-caption {
-    font-size: 6.5pt;
-    color: #555;
-  }
-
-  .voucher-slip__qr-meta {
-    font-size: 6.5pt;
-    color: #111;
-    font-weight: 600;
-    text-align: center;
-    max-width: 22mm;
-    word-break: break-word;
-    line-height: 1.2;
-  }
-
-  .voucher-slip__instructions {
-    font-size: 7pt;
-    color: #222;
-    border-top: 1px dashed #aaa;
-    padding-top: 2mm;
-  }
-
-  .voucher-slip__footer {
+  .voucher-slip__sign-row {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    gap: 4mm;
+    gap: 3mm;
+    padding: 0 4mm 2mm;
     margin-top: auto;
   }
 
   .voucher-slip__signature {
-    flex: 1;
-    font-size: 7pt;
+    font-size: 6.5pt;
+    color: #000;
+  }
+
+  .voucher-slip__signer {
+    display: block;
+    font-weight: 700;
+    font-size: 7.5pt;
   }
 
   .voucher-slip__signature-line {
-    margin-top: 6mm;
-    border-bottom: 1px solid #222;
-    width: 38mm;
+    margin: 1.5mm 0 1mm;
+    border-bottom: 1px solid #000;
+    width: 40mm;
   }
 
-  .voucher-slip__meta {
+  .voucher-slip__footer {
+    background: #000;
+    color: #fff;
+    text-align: center;
+    padding: 2.5mm 3mm;
     display: flex;
     flex-direction: column;
-    gap: 1mm;
-    font-size: 6.5pt;
-    color: #444;
-    text-align: right;
+    gap: 0.6mm;
+    font-size: 6pt;
+    font-weight: 600;
   }
 
   @media print {
