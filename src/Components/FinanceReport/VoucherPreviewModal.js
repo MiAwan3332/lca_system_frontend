@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -18,12 +18,9 @@ import { Download, Printer, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import VoucherPrintSheet from "./VoucherPrintSheet";
 import { buildVoucherData } from "../../utlls/financeVoucherUtils";
 import {
-  downloadVoucherPdf,
-  exportVoucherImage,
-  mountVoucherPrintPage,
-  printVoucherImage,
-  unmountVoucherPrintPage,
-} from "../../utlls/generateFinanceVoucher";
+  downloadFinanceVoucherPdf,
+  printFinanceVoucherPdf,
+} from "../../utlls/generateFinanceVoucherPdf";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -33,12 +30,8 @@ const ZOOM_LEVELS = [0.5, 0.65, 0.8, 1];
 const DEFAULT_ZOOM_INDEX = ZOOM_LEVELS.length - 1;
 
 function VoucherPreviewModal({ isOpen, onClose, transaction }) {
-  const sheetRef = useRef(null);
-  const canvasRef = useRef(null);
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [busyAction, setBusyAction] = useState("");
-  const [snapshotUrl, setSnapshotUrl] = useState(null);
-  const [isPreparingOutput, setIsPreparingOutput] = useState(false);
   const toast = useToast();
 
   const voucherData = useMemo(
@@ -47,68 +40,6 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
   );
 
   const zoom = ZOOM_LEVELS[zoomIndex];
-
-  const refreshSnapshot = useCallback(async () => {
-    if (!sheetRef.current) return null;
-
-    setIsPreparingOutput(true);
-    try {
-      const imageUrl = await exportVoucherImage(sheetRef.current, canvasRef.current);
-      setSnapshotUrl(imageUrl);
-      return imageUrl;
-    } catch (error) {
-      setSnapshotUrl(null);
-      throw error;
-    } finally {
-      setIsPreparingOutput(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen || !voucherData) {
-      setSnapshotUrl(null);
-      setIsPreparingOutput(false);
-      return undefined;
-    }
-
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      if (cancelled || !sheetRef.current) return;
-      try {
-        await refreshSnapshot();
-      } catch {
-        if (!cancelled) setSnapshotUrl(null);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [isOpen, voucherData, refreshSnapshot]);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const handleBeforePrint = () => {
-      if (snapshotUrl) {
-        mountVoucherPrintPage(snapshotUrl);
-      }
-    };
-
-    const handleAfterPrint = () => {
-      unmountVoucherPrintPage();
-    };
-
-    window.addEventListener("beforeprint", handleBeforePrint);
-    window.addEventListener("afterprint", handleAfterPrint);
-
-    return () => {
-      window.removeEventListener("beforeprint", handleBeforePrint);
-      window.removeEventListener("afterprint", handleAfterPrint);
-      unmountVoucherPrintPage();
-    };
-  }, [isOpen, snapshotUrl]);
 
   const handleZoomIn = () => {
     setZoomIndex((prev) => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
@@ -120,29 +51,15 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
 
   const handleResetZoom = () => setZoomIndex(DEFAULT_ZOOM_INDEX);
 
-  const getOutputImage = useCallback(async () => {
-    if (snapshotUrl) return snapshotUrl;
-    return refreshSnapshot();
-  }, [snapshotUrl, refreshSnapshot]);
-
   const handleDownload = async () => {
-    if (!sheetRef.current) return;
+    if (!transaction) return;
 
     setBusyAction("download");
     try {
-      const imageUrl = await getOutputImage();
-      if (!imageUrl) {
-        throw new Error("Voucher preview is not ready.");
-      }
-      await downloadVoucherPdf(
-        sheetRef.current,
-        canvasRef.current,
-        transaction,
-        imageUrl
-      );
+      await downloadFinanceVoucherPdf(transaction);
       toast({
         title: "PDF downloaded",
-        description: "PDF matches the voucher preview layout.",
+        description: "Printed on A4 paper, same size as Admission Slip.",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -161,14 +78,10 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
   };
 
   const handlePrint = async () => {
+    if (!transaction) return;
     setBusyAction("print");
     try {
-      unmountVoucherPrintPage();
-      const imageUrl = await getOutputImage();
-      if (!imageUrl) {
-        throw new Error("Voucher preview is not ready.");
-      }
-      printVoucherImage(imageUrl);
+      await printFinanceVoucherPdf(transaction);
     } catch (error) {
       toast({
         title: "Print failed",
@@ -197,7 +110,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
               Voucher Preview
             </Text>
             <Text fontSize="sm" color="gray.500">
-              Print and PDF use this exact layout on one A4 page
+              Print uses A4 paper — same card size as Admission Slip
             </Text>
           </div>
         </ModalHeader>
@@ -206,8 +119,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
         <ModalBody className="voucher-preview-modal__body">
           <HStack justify="space-between" mb={4} flexWrap="wrap" gap={2}>
             <Text fontSize="sm" color="gray.600">
-              A4 sheet with 2 voucher slips — {Math.round(zoom * 100)}% zoom
-              {isPreparingOutput ? " · Syncing print output..." : ""}
+              Preview — {Math.round(zoom * 100)}% zoom
             </Text>
             <ButtonGroup size="sm" variant="outline" isAttached>
               <IconButton
@@ -232,11 +144,10 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
 
           <div className="voucher-preview-stage">
             <div
-              ref={canvasRef}
               className="voucher-preview-canvas"
               style={{ transform: `scale(${zoom})` }}
             >
-              <VoucherPrintSheet ref={sheetRef} data={voucherData} />
+              <VoucherPrintSheet data={voucherData} />
             </div>
           </div>
         </ModalBody>
@@ -251,6 +162,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
             variant="outline"
             onClick={handlePrint}
             isLoading={busyAction === "print"}
+            isDisabled={!transaction}
           >
             Print
           </Button>
@@ -263,6 +175,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
             onClick={handleDownload}
             isLoading={busyAction === "download"}
             loadingText="Generating..."
+            isDisabled={!transaction}
           >
             Download PDF
           </Button>

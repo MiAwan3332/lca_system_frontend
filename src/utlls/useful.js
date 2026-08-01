@@ -1,6 +1,6 @@
 import { markSessionStarted } from "./authSession.js";
 import { config } from "./config.js";
-import { isFullAccessRoleName } from "./fullAccessRoles.js";
+import { isFullAccessRoleName, isPlatformSuperAdminRoleName } from "./fullAccessRoles.js";
 
 const PERMISSION_ALIASES = {
   Pay_Fee: ["Pay_Fee", "pay_fee", "Pay_fee"],
@@ -103,6 +103,9 @@ const hasFullAccess = () => {
 
 const isFullAccessRole = () => hasFullAccess();
 
+const isPlatformSuperAdminRole = () =>
+  isPlatformSuperAdminRoleName(getCurrentRoleName());
+
 /** Full action rights (add/update/view/delete) without opening Roles/Permissions/Logs. */
 const hasUnrestrictedActionAccess = () => {
   if (hasFullAccess()) return true;
@@ -200,6 +203,7 @@ export {
   hasPermission,
   hasFullAccess,
   isFullAccessRole,
+  isPlatformSuperAdminRole,
   storeAuthSession,
   getMediaUrl,
 };

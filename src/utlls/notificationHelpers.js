@@ -103,6 +103,6 @@ export const navigateForNotification = (notification, navigate) => {
   }
 
   if (notification.type === "complaint_received") {
-    navigate("/complaints");
+    navigate("/dashboard");
   }
 };

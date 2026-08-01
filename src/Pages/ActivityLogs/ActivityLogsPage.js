@@ -37,7 +37,7 @@ import {
   setEndDateFilter,
   clearActivityLogFilters,
 } from "../../Features/activityLogSlice";
-import { isInstitutionAdmin } from "../../utlls/teacherAccess";
+import { isPlatformSuperAdminRole } from "../../utlls/useful";
 import { Navigate } from "react-router-dom";
 
 const ACTION_COLORS = {
@@ -61,7 +61,7 @@ function ActivityLogsPage({ actorCategory, title, subtitle }) {
     (state) => state.activityLogs
   );
 
-  const canView = isInstitutionAdmin();
+  const canView = isPlatformSuperAdminRole();
 
   const loadLogs = () => {
     dispatch(fetchActivityLogs({ authToken }));

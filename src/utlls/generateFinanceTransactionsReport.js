@@ -6,12 +6,18 @@ const toNumber = (value) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const formatRs = (value) =>
+  toNumber(value).toLocaleString("en-PK", { maximumFractionDigits: 0 });
+
 export const exportFinanceTransactionsExcel = ({
   transactions = [],
   period = "daily",
   date,
   batchName,
   collectedBy,
+  totalCash = 0,
+  totalOnline = 0,
+  batchWise = [],
 }) => {
   const safeDate = date ? moment(date).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD");
   const label = period ? String(period).toLowerCase() : "daily";
@@ -27,13 +33,23 @@ export const exportFinanceTransactionsExcel = ({
       "#": index + 1,
       Date: t.action_date ? moment(t.action_date).format("YYYY-MM-DD HH:mm") : "",
       Type: t.type === "expense" ? "Expense" : "Fee",
-      Details: t.type === "expense" ? t.title : t.student_name,
       "Category / Batch": t.batch_name || "",
       Action: t.action_type || "",
+      Payment:
+        t.payment_method ||
+        (t.action_type === "Paid" ? "Cash" : ""),
       Amount: amountRaw,
       By: t.action_by || "",
     };
   });
+
+  const batchRows = (Array.isArray(batchWise) ? batchWise : []).map((batch, index) => ({
+    "#": index + 1,
+    Batch: batch.batch_name || "Unassigned",
+    "Total Cash": toNumber(batch.total_cash),
+    "Total Online": toNumber(batch.total_online),
+    Total: toNumber(batch.total),
+  }));
 
   const metaSheet = XLSX.utils.aoa_to_sheet([
     ["Lahore CSS Academy"],
@@ -44,6 +60,11 @@ export const exportFinanceTransactionsExcel = ({
     ["Collected by", collectedBy || "All admin users"],
     ["Total Rows", rows.length],
     [],
+    ["Payment Collections"],
+    ["Total Cash", formatRs(totalCash)],
+    ["Total Online", formatRs(totalOnline)],
+    ["Combined", formatRs(toNumber(totalCash) + toNumber(totalOnline))],
+    [],
   ]);
 
   metaSheet["!cols"] = [{ wch: 26 }, { wch: 38 }];
@@ -53,18 +74,34 @@ export const exportFinanceTransactionsExcel = ({
     { wch: 6 },
     { wch: 18 },
     { wch: 10 },
-    { wch: 30 },
     { wch: 22 },
     { wch: 14 },
+    { wch: 16 },
     { wch: 12 },
     { wch: 22 },
   ];
 
+  const batchSheet =
+    batchRows.length > 0
+      ? XLSX.utils.json_to_sheet(batchRows, { skipHeader: false })
+      : XLSX.utils.aoa_to_sheet([
+          ["#", "Batch", "Total Cash", "Total Online", "Total"],
+          ["", "No batch collections in this period", "", "", ""],
+        ]);
+
+  batchSheet["!cols"] = [
+    { wch: 6 },
+    { wch: 28 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+  ];
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, metaSheet, "Report");
+  XLSX.utils.book_append_sheet(workbook, batchSheet, "Batch Wise");
   XLSX.utils.book_append_sheet(workbook, dataSheet, "Transactions");
   XLSX.writeFile(workbook, fileName);
 
   return fileName;
 };
-
