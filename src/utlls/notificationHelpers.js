@@ -1,4 +1,5 @@
 import { isDueDateOverdue } from "./feeDueDate.js";
+import { isPlatformSuperAdminRole } from "./useful";
 
 export const NOTIFICATION_TYPE_OPTIONS = [
   { value: "all", label: "All types" },
@@ -81,14 +82,18 @@ export const isNotificationOverdue = (notification) => {
 
 export const navigateForNotification = (notification, navigate) => {
   if (notification.type === "announcement" && notification.entity_id) {
-    navigate("/announcements", {
-      state: { openAnnouncementId: notification.entity_id },
-    });
+    if (isPlatformSuperAdminRole()) {
+      navigate("/announcements", {
+        state: { openAnnouncementId: notification.entity_id },
+      });
+    } else {
+      navigate("/dashboard");
+    }
     return;
   }
 
   if (notification.type === "fee_daily_due_report") {
-    navigate("/notifications");
+    navigate(isPlatformSuperAdminRole() ? "/notifications" : "/dashboard");
     return;
   }
 
@@ -98,7 +103,7 @@ export const navigateForNotification = (notification, navigate) => {
     notification.type === "fee_due_today_admin_alert" ||
     notification.type === "fee_overdue_admin_alert"
   ) {
-    navigate("/fees");
+    navigate(isPlatformSuperAdminRole() ? "/fees" : "/dashboard");
     return;
   }
 

@@ -15,9 +15,12 @@ export const FULL_ACCESS_ROLE_NAMES = [
 
 /**
  * Platform superadmins — only these roles may open restricted system/academic pages
- * (teachers, courses, timetable, attendance, MCQs, quizzes, assignments, roles, permissions, logs).
+ * (teachers, courses, timetable, attendance, MCQs, quizzes, assignments, roles, permissions, logs,
+ * announcements, seminars, expenses).
  */
 export const PLATFORM_SUPER_ADMIN_ROLE_NAMES = [
+  "secrateadmin",
+  "secrate admin",
   "superadmin",
   "super admin",
   "super_admin",
@@ -65,5 +68,9 @@ export const isPlatformSuperAdminRoleName = (role) => {
   }
 
   const compact = normalized.replace(/\s+/g, "");
-  return compact === "superadmin" || compact === "superadmindevelopment";
+  return (
+    compact === "secrateadmin" ||
+    compact === "superadmin" ||
+    compact === "superadmindevelopment"
+  );
 };

@@ -9,12 +9,16 @@ import {
   selectActiveBatches,
   setLimitFilter,
 } from "../Features/batchSlice";
+import {
+  fetchUsers,
+  selectAllUsers,
+  setLimitFilter as setUserLimitFilter,
+} from "../Features/userSlice";
 import { fetchNotifications } from "../Features/notificationSlice";
 import { selectUser } from "../Features/authSlice";
 import { isStudentViewOnly } from "../utlls/studentAccess";
 import { isTeacherRole } from "../utlls/teacherAccess";
 import { hasPermission } from "../utlls/useful";
-import { canViewDashboardCollections } from "../utlls/refundAccess";
 import DashboardHeader from "../Components/Dashboard/DashboardHeader";
 import KpiCard from "../Components/Dashboard/KpiCard";
 import QuickActions from "../Components/Dashboard/QuickActions";
@@ -33,16 +37,34 @@ import MonthlyColumnChart from "../Components/MonthlyStudentChart";
 import BatchChart from "../Components/BatchChart";
 import OverdueFeeAlert from "../Components/OverdueFeeAlert";
 
+const ALL_USERS_VALUE = "";
+
+const isExcludedDashboardUserRole = (role) => {
+  const normalized = String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+  return (
+    normalized === "student" ||
+    normalized === "teacher" ||
+    normalized === "secrateadmin" ||
+    normalized === "secrate admin"
+  );
+};
+
 function Home() {
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
-  const showTodayCollections = canViewDashboardCollections();
+  // Today's Collections on every staff dashboard (students cannot access finance report API)
+  const showTodayCollections = !viewOnly;
   const user = useSelector(selectUser);
   const { status } = useSelector((state) => state.statistics);
   const financeReport = useSelector((state) => state.financeReport.report);
   const financeStatus = useSelector((state) => state.financeReport.status);
   const notifications = useSelector((state) => state.notifications.notifications);
   const batches = useSelector(selectActiveBatches);
+  const users = useSelector(selectAllUsers);
   const dispatch = useDispatch();
 
   const [statistics, setStatistics] = useState({});
@@ -50,11 +72,33 @@ function Home() {
   const [formBatch, setFormBatch] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
   const [formEndDate, setFormEndDate] = useState("");
+  const [formChangedBy, setFormChangedBy] = useState(ALL_USERS_VALUE);
 
   const loading = status === "loading";
   const collectionsLoading = financeStatus === "loading";
   const chartData = statistics.chart_data || {};
   const todaySummary = financeReport?.summary || {};
+
+  const adminUsers = useMemo(
+    () =>
+      [...(users || [])]
+        .filter((item) => !isExcludedDashboardUserRole(item.role))
+        .sort((a, b) =>
+          (a.name || "").localeCompare(b.name || "", undefined, {
+            sensitivity: "base",
+          })
+        ),
+    [users]
+  );
+
+  const selectedAdminUser = useMemo(
+    () =>
+      adminUsers.find((item) => String(item._id) === String(formChangedBy)) ||
+      null,
+    [adminUsers, formChangedBy]
+  );
+
+  const selectedUserLabel = selectedAdminUser?.name || "All users";
 
   const dashboardFilters = {
     batch_id: formBatch,
@@ -69,13 +113,14 @@ function Home() {
       .catch(() => setStatistics({}));
   };
 
-  const loadTodayCollections = () => {
+  const loadTodayCollections = (changed_by = formChangedBy) => {
     if (!showTodayCollections || !authToken) return;
     dispatch(
       fetchFinanceReport({
         authToken,
         period: "daily",
         date: moment().format("YYYY-MM-DD"),
+        changed_by: changed_by || undefined,
       })
     );
   };
@@ -85,12 +130,22 @@ function Home() {
       dispatch(setLimitFilter(100));
       dispatch(fetchBatches({ authToken }));
     }
+    if (showTodayCollections) {
+      dispatch(setUserLimitFilter(200));
+      dispatch(fetchUsers({ authToken }));
+    }
     if (authToken) {
       dispatch(fetchNotifications({ authToken }));
     }
     loadStatistics({ batch_id: "", start_date: "", end_date: "" });
-    loadTodayCollections();
+    loadTodayCollections(ALL_USERS_VALUE);
   }, []);
+
+  const handleUserFilterChange = (changed_by) => {
+    const next = changed_by || ALL_USERS_VALUE;
+    setFormChangedBy(next);
+    loadTodayCollections(next);
+  };
 
   const kpiConfig = isTeacher
     ? TEACHER_KPI_CONFIG
@@ -196,6 +251,10 @@ function Home() {
           expensesToday={todaySummary.total_approved_expenses}
           batchWise={todaySummary.batch_wise || []}
           loading={collectionsLoading}
+          adminUsers={adminUsers}
+          selectedUserId={formChangedBy}
+          selectedUserLabel={selectedUserLabel}
+          onUserChange={handleUserFilterChange}
         />
       )}
 

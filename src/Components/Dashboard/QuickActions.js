@@ -37,7 +37,6 @@ const STUDENT_ACTIONS = [
   { label: "Assignments", icon: ClipboardList, path: "/assignments" },
   { label: "Quizzes", icon: BrainCircuit, path: "/course-quizzes" },
   { label: "Attendance", icon: UserRoundCheck, path: "/attendance" },
-  { label: "Fees", icon: Layers, path: "/fees" },
 ];
 
 function QuickActions() {

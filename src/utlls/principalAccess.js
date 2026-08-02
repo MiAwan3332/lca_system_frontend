@@ -8,6 +8,8 @@ import { extractRoleFromToken } from "./useful";
  * Roles, Permissions, and activity logs).
  */
 export const PRINCIPAL_BLOCKED_ROUTE_PATHS = [
+  "/fees",
+  "/notifications",
   "/teacher",
   "/course",
   "/timetable",
@@ -16,6 +18,9 @@ export const PRINCIPAL_BLOCKED_ROUTE_PATHS = [
   "/quiz",
   "/assignments",
   "/course-quizzes",
+  "/seminar",
+  "/announcements",
+  "/expenses",
   "/complaints",
   "/role",
   "/permission",

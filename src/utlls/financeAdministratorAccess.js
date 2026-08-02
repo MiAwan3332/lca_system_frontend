@@ -5,9 +5,7 @@ import { extractRoleFromToken } from "./useful";
 export const FINANCE_ADMIN_ROUTE_PATHS = [
   "/dashboard",
   "/profile",
-  "/fees",
   "/finance-report",
-  "/expenses",
 ];
 
 const normalizeRole = (role) =>
