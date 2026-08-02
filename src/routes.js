@@ -46,7 +46,7 @@ export const routes = [
     path: "/profile",
     hidden: true,
   },
-  { name: "Users", icon: UsersRound, component: <User />, path: "/user" },
+  
   {
     name: "Students",
     icon: GraduationCap,
@@ -67,6 +67,7 @@ export const routes = [
     component: <FinanceReport />,
     path: "/finance-report",
   },
+  { name: "Users", icon: UsersRound, component: <User />, path: "/user" },
   {
     name: "Expenses",
     icon: Receipt,
