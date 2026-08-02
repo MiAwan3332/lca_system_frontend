@@ -6,6 +6,8 @@ export const STUDENT_TEMPLATE_HEADERS = [
   "Total Fee",
   "Paid Amount",
   "Pending Amount",
+  "Online Amount",
+  "Cash Amount",
   "Remarks",
 ];
 
@@ -15,6 +17,14 @@ const HEADER_ALIASES = {
   total_fee: ["total fee", "total fees", "total amount", "fee total"],
   paid_fee: ["paid amount", "paid fee", "paid", "amount paid"],
   pending_fee: ["pending amount", "pending fee", "pending", "balance"],
+  online_amount: [
+    "online amount",
+    "online",
+    "online paid",
+    "online payment",
+    "bank amount",
+  ],
+  cash_amount: ["cash amount", "cash", "cash paid", "cash payment"],
   remarks: ["remarks", "note", "notes", "comment"],
 };
 
@@ -54,6 +64,8 @@ export const downloadStudentTemplate = ({
   const sampleTotal = Number.isFinite(totalFee) && totalFee > 0 ? totalFee : 50000;
   const samplePartialPaid = Math.round(sampleTotal * 0.2);
   const samplePartialPending = sampleTotal - samplePartialPaid;
+  const sampleOnline = Math.round(samplePartialPaid * 0.5);
+  const sampleCash = samplePartialPaid - sampleOnline;
 
   const worksheet = XLSX.utils.aoa_to_sheet([
     STUDENT_TEMPLATE_HEADERS,
@@ -63,6 +75,8 @@ export const downloadStudentTemplate = ({
       sampleTotal,
       samplePartialPaid,
       samplePartialPending,
+      sampleOnline,
+      sampleCash,
       `${batchName} admission`,
     ],
     [
@@ -71,6 +85,8 @@ export const downloadStudentTemplate = ({
       sampleTotal,
       sampleTotal,
       0,
+      0,
+      sampleTotal,
       "Full payment",
     ],
   ]);
@@ -81,6 +97,8 @@ export const downloadStudentTemplate = ({
     { wch: 14 },
     { wch: 14 },
     { wch: 16 },
+    { wch: 14 },
+    { wch: 14 },
     { wch: 24 },
   ];
 
@@ -118,14 +136,22 @@ export const parseStudentExcelFile = async (file) => {
     }
   });
 
-  const requiredFields = ["name", "phone", "total_fee", "paid_fee", "pending_fee"];
+  const requiredFields = [
+    "name",
+    "phone",
+    "total_fee",
+    "paid_fee",
+    "pending_fee",
+    "online_amount",
+    "cash_amount",
+  ];
   const missingHeaders = requiredFields.filter(
     (field) => fieldIndexes[field] === undefined
   );
 
   if (missingHeaders.length > 0) {
     throw new Error(
-      `Missing required columns. Expected: Name, Phone, Total Fee, Paid Amount, Pending Amount (Remarks optional)`
+      `Missing required columns. Expected: Name, Phone, Total Fee, Paid Amount, Pending Amount, Online Amount, Cash Amount (Remarks optional)`
     );
   }
 
@@ -140,12 +166,26 @@ export const parseStudentExcelFile = async (file) => {
     const totalFee = toNumber(row[fieldIndexes.total_fee]);
     const paidFee = toNumber(row[fieldIndexes.paid_fee]);
     const pendingFee = toNumber(row[fieldIndexes.pending_fee]);
+    const onlineAmount = toNumber(row[fieldIndexes.online_amount]);
+    const cashAmount = toNumber(row[fieldIndexes.cash_amount]);
 
-    if (Number.isNaN(totalFee) || Number.isNaN(paidFee) || Number.isNaN(pendingFee)) {
+    if (
+      Number.isNaN(totalFee) ||
+      Number.isNaN(paidFee) ||
+      Number.isNaN(pendingFee) ||
+      Number.isNaN(onlineAmount) ||
+      Number.isNaN(cashAmount)
+    ) {
       throw new Error(`Row ${rowIndex + 1}: fee amounts must be valid numbers`);
     }
 
-    if (totalFee < 0 || paidFee < 0 || pendingFee < 0) {
+    if (
+      totalFee < 0 ||
+      paidFee < 0 ||
+      pendingFee < 0 ||
+      onlineAmount < 0 ||
+      cashAmount < 0
+    ) {
       throw new Error(`Row ${rowIndex + 1}: fee amounts cannot be negative`);
     }
 
@@ -160,12 +200,20 @@ export const parseStudentExcelFile = async (file) => {
       );
     }
 
+    if (Math.abs(onlineAmount + cashAmount - paidFee) > 0.01) {
+      throw new Error(
+        `Row ${rowIndex + 1}: online amount + cash amount must equal paid amount (${paidFee})`
+      );
+    }
+
     students.push({
       name: String(row[fieldIndexes.name] ?? "").trim(),
       phone: String(row[fieldIndexes.phone] ?? "").trim(),
       total_fee: totalFee,
       paid_fee: paidFee,
       pending_fee: pendingFee,
+      online_amount: onlineAmount,
+      cash_amount: cashAmount,
       remarks:
         fieldIndexes.remarks !== undefined
           ? String(row[fieldIndexes.remarks] ?? "").trim()

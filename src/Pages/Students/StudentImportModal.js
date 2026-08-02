@@ -187,11 +187,12 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
               Template columns
             </Text>
             <Text fontSize="sm" color="gray.600">
-              Name, Phone, Total Fee, Paid Amount, Pending Amount, Remarks
-              (optional)
+              Name, Phone, Total Fee, Paid Amount, Pending Amount, Online Amount,
+              Cash Amount, Remarks (optional)
             </Text>
             <Text fontSize="sm" color="gray.500" mt={2}>
-              Pending Amount must equal Total Fee minus Paid Amount.
+              Pending Amount must equal Total Fee minus Paid Amount. Online Amount +
+              Cash Amount must equal Paid Amount.
             </Text>
             <Button
               mt={3}
