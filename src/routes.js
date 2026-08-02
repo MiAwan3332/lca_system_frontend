@@ -59,6 +59,7 @@ export const routes = [
     icon: CircleDollarSign,
     component: <Fees />,
     path: "/fees",
+    superAdminOnly: true,
   },
   {
     name: "Finance Report",
@@ -71,6 +72,7 @@ export const routes = [
     icon: Receipt,
     component: <Expense />,
     path: "/expenses",
+    superAdminOnly: true,
   },
   {
     name: "Request Management",
@@ -117,6 +119,7 @@ export const routes = [
     icon: Presentation,
     component: <Seminars />,
     path: "/seminar",
+    superAdminOnly: true,
   },
   {
     name: "Mcqs",
@@ -158,6 +161,7 @@ export const routes = [
     icon: Megaphone,
     component: <Announcements />,
     path: "/announcements",
+    superAdminOnly: true,
   },
   {
     name: "Notifications",
@@ -165,6 +169,7 @@ export const routes = [
     component: <NotificationsPage />,
     path: "/notifications",
     adminOnly: true,
+    superAdminOnly: true,
   },
   {
     name: "Google Workspace",

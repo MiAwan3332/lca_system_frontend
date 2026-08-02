@@ -20,7 +20,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "../Features/notificationSlice";
-import { isInstitutionAdmin } from "../utlls/teacherAccess";
+import { isPlatformSuperAdminRole } from "../utlls/useful";
 import {
   getNotificationActionHint,
   getNotificationColorScheme,
@@ -34,7 +34,6 @@ function NotificationBell() {
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const isAdmin = isInstitutionAdmin();
   const { notifications, unreadCount } = useSelector((state) => state.notifications);
 
   useEffect(() => {
@@ -156,7 +155,7 @@ function NotificationBell() {
             );
           })
         )}
-        {isAdmin && (
+        {isPlatformSuperAdminRole() && (
           <>
             <MenuDivider />
             <Box px={3} py={2}>

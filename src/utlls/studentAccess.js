@@ -33,7 +33,6 @@ export const STUDENT_ROUTE_PATHS = [
   "/profile",
   "/user",
   "/student",
-  "/fees",
   "/teacher",
   "/batch",
   "/course",
@@ -42,11 +41,12 @@ export const STUDENT_ROUTE_PATHS = [
   "/quiz",
   "/assignments",
   "/course-quizzes",
-  "/announcements",
 ];
 
-/** Only Super Admin / Super Admin Development (teachers & students keep their own allowlists). */
+/** Only Super Admins (teachers & students keep allowlists for teaching/learning pages only). */
 export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
+  "/fees",
+  "/notifications",
   "/teacher",
   "/course",
   "/timetable",
@@ -55,6 +55,9 @@ export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
   "/quiz",
   "/assignments",
   "/course-quizzes",
+  "/seminar",
+  "/announcements",
+  "/expenses",
   "/role",
   "/permission",
   "/activity-logs/students",
@@ -70,12 +73,30 @@ export const isSuperAdminOnlyRoute = (path) => {
 };
 
 /**
- * Restricted system/academic pages: Super Admin + Super Admin Development only.
- * Teachers and students still use their dedicated allowlists.
+ * Restricted pages: all Super Admins only.
+ * Teachers/students may still open teaching/learning paths on their allowlists
+ * (not fees, notifications, announcements, seminars, or expenses).
  */
 export const canAccessSuperAdminOnlyRoute = (path) => {
   if (!isSuperAdminOnlyRoute(path)) return true;
   if (isPlatformSuperAdminRole()) return true;
+
+  const lockedForEveryoneElse = [
+    "/fees",
+    "/notifications",
+    "/seminar",
+    "/announcements",
+    "/expenses",
+    "/role",
+    "/permission",
+  ];
+  if (
+    lockedForEveryoneElse.includes(String(path || "")) ||
+    String(path || "").startsWith("/activity-logs")
+  ) {
+    return false;
+  }
+
   if (isTeacherRole()) return canAccessTeacherRoute(path);
   if (isStudentRole()) {
     if (isStudentProfileIncomplete() && path !== "/student") return false;

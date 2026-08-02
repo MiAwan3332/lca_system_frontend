@@ -6,12 +6,8 @@ export const INFORMATION_OFFICE_ROUTE_PATHS = [
   "/dashboard",
   "/profile",
   "/student",
-  "/fees",
   "/finance-report",
   "/batch",
-  "/seminar",
-  "/announcements",
-  "/notifications",
 ];
 
 const normalizeRole = (role) =>

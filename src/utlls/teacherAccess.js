@@ -13,7 +13,6 @@ export const TEACHER_ROUTE_PATHS = [
   "/mcq",
   "/assignments",
   "/course-quizzes",
-  "/announcements",
 ];
 
 export const isTeacherRole = () => {
