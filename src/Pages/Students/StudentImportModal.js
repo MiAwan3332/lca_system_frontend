@@ -192,7 +192,8 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
             </Text>
             <Text fontSize="sm" color="gray.500" mt={2}>
               Pending Amount must equal Total Fee minus Paid Amount. Online Amount +
-              Cash Amount must equal Paid Amount.
+              Cash Amount must equal Paid Amount. If Total Fee is less than the selected
+              batch fee, the difference is saved as a discount.
             </Text>
             <Button
               mt={3}

@@ -205,13 +205,14 @@ function ShiftBatchModal({ student }) {
 
       const slipFile = await generatePendingFeeSlipPdf({
         name: student.name,
-        email: student.email,
         phone: student.phone,
+        cnic: student.cnic,
         rollNumber: student.roll_number,
         batchName: currentBatchName,
         totalFee: student.total_fee,
         paidFee: student.paid_fee,
         pendingAmount,
+        photoUrl: student.image ? getMediaUrl(student.image) : null,
       });
 
       const created = await dispatch(
