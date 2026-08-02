@@ -26,7 +26,6 @@ import StudentHistoryModal from "./StudentHistoryModal";
 import GeneratePendingFeeSlipAction from "./GeneratePendingFeeSlipAction";
 import RefundRequestAction from "./RefundRequestAction";
 import ProcessRefundAction from "./ProcessRefundAction";
-import { formatStudentEmail } from "../../utlls/studentEmail";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -193,14 +192,14 @@ function Student() {
     });
   };
   const tableColumnCount = viewOnly
-    ? 7
+    ? 6
     : isTeacher
     ? showStatusColumn
-      ? 7
-      : 6
+      ? 6
+      : 5
     : showStatusColumn
-    ? 9
-    : 8;
+    ? 8
+    : 7;
 
   useEffect(() => {
     if (isTeacher) {
@@ -467,7 +466,6 @@ function Student() {
                 )}
                 <Th>Roll No</Th>
                 <Th data-searchable>Name</Th>
-                <Th data-searchable>Email</Th>
                 <Th data-searchable>Phone</Th>
                 <Th>City</Th>
                 <Th>Last Active Batch</Th>
@@ -493,10 +491,21 @@ function Student() {
               ) : (
                 students.map((student, index) => {
                   const isActive = student.is_active !== false;
+                  const hasPendingFee = Number(student.pending_fee) > 0;
                   return (
                   <Tr
                     key={student._id}
-                    className={!isActive ? "opacity-70" : ""}
+                    className={[
+                      !isActive ? "opacity-70" : "",
+                      hasPendingFee ? "student-row--pending-fee" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    title={
+                      hasPendingFee
+                        ? `Pending fee: Rs. ${Number(student.pending_fee).toLocaleString()}`
+                        : undefined
+                    }
                   >
                     <Td>
                       {(pagination.page - 1) * pagination.limit + index + 1}
@@ -513,8 +522,16 @@ function Student() {
                     </Td>
                     )}
                     <Td>{student.roll_number || "—"}</Td>
-                    <Td>{student.name}</Td>
-                    <Td>{formatStudentEmail(student.email)}</Td>
+                    <Td>
+                      <HStack spacing={2} align="center">
+                        <Text as="span">{student.name}</Text>
+                        {hasPendingFee && (
+                          <Badge colorScheme="orange" borderRadius="md">
+                            Pending
+                          </Badge>
+                        )}
+                      </HStack>
+                    </Td>
                     <Td>{student.phone}</Td>
                     <Td>{student.city || "-"}</Td>
                     <Td>{student.batch ? student.batch.name : "No Batch"}</Td>
@@ -538,7 +555,7 @@ function Student() {
                       <div className="action-cell">
                         <ActionMenu>
                           <StudentHistoryModal student={student} />
-                          {Number(student.pending_fee) > 0 && (
+                          {hasPendingFee && (
                             <GeneratePendingFeeSlipAction student={student} />
                           )}
                           {hasPermission(["Update_Student"]) && (

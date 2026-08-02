@@ -472,6 +472,18 @@
     @apply w-full max-w-[1600px] mx-auto;
   }
 
+  .student-row--pending-fee > td {
+    background-color: rgba(255, 203, 130, 0.28) !important;
+  }
+
+  .student-row--pending-fee > td:first-child {
+    box-shadow: inset 4px 0 0 #d69e2e;
+  }
+
+  .chakra-ui-dark .student-row--pending-fee > td {
+    background-color: rgba(214, 158, 46, 0.22) !important;
+  }
+
   .kpi-grid {
     @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4;
   }
