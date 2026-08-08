@@ -24,6 +24,8 @@ import UpdateModal from "./UpdateModal";
 import ShiftBatchModal from "./ShiftBatchModal";
 import StudentHistoryModal from "./StudentHistoryModal";
 import GeneratePendingFeeSlipAction from "./GeneratePendingFeeSlipAction";
+import GeneratePendingFeeWizard from "./GeneratePendingFeeWizard";
+import ReprintFeeSlipAction from "./ReprintFeeSlipAction";
 import RefundRequestAction from "./RefundRequestAction";
 import ProcessRefundAction from "./ProcessRefundAction";
 import { useDispatch, useSelector } from "react-redux";
@@ -33,7 +35,7 @@ import {
   setLimitFilter as setBatchLimitFilter,
 } from "../../Features/batchSlice";
 import QrCodeModal from "../../Components/Modals/Student/QrCodeModal";
-import { FileX, FilterX, Plus, FileUp, Download } from "lucide-react";
+import { FileX, FilterX, Plus, FileUp } from "lucide-react";
 import {
   fetchStudents,
   selectAllStudents,
@@ -59,7 +61,6 @@ import StudentCardModal from "../../Components/Modals/Student/StudentCardModal";
 import ViewModal from "./ViewModal";
 import ExportModal from "./ExportModal";
 import StudentImportModal from "./StudentImportModal";
-import { downloadStudentTemplate } from "../../utlls/studentExcel";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
@@ -185,12 +186,6 @@ function Student() {
   const canUpdateStudent = hasPermission(["Update_Student"]);
   const showStatusColumn = !viewOnly && canUpdateStudent;
 
-  const handleDownloadImportTemplate = () => {
-    downloadStudentTemplate({
-      batchName: selectedBatch?.name || "Sample Batch",
-      batchFee: selectedBatch?.batch_fee,
-    });
-  };
   const tableColumnCount = viewOnly
     ? 6
     : isTeacher
@@ -250,14 +245,6 @@ function Student() {
                 <button
                   type="button"
                   className="table-action-btn"
-                  onClick={handleDownloadImportTemplate}
-                >
-                  <Download size={18} />
-                  Download Template
-                </button>
-                <button
-                  type="button"
-                  className="table-action-btn"
                   onClick={onImportOpen}
                 >
                   <FileUp size={18} />
@@ -270,6 +257,7 @@ function Student() {
                   <Plus size={18} />
                   Add Student
                 </button>
+                <GeneratePendingFeeWizard />
               </>
             )}
             <ExportModal />
@@ -558,6 +546,7 @@ function Student() {
                           {hasPendingFee && (
                             <GeneratePendingFeeSlipAction student={student} />
                           )}
+                          <ReprintFeeSlipAction student={student} />
                           {hasPermission(["Update_Student"]) && (
                             <>
                               <UpdateModal student={student} />

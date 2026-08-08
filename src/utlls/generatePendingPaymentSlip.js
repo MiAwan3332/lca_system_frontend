@@ -161,6 +161,7 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     outstandingBalance = 0,
     payingNow = 0,
     remainingAfter = 0,
+    discountAmount = 0,
     paymentOption = "full",
     paymentMethod = "Cash",
     nextInstallmentDate = "",
@@ -169,6 +170,7 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     authorizedBy = "",
     classStartTime = "",
     classEndTime = "",
+    isDuplicate = false,
   } = data;
 
   const studentName = String(name || "").trim();
@@ -176,8 +178,9 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     throw new Error("Student name is required to print the fee slip.");
   }
 
-  if (!(Number(payingNow) > 0)) {
-    throw new Error("Enter a payment amount before printing the fee slip.");
+  const discount = Math.max(Number(discountAmount) || 0, 0);
+  if (!(Number(payingNow) > 0) && !(discount > 0)) {
+    throw new Error("Enter a payment or discount amount before printing the fee slip.");
   }
 
   const paymentType =
@@ -265,7 +268,11 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.white);
-  doc.text("FEE PAYMENT SLIP", titleX, cardY + 16);
+  doc.text(
+    isDuplicate ? "FEE PAYMENT SLIP (DUPLICATE)" : "FEE PAYMENT SLIP",
+    titleX,
+    cardY + 16
+  );
 
   // Photo + name
   let y = cardY + headerH + 5;
@@ -435,6 +442,16 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     innerX + halfW + gap,
     y,
     halfW,
+    chipH,
+    "Discount",
+    formatCurrency(discount)
+  );
+  y += chipH + gap;
+
+  drawChip(
+    innerX,
+    y,
+    innerW,
     chipH,
     "Remaining After",
     formatCurrency(remainingAfter)

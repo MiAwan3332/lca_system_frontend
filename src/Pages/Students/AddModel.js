@@ -979,6 +979,11 @@ function AddStudnet({ isOpen, onClose }) {
         {...responsiveModalContentProps}
         as="form"
         onSubmit={formik.handleSubmit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA") {
+            e.preventDefault();
+          }
+        }}
         display="flex"
         flexDirection="column"
         maxH={{ base: "100dvh", sm: "92vh" }}

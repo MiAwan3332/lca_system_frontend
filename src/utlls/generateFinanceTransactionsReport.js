@@ -33,6 +33,10 @@ export const exportFinanceTransactionsExcel = ({
       "#": index + 1,
       Date: t.action_date ? moment(t.action_date).format("YYYY-MM-DD HH:mm") : "",
       Type: t.type === "expense" ? "Expense" : "Fee",
+      Student:
+        t.type === "expense"
+          ? t.title || ""
+          : t.student_name || "",
       "Category / Batch": t.batch_name || "",
       Action: t.action_type || "",
       Payment:
@@ -74,6 +78,7 @@ export const exportFinanceTransactionsExcel = ({
     { wch: 6 },
     { wch: 18 },
     { wch: 10 },
+    { wch: 22 },
     { wch: 22 },
     { wch: 14 },
     { wch: 16 },

@@ -176,16 +176,26 @@ const collectPendingFee = createAsyncThunk(
             remarks,
             next_installment_date,
             payment_evidence,
+            discount_amount,
+            discount_description,
         } = payload;
 
         const formData = new FormData();
         formData.append("payment_option", payment_option);
-        formData.append("payment_method", payment_method);
         formData.append("remarks", remarks || "");
+        if (payment_method) {
+            formData.append("payment_method", payment_method);
+        }
         if (payment_option === "partial") {
             formData.append("amount", String(amount));
             if (next_installment_date) {
                 formData.append("next_installment_date", next_installment_date);
+            }
+        }
+        if (Number(discount_amount) > 0) {
+            formData.append("discount_amount", String(discount_amount));
+            if (discount_description) {
+                formData.append("discount_description", discount_description);
             }
         }
         appendPaymentEvidenceFiles(formData, payment_evidence);
