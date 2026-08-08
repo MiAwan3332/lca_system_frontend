@@ -88,10 +88,6 @@ const TRANSACTION_TYPE_OPTIONS = [
 
 const ACTION_TYPE_OPTIONS = [
   { value: "Paid", label: "Paid" },
-  { value: "Created", label: "Created" },
-  { value: "Discounted", label: "Discounted" },
-  { value: "Deleted", label: "Deleted" },
-  { value: "Refund", label: "Refund" },
   { value: "Pending", label: "Pending" },
   { value: "Expense", label: "Expense" },
 ];
@@ -759,6 +755,7 @@ function FinanceReport() {
                 <Th>No</Th>
                 <Th>Date</Th>
                 <Th>Type</Th>
+                <Th>Student</Th>
                 <Th>Category / Batch</Th>
                 <Th>Action</Th>
                 <Th>Payment</Th>
@@ -770,8 +767,8 @@ function FinanceReport() {
             <Tbody>
               {status === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={9}
-                  actions={["w-10", "w-24", "w-16", "w-24", "w-20", "w-16", "w-20", "w-24", "w-16"]}
+                  nOfColumns={10}
+                  actions={["w-10", "w-24", "w-16", "w-28", "w-24", "w-20", "w-16", "w-20", "w-24", "w-16"]}
                 />
               ) : filteredTransactions.length > 0 ? (
                 filteredTransactions.map((transaction, index) => (
@@ -785,6 +782,11 @@ function FinanceReport() {
                         {transaction.type === "expense" ? "Expense" : "Fee"}
                       </Badge>
                     </Td>
+                    <Td>
+                      {transaction.type === "expense"
+                        ? transaction.title || "—"
+                        : transaction.student_name || "—"}
+                    </Td>
                     <Td>{transaction.batch_name}</Td>
                     <Td>
                       <Badge
@@ -793,15 +795,9 @@ function FinanceReport() {
                             ? "green"
                             : transaction.action_type === "Expense"
                               ? "red"
-                              : transaction.action_type === "Created"
-                                ? "blue"
-                                : transaction.action_type === "Discounted"
-                                  ? "orange"
-                                  : transaction.action_type === "Refund"
-                                    ? "red"
-                                  : transaction.action_type === "Pending"
-                                    ? "yellow"
-                                    : "gray"
+                              : transaction.action_type === "Pending"
+                                ? "yellow"
+                                : "gray"
                         }
                       >
                         {transaction.action_type}
@@ -857,7 +853,7 @@ function FinanceReport() {
                 ))
               ) : (
                 <Tr>
-                  <Td colSpan={9}>
+                  <Td colSpan={10}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1] py-6">
                       {report?.transactions?.length > 0
                         ? "No transactions match the selected filters"

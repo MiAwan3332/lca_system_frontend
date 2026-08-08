@@ -4,13 +4,14 @@ import moment from "moment";
 const COLORS = {
   gold: [255, 203, 130],
   goldDark: [133, 101, 45],
-  border: [224, 232, 236],
-  gray: [113, 128, 150],
-  grayLight: [247, 250, 252],
-  text: [45, 55, 72],
+  border: [200, 210, 218],
+  gray: [90, 100, 110],
+  grayLight: [245, 247, 249],
+  text: [35, 45, 55],
   white: [255, 255, 255],
-  expense: [229, 62, 62],
-  fee: [45, 65, 133],
+  expense: [200, 50, 50],
+  fee: [40, 70, 140],
+  rowAlt: [250, 251, 252],
 };
 
 const toNumber = (value) => {
@@ -65,9 +66,20 @@ const svgIconToPngDataUrl = async (svgUrl, widthPx = 140) => {
   return canvas.toDataURL("image/png");
 };
 
-const wrapText = (doc, text, maxWidth) =>
-  doc.splitTextToSize(String(text ?? ""), maxWidth);
+const clip = (doc, text, maxWidth) => {
+  const value = String(text ?? "");
+  if (!value) return "—";
+  if (doc.getTextWidth(value) <= maxWidth) return value;
+  let clipped = value;
+  while (clipped.length > 1 && doc.getTextWidth(`${clipped}…`) > maxWidth) {
+    clipped = clipped.slice(0, -1);
+  }
+  return `${clipped}…`;
+};
 
+/**
+ * Compact landscape finance PDF — minimal gaps so batches fit in ~1.5–2 pages.
+ */
 export const exportFinanceTransactionsPdf = async ({
   transactions = [],
   period = "daily",
@@ -90,229 +102,74 @@ export const exportFinanceTransactionsPdf = async ({
     toNumber(value).toLocaleString("en-PK", { maximumFractionDigits: 0 });
 
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
-  const margin = 12;
+  const margin = 6;
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
 
   let iconPng;
   try {
-    iconPng = await svgIconToPngDataUrl("/logo_dark.svg", 140);
+    iconPng = await svgIconToPngDataUrl("/logo_dark.svg", 120);
   } catch {
     iconPng = null;
   }
 
   const drawFooter = () => {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(6);
     doc.setTextColor(...COLORS.gray);
     doc.text(
       "Lahore CSS Academy · Finance Transactions Report",
       margin,
-      pageHeight - 5
+      pageHeight - 3.5
     );
-    doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth - margin, pageHeight - 5, {
+    doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth - margin, pageHeight - 3.5, {
       align: "right",
     });
   };
 
   const drawHeader = () => {
-    const headerH = 24;
+    const headerH = 14;
     doc.setFillColor(...COLORS.gold);
     doc.rect(0, 0, pageWidth, headerH, "F");
 
-    const academyLabel = "Lahore CSS Academy";
-    const iconW = 10;
-    const iconH = 9;
-    const boxPad = 2;
-    const iconTextGap = 2;
-    const logoBoxH = 12;
+    const logoBoxH = 9;
+    const logoBoxY = 2.5;
     const logoBoxX = margin;
-    const logoBoxY = 6;
-    const titleY = logoBoxY + logoBoxH / 2 + 1;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    const academyTextW = doc.getTextWidth(academyLabel);
-    const logoBoxW = boxPad + iconW + iconTextGap + academyTextW + boxPad;
+    const iconW = 7;
+    const iconH = 6.5;
 
     doc.setFillColor(...COLORS.white);
-    doc.roundedRect(logoBoxX, logoBoxY, logoBoxW, logoBoxH, 1.5, 1.5, "F");
-
-    const iconX = logoBoxX + boxPad;
-    const iconY = logoBoxY + (logoBoxH - iconH) / 2;
+    doc.roundedRect(logoBoxX, logoBoxY, 52, logoBoxH, 1, 1, "F");
 
     if (iconPng) {
-      doc.addImage(iconPng, "PNG", iconX, iconY, iconW, iconH, undefined, "FAST");
-    } else {
-      doc.setFillColor(...COLORS.goldDark);
-      doc.roundedRect(iconX, iconY, iconW, iconH, 1.5, 1.5, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
-      doc.setTextColor(...COLORS.white);
-      doc.text("LCA", iconX + iconW / 2, iconY + iconH / 2 + 1, { align: "center" });
+      doc.addImage(iconPng, "PNG", logoBoxX + 1.5, logoBoxY + 1.2, iconW, iconH, undefined, "FAST");
     }
 
-    const academyX = iconX + iconW + iconTextGap;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.goldDark);
+    doc.text("Lahore CSS Academy", logoBoxX + 10, logoBoxY + 6);
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(...COLORS.goldDark);
-    doc.text(academyLabel, academyX, titleY);
-
-    const reportX = logoBoxX + logoBoxW + 5;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
     doc.setTextColor(...COLORS.text);
-    doc.text("Finance Transactions", reportX, titleY);
+    doc.text("Finance Transactions", logoBoxX + 55, logoBoxY + 6);
 
-    const metaText = `${label.toUpperCase()} report · ${safeDate} · Batch: ${batchName || "All"} · By: ${collectedByLabel}`;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(6.5);
     doc.setTextColor(...COLORS.gray);
-    doc.text(metaText, pageWidth - margin, titleY, { align: "right" });
-  };
+    doc.text(
+      `${label.toUpperCase()} · ${safeDate} · Batch: ${batchName || "All"} · By: ${collectedByLabel}`,
+      pageWidth - margin,
+      logoBoxY + 6,
+      { align: "right" }
+    );
 
-  const drawSummaryRow = (y, totalCount, totalFee, totalExpense, net) => {
-    const cardH = 14;
-    const gap = 4;
-    const cardW = (contentWidth - gap * 3) / 4;
-
-    const drawCard = (x, labelText, valueText, accent) => {
-      doc.setFillColor(...COLORS.white);
-      doc.setDrawColor(...COLORS.border);
-      doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
-      doc.setFillColor(...accent);
-      doc.roundedRect(x, y, cardW, 3, 2, 2, "F");
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(...COLORS.gray);
-      doc.text(labelText, x + 3, y + 7.5);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(...COLORS.text);
-      doc.text(String(valueText), x + 3, y + 12);
-    };
-
-    drawCard(margin, "Transactions", totalCount, COLORS.gold);
-    drawCard(margin + (cardW + gap) * 1, "Fee Income", `Rs. ${totalFee}`, COLORS.fee);
-    drawCard(margin + (cardW + gap) * 2, "Expenses", `Rs. ${totalExpense}`, COLORS.expense);
-    drawCard(margin + (cardW + gap) * 3, "Net", `Rs. ${net}`, COLORS.goldDark);
-  };
-
-  const drawPaymentSummary = (startY) => {
-    const cardH = 14;
-    const gap = 4;
-    const cardW = (contentWidth - gap) / 2;
-
-    const drawCard = (x, labelText, valueText, accent) => {
-      doc.setFillColor(...COLORS.white);
-      doc.setDrawColor(...COLORS.border);
-      doc.roundedRect(x, startY, cardW, cardH, 2, 2, "FD");
-      doc.setFillColor(...accent);
-      doc.roundedRect(x, startY, cardW, 3, 2, 2, "F");
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(...COLORS.gray);
-      doc.text(labelText, x + 3, startY + 7.5);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(...COLORS.text);
-      doc.text(`Rs. ${formatAmount(valueText)}`, x + 3, startY + 12);
-    };
-
-    drawCard(margin, "Total Cash", cashTotal, COLORS.goldDark);
-    drawCard(margin + cardW + gap, "Total Online", onlineTotal, COLORS.fee);
-    return startY + cardH + 4;
-  };
-
-  const drawBatchWiseSection = (startY) => {
-    let yPos = startY;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Batch-wise collections", margin, yPos + 4);
-    yPos += 7;
-
-    if (!batchList.length) {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.gray);
-      doc.text("No batch collections in this period.", margin, yPos + 3);
-      return yPos + 8;
-    }
-
-    const col = {
-      batch: 70,
-      cash: 40,
-      online: 40,
-      total: 40,
-    };
-    const tableW = col.batch + col.cash + col.online + col.total;
-    const rowH = 8;
-
-    const drawBatchHeader = () => {
-      doc.setFillColor(...COLORS.grayLight);
-      doc.setDrawColor(...COLORS.border);
-      doc.roundedRect(margin, yPos, tableW, rowH, 1.5, 1.5, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.text);
-      let x = margin;
-      const put = (txt, w, align = "left") => {
-        const tx = align === "right" ? x + w - 2 : x + 2;
-        doc.text(String(txt), tx, yPos + 5.5, { align });
-        x += w;
-      };
-      put("Batch", col.batch);
-      put("Cash", col.cash, "right");
-      put("Online", col.online, "right");
-      put("Total", col.total, "right");
-      yPos += rowH + 1.5;
-    };
-
-    drawBatchHeader();
-
-    batchList.forEach((batch) => {
-      if (yPos + rowH > pageHeight - margin - 8) {
-        drawFooter();
-        doc.addPage();
-        drawHeader();
-        yPos = 30;
-        drawBatchHeader();
-      }
-
-      doc.setDrawColor(...COLORS.border);
-      doc.setFillColor(...COLORS.white);
-      doc.roundedRect(margin, yPos, tableW, rowH, 1.2, 1.2, "FD");
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.text);
-
-      let x = margin;
-      const put = (txt, w, align = "left") => {
-        const tx = align === "right" ? x + w - 2 : x + 2;
-        doc.text(String(txt ?? ""), tx, yPos + 5.5, {
-          align,
-          maxWidth: w - 4,
-        });
-        x += w;
-      };
-
-      put(batch.batch_name || "Unassigned", col.batch);
-      put(`Rs. ${formatAmount(batch.total_cash)}`, col.cash, "right");
-      put(`Rs. ${formatAmount(batch.total_online)}`, col.online, "right");
-      put(`Rs. ${formatAmount(batch.total)}`, col.total, "right");
-      yPos += rowH + 1.5;
-    });
-
-    return yPos + 2;
+    return headerH;
   };
 
   const txns = Array.isArray(transactions) ? transactions : [];
-
   const totals = txns.reduce(
     (acc, t) => {
       const isExpense = t.type === "expense";
@@ -325,154 +182,171 @@ export const exportFinanceTransactionsPdf = async ({
     { count: 0, fee: 0, expense: 0 }
   );
 
-  const feeTotal = totals.fee.toLocaleString("en-PK", { maximumFractionDigits: 0 });
-  const expenseTotal = totals.expense.toLocaleString("en-PK", { maximumFractionDigits: 0 });
-  const netTotal = (totals.fee - totals.expense).toLocaleString("en-PK", {
-    maximumFractionDigits: 0,
-  });
-
   drawHeader();
-  let y = 30;
-  drawSummaryRow(y, totals.count, feeTotal, expenseTotal, netTotal);
-  y += 20;
-  y = drawPaymentSummary(y);
-  y = drawBatchWiseSection(y);
-  y += 2;
+  let y = 16;
 
-  // Table layout (landscape A4)
+  // Compact summary line (no card gaps)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.text);
+  const summaryBits = [
+    `Rows: ${totals.count}`,
+    `Fee: Rs. ${formatAmount(totals.fee)}`,
+    `Expense: Rs. ${formatAmount(totals.expense)}`,
+    `Net: Rs. ${formatAmount(totals.fee - totals.expense)}`,
+    `Cash: Rs. ${formatAmount(cashTotal)}`,
+    `Online: Rs. ${formatAmount(onlineTotal)}`,
+  ];
+  doc.text(summaryBits.join("   ·   "), margin, y);
+  y += 3.5;
+
+  // Compact batch-wise one-liners
+  if (batchList.length) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...COLORS.goldDark);
+    doc.text("Batch collections:", margin, y);
+    y += 3;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.setTextColor(...COLORS.text);
+    const batchLine = batchList
+      .map(
+        (b) =>
+          `${b.batch_name || "Unassigned"} C${formatAmount(b.total_cash)}/O${formatAmount(b.total_online)}=${formatAmount(b.total)}`
+      )
+      .join("  |  ");
+    const batchLines = doc.splitTextToSize(batchLine, contentWidth);
+    doc.text(batchLines.slice(0, 3), margin, y);
+    y += Math.min(batchLines.length, 3) * 2.8 + 1.5;
+  }
+
+  // Dense transaction table
   const col = {
-    no: 10,
-    date: 32,
-    type: 18,
-    batch: 48,
-    action: 22,
-    payment: 24,
-    amount: 28,
-    by: 36,
+    no: 7,
+    date: 26,
+    type: 12,
+    student: 42,
+    batch: 38,
+    action: 16,
+    payment: 22,
+    amount: 22,
+    by: 28,
   };
   const tableW =
     col.no +
     col.date +
     col.type +
+    col.student +
     col.batch +
     col.action +
     col.payment +
     col.amount +
     col.by;
   const x0 = margin + Math.max(0, (contentWidth - tableW) / 2);
-  const headerH = 9;
-  const rowGap = 2;
+  const headerH = 5.5;
+  const rowH = 4.8;
 
   const drawTableHeader = () => {
     doc.setFillColor(...COLORS.grayLight);
     doc.setDrawColor(...COLORS.border);
-    doc.roundedRect(x0, y, tableW, headerH, 2, 2, "FD");
+    doc.setLineWidth(0.2);
+    doc.rect(x0, y, tableW, headerH, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(6);
     doc.setTextColor(...COLORS.text);
 
     let x = x0;
     const put = (txt, w, align = "left") => {
-      const tx = align === "right" ? x + w - 2 : x + 2;
-      doc.text(String(txt), tx, y + 6, { align });
+      const tx = align === "right" ? x + w - 1.2 : x + 1.2;
+      doc.text(String(txt), tx, y + 3.7, { align });
       x += w;
     };
 
     put("#", col.no);
     put("Date", col.date);
     put("Type", col.type);
+    put("Student", col.student);
     put("Batch", col.batch);
     put("Action", col.action);
     put("Payment", col.payment);
     put("Amount", col.amount, "right");
     put("By", col.by);
-
-    // Move below header so data rows never cover header text
-    y += headerH + rowGap;
+    y += headerH;
   };
 
   const ensureSpace = (needed) => {
-    if (y + needed > pageHeight - margin - 8) {
+    if (y + needed > pageHeight - margin - 5) {
       drawFooter();
       doc.addPage();
       drawHeader();
-      y = 30;
+      y = 16;
       drawTableHeader();
     }
   };
 
-  if (y + headerH + 20 > pageHeight - margin - 8) {
-    drawFooter();
-    doc.addPage();
-    drawHeader();
-    y = 30;
-  }
-
   drawTableHeader();
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(6);
 
   txns.forEach((t, index) => {
+    ensureSpace(rowH);
     const isExpense = t.type === "expense";
     const amount =
       (isExpense ? -1 : 1) * toNumber(t.action_amount ?? t.amount);
     const amountLabel = amount.toLocaleString("en-PK", { maximumFractionDigits: 0 });
-    const typeLabel = isExpense ? "Expense" : "Fee";
-    const dateLabel = t.action_date ? moment(t.action_date).format("DD/MM/YYYY HH:mm") : "";
+    const typeLabel = isExpense ? "Exp" : "Fee";
+    const dateLabel = t.action_date
+      ? moment(t.action_date).format("DD/MM/YY HH:mm")
+      : "";
     const paymentLabel =
       t.payment_method ||
       (t.action_type === "Paid" ? "Cash" : "—");
+    const studentLabel = isExpense
+      ? t.title || t.student_name || "—"
+      : t.student_name || "—";
 
-    const batchLines = wrapText(doc, t.batch_name || "—", col.batch - 4);
-    const byLines = wrapText(doc, t.action_by || "—", col.by - 4);
-    const maxLines = Math.min(2, Math.max(batchLines.length, byLines.length, 1));
-    const textBlockH = 4 + (maxLines - 1) * 4;
-    const h = Math.max(8, textBlockH + 4);
-
-    ensureSpace(h + rowGap);
-
-    const rowTop = y;
-    const textY = rowTop + 5;
+    if (index % 2 === 1) {
+      doc.setFillColor(...COLORS.rowAlt);
+      doc.rect(x0, y, tableW, rowH, "F");
+    }
 
     doc.setDrawColor(...COLORS.border);
-    doc.setFillColor(...COLORS.white);
-    doc.roundedRect(x0, rowTop, tableW, h, 1.5, 1.5, "FD");
+    doc.setLineWidth(0.15);
+    doc.line(x0, y + rowH, x0 + tableW, y + rowH);
 
     let x = x0;
-    const cellText = (txt, w, align = "left", color = COLORS.text) => {
+    const textY = y + 3.3;
+    const cell = (txt, w, align = "left", color = COLORS.text) => {
       doc.setTextColor(...color);
-      const tx = align === "right" ? x + w - 2 : x + 2;
-      doc.text(String(txt ?? ""), tx, textY, { align, maxWidth: w - 4 });
+      const tx = align === "right" ? x + w - 1.2 : x + 1.2;
+      doc.text(clip(doc, txt, w - 2.4), tx, textY, { align });
       x += w;
     };
 
-    const cellLines = (lines, w) => {
-      doc.setTextColor(...COLORS.text);
-      const startX = x + 2;
-      const max = Math.min(lines.length, 2);
-      for (let i = 0; i < max; i += 1) {
-        doc.text(String(lines[i] ?? ""), startX, textY + i * 4, { maxWidth: w - 4 });
-      }
-      x += w;
-    };
+    cell(index + 1, col.no);
+    cell(dateLabel, col.date, "left", COLORS.gray);
+    cell(typeLabel, col.type, "left", isExpense ? COLORS.expense : COLORS.fee);
+    cell(studentLabel, col.student);
+    cell(t.batch_name || "—", col.batch);
+    cell(t.action_type || "—", col.action);
+    cell(paymentLabel, col.payment);
+    cell(
+      `Rs. ${amountLabel}`,
+      col.amount,
+      "right",
+      isExpense ? COLORS.expense : COLORS.text
+    );
+    cell(t.action_by || "—", col.by);
 
-    cellText(index + 1, col.no);
-    cellText(dateLabel, col.date, "left", COLORS.gray);
-    cellText(typeLabel, col.type, "left", isExpense ? COLORS.expense : COLORS.fee);
-    cellLines(batchLines, col.batch);
-    cellText(t.action_type || "—", col.action);
-    cellText(paymentLabel, col.payment);
-    cellText(`Rs. ${amountLabel}`, col.amount, "right", isExpense ? COLORS.expense : COLORS.text);
-    cellLines(byLines, col.by);
-
-    y = rowTop + h + rowGap;
+    y += rowH;
   });
 
   drawFooter();
 
   if (mode === "print") {
-    // Embed auto-print so headers render fully before the print dialog
     doc.autoPrint();
     const blobUrl = doc.output("bloburl");
     const printWindow = window.open(blobUrl, "_blank");
@@ -486,4 +360,3 @@ export const exportFinanceTransactionsPdf = async ({
 
   return fileName;
 };
-
