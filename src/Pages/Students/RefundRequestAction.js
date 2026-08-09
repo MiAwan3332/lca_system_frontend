@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
+  AlertIcon,
   Button,
   FormControl,
   FormLabel,
@@ -36,6 +38,9 @@ const formatAmount = (amount) =>
     maximumFractionDigits: 0,
   })}`;
 
+/**
+ * Refund Fee action — shown for all students (for roles that can create refunds).
+ */
 function RefundRequestAction({ student }) {
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
@@ -50,6 +55,24 @@ function RefundRequestAction({ student }) {
     student?.pending_refund_request || student?.approved_refund_request
   );
 
+  const blockReason = useMemo(() => {
+    if (alreadyRefunded) {
+      return "This student already has a completed refund.";
+    }
+    if (student?.pending_refund_request) {
+      return "A refund request is already pending approval for this student.";
+    }
+    if (student?.approved_refund_request) {
+      return "A refund request is already approved. Use Refund to process it.";
+    }
+    if (paidFee <= 0) {
+      return "This student has no paid fee to refund.";
+    }
+    return "";
+  }, [alreadyRefunded, student, paidFee]);
+
+  const canSubmit = !blockReason;
+
   const validationSchema = useMemo(
     () =>
       Yup.object({
@@ -57,7 +80,10 @@ function RefundRequestAction({ student }) {
           .typeError("Enter a valid amount")
           .required("Amount is required")
           .moreThan(0, "Amount must be greater than 0")
-          .max(paidFee, `Amount cannot exceed paid fee (${paidFee})`),
+          .max(
+            Math.max(paidFee, 1),
+            `Amount cannot exceed paid fee (${paidFee})`
+          ),
         reason: Yup.string().trim().required("Reason is required"),
       }),
     [paidFee]
@@ -71,6 +97,7 @@ function RefundRequestAction({ student }) {
     enableReinitialize: true,
     validationSchema,
     onSubmit: async (values, { resetForm }) => {
+      if (!canSubmit) return;
       try {
         await dispatch(
           createRefundRequest({
@@ -89,12 +116,7 @@ function RefundRequestAction({ student }) {
     },
   });
 
-  if (
-    !canCreateRefundRequest(userRole) ||
-    paidFee <= 0 ||
-    alreadyRefunded ||
-    hasOpenRequest
-  ) {
+  if (!canCreateRefundRequest(userRole)) {
     return null;
   }
 
@@ -108,19 +130,19 @@ function RefundRequestAction({ student }) {
       <ActionButton
         variant="amber"
         icon={<Banknote size={16} />}
-        label="Refund Request"
+        label="Refund Fee"
         onClick={() => setIsOpen(true)}
       />
 
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        size={getResponsiveModalSize("md")}
         {...responsiveModalProps}
+        {...getResponsiveModalSize("md")}
       >
         <ModalOverlay />
         <ModalContent {...responsiveModalContentProps}>
-          <ModalHeader>Refund Request</ModalHeader>
+          <ModalHeader>Refund Fee</ModalHeader>
           <ModalCloseButton />
           <form onSubmit={formik.handleSubmit}>
             <ModalBody>
@@ -133,53 +155,66 @@ function RefundRequestAction({ student }) {
                   Paid fee on record: {formatAmount(paidFee)}
                 </Text>
 
-                <FormControl
-                  isInvalid={formik.touched.amount && Boolean(formik.errors.amount)}
-                >
-                  <FormLabel>Refund Amount</FormLabel>
-                  <Input
-                    name="amount"
-                    type="number"
-                    min={1}
-                    max={paidFee}
-                    value={formik.values.amount}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    placeholder={`Max ${paidFee}`}
-                  />
-                  {formik.touched.amount && formik.errors.amount ? (
-                    <Text color="red.500" fontSize="sm" mt={1}>
-                      {formik.errors.amount}
-                    </Text>
-                  ) : (
-                    <Text fontSize="xs" color="gray.500" mt={1}>
-                      Maximum is the student&apos;s paid fee.
-                    </Text>
-                  )}
-                </FormControl>
+                {blockReason ? (
+                  <Alert status="warning" borderRadius="md">
+                    <AlertIcon />
+                    <Text fontSize="sm">{blockReason}</Text>
+                  </Alert>
+                ) : (
+                  <>
+                    <FormControl
+                      isInvalid={
+                        formik.touched.amount && Boolean(formik.errors.amount)
+                      }
+                    >
+                      <FormLabel>Refund Amount</FormLabel>
+                      <Input
+                        name="amount"
+                        type="number"
+                        min={1}
+                        max={paidFee}
+                        value={formik.values.amount}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        placeholder={`Max ${paidFee}`}
+                      />
+                      {formik.touched.amount && formik.errors.amount ? (
+                        <Text color="red.500" fontSize="sm" mt={1}>
+                          {formik.errors.amount}
+                        </Text>
+                      ) : (
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          Maximum is the student&apos;s paid fee.
+                        </Text>
+                      )}
+                    </FormControl>
 
-                <FormControl
-                  isInvalid={formik.touched.reason && Boolean(formik.errors.reason)}
-                >
-                  <FormLabel>Reason</FormLabel>
-                  <Textarea
-                    name="reason"
-                    value={formik.values.reason}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    placeholder="Why is this refund needed?"
-                    rows={4}
-                  />
-                  {formik.touched.reason && formik.errors.reason ? (
-                    <Text color="red.500" fontSize="sm" mt={1}>
-                      {formik.errors.reason}
-                    </Text>
-                  ) : null}
-                </FormControl>
+                    <FormControl
+                      isInvalid={
+                        formik.touched.reason && Boolean(formik.errors.reason)
+                      }
+                    >
+                      <FormLabel>Reason</FormLabel>
+                      <Textarea
+                        name="reason"
+                        value={formik.values.reason}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        placeholder="Why is this refund needed?"
+                        rows={4}
+                      />
+                      {formik.touched.reason && formik.errors.reason ? (
+                        <Text color="red.500" fontSize="sm" mt={1}>
+                          {formik.errors.reason}
+                        </Text>
+                      ) : null}
+                    </FormControl>
 
-                <Text fontSize="xs" color="gray.500">
-                  This request will appear on Request Management for approval.
-                </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      This request will appear on Request Management for approval.
+                    </Text>
+                  </>
+                )}
               </VStack>
             </ModalBody>
 
@@ -187,18 +222,20 @@ function RefundRequestAction({ student }) {
               <Button variant="ghost" mr={3} borderRadius="0.75rem" onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                borderRadius="0.75rem"
-                backgroundColor="#FFCB82"
-                color="#85652D"
-                _hover={{ backgroundColor: "#E3B574", color: "#654E26" }}
-                fontWeight="500"
-                isLoading={createStatus === "loading"}
-                loadingText="Submitting"
-              >
-                Submit Request
-              </Button>
+              {canSubmit ? (
+                <Button
+                  type="submit"
+                  borderRadius="0.75rem"
+                  backgroundColor="#FFCB82"
+                  color="#85652D"
+                  _hover={{ backgroundColor: "#E3B574", color: "#654E26" }}
+                  fontWeight="500"
+                  isLoading={createStatus === "loading"}
+                  loadingText="Submitting"
+                >
+                  Submit Refund Request
+                </Button>
+              ) : null}
             </ModalFooter>
           </form>
         </ModalContent>
