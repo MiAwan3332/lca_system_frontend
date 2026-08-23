@@ -90,6 +90,50 @@ const getPaymentLabel = (paymentOption) => {
   return "Pay Later";
 };
 
+const getImageFormat = (dataUrl) =>
+  String(dataUrl || "").includes("image/jpeg") ? "JPEG" : "PNG";
+
+const resolveQrDataUrl = async (qrDataUrl, verifyUrl) => {
+  if (qrDataUrl) return qrDataUrl;
+  if (!verifyUrl) return null;
+  try {
+    const QRCode = (await import("qrcode")).default;
+    return await QRCode.toDataURL(verifyUrl, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 320,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+  } catch {
+    return null;
+  }
+};
+
+const QR_LABEL = "SCAN TO VERIFY";
+const QR_LABEL_H = 3.2;
+
+const drawQrBadge = (doc, dataUrl, x, y, size) => {
+  if (!dataUrl) return false;
+  try {
+    doc.setFillColor(...COLORS.white);
+    doc.setDrawColor(...COLORS.charcoal);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(x - 0.8, y - 0.8, size + 1.6, size + 1.6, 0.8, 0.8, "FD");
+    doc.addImage(dataUrl, getImageFormat(dataUrl), x, y, size, size);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(3.2);
+    doc.setTextColor(...COLORS.charcoal);
+    // Keep label under QR and clipped to the QR column width
+    doc.text(QR_LABEL, x + size / 2, y + size + 2.4, {
+      align: "center",
+      maxWidth: size + 2,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Admission fee slip — compact layout for 5×7" paper (all info in printable area).
  */
@@ -108,6 +152,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     authorizedBy = "",
     classStartTime = "",
     classEndTime = "",
+    qrDataUrl = null,
+    verifyUrl = "",
   } = data || {};
 
   const studentName = String(name || "").trim();
@@ -121,6 +167,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const classTimeLabel =
     formatClassTimeRange(classStartTime, classEndTime) || "N/A";
   const photoDataUrl = await toJpegDataUrl(photoFile);
+  const resolvedQrDataUrl = await resolveQrDataUrl(qrDataUrl, verifyUrl);
+  const hasQr = Boolean(resolvedQrDataUrl);
 
   const doc = createFeeSlipPdf();
   const frame = getFeeSlipFrame(doc, {
@@ -138,7 +186,6 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     photoW,
     photoH,
     gap,
-    bannerH,
   } = frame;
 
   const paymentLabel = getPaymentLabel(paymentOption);
@@ -167,12 +214,21 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.line(innerX + 8, y + 5.5, innerX + innerW - 8, y + 5.5);
   y += 8;
 
-  // ── Student block (photo + info) ──
+  // ── Student block (photo + info + QR on card right) ──
+  const qrSize = hasQr ? Math.min(photoW, 16) : 0;
+  const qrPad = 1.5;
+  const qrBlockH = hasQr ? qrSize + 2.4 + QR_LABEL_H : 0;
   const photoX = innerX + 1.5;
-  const identityH = Math.max(photoH + 3, 26);
+  const identityH = Math.max(photoH + 3, qrBlockH + 3, 26);
   const identityTop = y;
+  const qrX = innerX + innerW - qrSize - qrPad;
   const infoX = photoX + photoW + 3;
-  const infoMaxW = cardX + cardW - pad - infoX - 1;
+  const infoMaxW = Math.max(
+    20,
+    hasQr ? qrX - infoX - 2.5 : cardX + cardW - pad - infoX - 1
+  );
+  // Center the QR + label block inside the card so "SCAN TO VERIFY" stays inside
+  const qrY = identityTop + (identityH - qrBlockH) / 2;
 
   doc.setFillColor(...COLORS.soft);
   doc.setDrawColor(...COLORS.softBorder);
@@ -268,54 +324,34 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   );
   y += 1.5;
 
-  // ── Fee chips (3 across) ──
+  // ── Fee chips (Total + Remaining) ──
   const chipH = 10;
-  const thirdW = (innerW - gap * 2) / 3;
+  const halfW = (innerW - gap) / 2;
   const chips = [
     { label: "Total", value: formatCurrency(batchFee) },
     { label: "Remaining", value: formatCurrency(remainingFee) },
-    { label: "Received", value: formatCurrency(payingNow), highlight: true },
   ];
 
   chips.forEach((chip, i) => {
-    const cx = innerX + i * (thirdW + gap);
-    doc.setFillColor(...(chip.highlight ? COLORS.charcoal : COLORS.soft));
-    doc.setDrawColor(...(chip.highlight ? COLORS.charcoal : COLORS.border));
+    const cx = innerX + i * (halfW + gap);
+    doc.setFillColor(...COLORS.soft);
+    doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.25);
-    doc.roundedRect(cx, y, thirdW, chipH, 1, 1, "FD");
+    doc.roundedRect(cx, y, halfW, chipH, 1, 1, "FD");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(5);
-    doc.setTextColor(...(chip.highlight ? COLORS.goldSoft : COLORS.label));
+    doc.setTextColor(...COLORS.label);
     doc.text(chip.label.toUpperCase(), cx + 1.5, y + 3.5);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.setTextColor(...(chip.highlight ? COLORS.white : COLORS.charcoal));
-    const vLines = doc.splitTextToSize(chip.value, thirdW - 3);
+    doc.setTextColor(...COLORS.charcoal);
+    const vLines = doc.splitTextToSize(chip.value, halfW - 3);
     doc.text(vLines[0], cx + 1.5, y + 8);
   });
   y += chipH + 2;
 
-  // ── Amount banner (if space) ──
-  if (y + bannerH + 14 <= contentBottom) {
-    doc.setFillColor(...COLORS.goldSoft);
-    doc.setDrawColor(...COLORS.gold);
-    doc.setLineWidth(0.35);
-    doc.roundedRect(innerX, y, innerW, bannerH, 1.2, 1.2, "FD");
-    doc.setFillColor(...COLORS.gold);
-    doc.rect(innerX, y, 1.2, bannerH, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    doc.setTextColor(...COLORS.label);
-    doc.text("AMOUNT RECEIVED", innerX + 3.5, y + 4);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(...COLORS.charcoal);
-    doc.text(formatCurrency(payingNow), innerX + 3.5, y + 9.5);
-    y += bannerH + 2;
-  }
-
-  // ── Footer: receipt + signature (pinned near bottom of content area) ──
-  const footerStart = Math.max(y, contentBottom - 16);
+  // ── Footer: signature ──
+  const footerStart = Math.max(y, contentBottom - 18);
 
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.2);
@@ -324,31 +360,45 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(6);
   doc.setTextColor(...COLORS.charcoal);
-  doc.text("AUTHENTICATED ADMISSION RECEIPT", cardX + cardW / 2, footerStart + 3.5, {
-    align: "center",
-  });
+  doc.text("AUTHENTICATED ADMISSION RECEIPT", innerX, footerStart + 3.5);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(5);
   doc.setTextColor(...COLORS.muted);
   doc.text(
-    "Provisional slip · confirmed after student is added.",
-    cardX + cardW / 2,
+    hasQr
+      ? "Scan QR to confirm real vs fake."
+      : "Provisional slip · confirmed after student is added.",
+    innerX,
     footerStart + 7,
-    { align: "center", maxWidth: innerW - 4 }
+    { maxWidth: innerW - 2 }
   );
+
+  if (verifyUrl) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(3.8);
+    doc.setTextColor(...COLORS.label);
+    const shortUrl = String(verifyUrl).replace(/^https?:\/\//, "");
+    const urlLines = doc.splitTextToSize(shortUrl, innerW - 4);
+    doc.text(urlLines.slice(0, 1), innerX, footerStart + 10);
+  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.ink);
-  doc.text(signerName, innerX, footerStart + 11.5);
+  doc.text(signerName, innerX, footerStart + 13.5);
   doc.setDrawColor(...COLORS.charcoal);
   doc.setLineWidth(0.3);
-  doc.line(innerX, footerStart + 13, innerX + 32, footerStart + 13);
+  doc.line(innerX, footerStart + 15, innerX + 32, footerStart + 15);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(5.5);
   doc.setTextColor(...COLORS.muted);
-  doc.text("Authorized Signature", innerX, footerStart + 15.5);
+  doc.text("Authorized Signature", innerX, footerStart + 17.5);
+
+  // Draw QR on the right side of the student image card
+  if (hasQr) {
+    drawQrBadge(doc, resolvedQrDataUrl, qrX, qrY, qrSize);
+  }
 
   const fileName = buildFileName(studentName);
 

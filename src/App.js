@@ -4,6 +4,7 @@ import "./App.css";
 import Login from "./Pages/Login.js";
 import NoPage from "./Pages/NoPage.js";
 import Dashboard from "./Layouts/Dashboard.js";
+import VerifySlip from "./Pages/VerifySlip/VerifySlip.js";
 import { routes } from "./routes.js";
 import { useEffect } from "react";
 import { extractPermissionsFromToken, extractRoleFromToken, extractStudentIdFromToken, extractTeacherIdFromToken, storeAuthSession } from "./utlls/useful.js";
@@ -35,6 +36,7 @@ function App() {
         <SessionGuard>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/verify-slip/:token" element={<VerifySlip />} />
             <Route path="/" element={<Dashboard />}>
               {routes.map((route) => (
                 <Route

@@ -15,6 +15,7 @@ function SessionGuard({ children }) {
 
   const redirectToLogin = (showToast = false) => {
     if (location.pathname === "/login") return;
+    if (location.pathname.startsWith("/verify-slip")) return;
     expireAuthSession({ showToast });
     navigate("/login", { replace: true });
   };
@@ -30,6 +31,7 @@ function SessionGuard({ children }) {
     clearExpiryTimer();
 
     if (location.pathname === "/login") return;
+    if (location.pathname.startsWith("/verify-slip")) return;
 
     if (isAuthSessionExpired()) {
       redirectToLogin(false);
@@ -59,6 +61,7 @@ function SessionGuard({ children }) {
       if (
         document.visibilityState === "visible" &&
         location.pathname !== "/login" &&
+        !location.pathname.startsWith("/verify-slip") &&
         isAuthSessionExpired()
       ) {
         redirectToLogin(true);
