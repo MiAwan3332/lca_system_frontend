@@ -1,9 +1,8 @@
-import jsPDF from "jspdf";
-import moment from "moment";
 import {
   buildVoucherData,
   getVoucherFileName,
 } from "./financeVoucherUtils";
+import { createFeeSlipPdf, drawFeeSlipBrandingFooter, drawFeeSlipBrandingHeader, getFeeSlipContentStartY, getFeeSlipFrame } from "./feeSlipLayout";
 
 /** Same high-contrast palette as Admission Slip. */
 const COLORS = {
@@ -70,13 +69,16 @@ const svgUrlToPngDataUrl = async (svgUrl, widthPx = 160) => {
  * Finance voucher PDF — identical card layout to Admission Slip.
  * Returns { fileName, blobUrl, blob, doc }.
  */
-export const generateFinanceVoucherPdf = async (transaction) => {
+export const generateFinanceVoucherPdf = async (transaction, options = {}) => {
+  const includeBranding = options.includeBranding !== false;
   const data = buildVoucherData(transaction);
   if (!data) {
     throw new Error("Transaction is required to generate the voucher.");
   }
 
-  const logoPng = await svgUrlToPngDataUrl("/logo_dark.svg", 160);
+  const logoPng = includeBranding
+    ? await svgUrlToPngDataUrl("/logo_dark.svg", 160)
+    : null;
   const slipTitle = data.isExpense ? "EXPENSE VOUCHER" : "FEE VOUCHER";
   const issuedAt = `${data.issueDate}, ${data.issueTime}`;
   const amountLabel = data.isExpense ? "AMOUNT" : "AMOUNT RECEIVED";
@@ -84,82 +86,35 @@ export const generateFinanceVoucherPdf = async (transaction) => {
     ? "AUTHENTICATED EXPENSE VOUCHER"
     : "AUTHENTICATED FEE VOUCHER RECEIPT";
 
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-
-  const cardW = 100;
-  const cardH = data.isExpense ? 186 : 210;
-  const cardX = (pageWidth - cardW) / 2;
-  const cardY = data.isExpense ? 14 : 10;
-  const pad = 5;
-  const innerX = cardX + pad;
-  const innerW = cardW - pad * 2;
+  const doc = createFeeSlipPdf();
+  const frame = getFeeSlipFrame(doc, { includeBranding });
+  const {
+    cardW,
+    cardH,
+    cardX,
+    cardY,
+    pad,
+    innerX,
+    innerW,
+    bannerH,
+    chipH,
+    gap,
+    photoW,
+    photoH,
+  } = frame;
 
   doc.setFillColor(...COLORS.white);
   doc.setDrawColor(...COLORS.black);
   doc.setLineWidth(0.9);
-  doc.roundedRect(cardX, cardY, cardW, cardH, 3, 3, "FD");
+  doc.roundedRect(cardX, cardY, cardW, cardH, 2, 2, "FD");
 
   doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.35);
-  doc.roundedRect(cardX + 2, cardY + 2, cardW - 4, cardH - 4, 2, 2, "S");
+  doc.setLineWidth(0.3);
+  doc.roundedRect(cardX + 1.5, cardY + 1.5, cardW - 3, cardH - 3, 1.5, 1.5, "S");
 
-  // Header
-  const headerH = 22;
-  doc.setFillColor(...COLORS.black);
-  doc.rect(cardX, cardY, cardW, headerH, "F");
-  doc.rect(cardX, cardY, cardW, 4, "F");
+  drawFeeSlipBrandingHeader(doc, frame, { title: slipTitle, logoPng });
 
-  const logoBox = 12;
-  const logoBoxX = innerX;
-  const logoBoxY = cardY + 5;
-  doc.setFillColor(...COLORS.white);
-  doc.roundedRect(logoBoxX, logoBoxY, logoBox, logoBox, 1.5, 1.5, "F");
-
-  if (logoPng) {
-    try {
-      const iconPad = 1.2;
-      doc.addImage(
-        logoPng,
-        "PNG",
-        logoBoxX + iconPad,
-        logoBoxY + iconPad,
-        logoBox - iconPad * 2,
-        logoBox - iconPad * 2
-      );
-    } catch {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6);
-      doc.setTextColor(...COLORS.black);
-      doc.text("LCA", logoBoxX + logoBox / 2, logoBoxY + 7.2, {
-        align: "center",
-      });
-    }
-  } else {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    doc.setTextColor(...COLORS.black);
-    doc.text("LCA", logoBoxX + logoBox / 2, logoBoxY + 7.2, {
-      align: "center",
-    });
-  }
-
-  const titleX = logoBoxX + logoBox + 3;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(...COLORS.white);
-  doc.text("Lahore CSS Academy", titleX, cardY + 10);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.white);
-  doc.text(slipTitle, titleX, cardY + 16);
-
-  // Photo placeholder + name (same layout as admission slip)
-  let y = cardY + headerH + 5;
-  const photoW = 26;
-  const photoH = 32;
+  let y = getFeeSlipContentStartY(frame, 2.5);
   const photoX = innerX;
   const photoY = y;
 
@@ -188,41 +143,33 @@ export const generateFinanceVoucherPdf = async (transaction) => {
   const infoMaxW = cardX + cardW - pad - infoX;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6);
-  doc.setTextColor(...COLORS.black);
-  doc.text(data.isExpense ? "TITLE" : "STUDENT NAME", infoX, photoY + 4);
+  doc.setFontSize(5);
+  doc.text(data.isExpense ? "TITLE" : "STUDENT NAME", infoX, photoY + 3.5);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...COLORS.black);
+  doc.setFontSize(8.5);
   const nameLines = doc.splitTextToSize(String(data.studentName), infoMaxW);
-  doc.text(nameLines.slice(0, 3), infoX, photoY + 10);
+  doc.text(nameLines.slice(0, 2), infoX, photoY + 8);
 
-  const afterNameY =
-    photoY + 10 + Math.min(nameLines.length, 3) * 4.2 + 2;
+  const afterNameY = photoY + 8 + Math.min(nameLines.length, 2) * 3.2 + 1;
 
   const statusLabel = String(data.actionType || "N/A").toUpperCase();
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6);
-  const statusTextW = Math.min(doc.getTextWidth(statusLabel) + 6, infoMaxW);
-  doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.45);
-  doc.roundedRect(infoX, afterNameY, statusTextW, 6, 1.2, 1.2, "FD");
-  doc.setTextColor(...COLORS.black);
-  doc.text(statusLabel, infoX + 3, afterNameY + 4.1);
+  doc.setFontSize(5);
+  const statusTextW = Math.min(doc.getTextWidth(statusLabel) + 5, infoMaxW);
+  doc.roundedRect(infoX, afterNameY, statusTextW, 4.5, 1, 1, "FD");
+  doc.text(statusLabel, infoX + 2.5, afterNameY + 3.2);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(...COLORS.ink);
-  doc.text(`Voucher: ${data.voucherNumber}`, infoX, afterNameY + 11);
+  doc.setFontSize(5.5);
+  doc.text(`Voucher: ${data.voucherNumber}`, infoX, afterNameY + 8);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
+  doc.setFontSize(4.5);
   doc.setTextColor(...COLORS.muted);
-  doc.text(`Issued: ${issuedAt}`, infoX, afterNameY + 15.5);
+  doc.text(`Issued: ${issuedAt}`, infoX, afterNameY + 11);
 
-  y = Math.max(photoY + photoH + 5, afterNameY + 19);
+  y = Math.max(photoY + photoH + 2.5, afterNameY + 14);
 
   const drawChip = (x, chipY, w, h, label, value) => {
     doc.setFillColor(...COLORS.white);
@@ -230,18 +177,14 @@ export const generateFinanceVoucherPdf = async (transaction) => {
     doc.setLineWidth(0.4);
     doc.roundedRect(x, chipY, w, h, 1.5, 1.5, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(5.5);
-    doc.setTextColor(...COLORS.black);
-    doc.text(String(label).toUpperCase(), x + 2.5, chipY + 4);
+    doc.setFontSize(4.5);
+    doc.text(String(label).toUpperCase(), x + 1.8, chipY + 2.8);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...COLORS.ink);
-    const lines = doc.splitTextToSize(String(value || "N/A"), w - 5);
-    doc.text(lines[0], x + 2.5, chipY + 9);
+    doc.setFontSize(6);
+    const lines = doc.splitTextToSize(String(value || "N/A"), w - 3.5);
+    doc.text(lines[0], x + 1.8, chipY + 6.5);
   };
 
-  const chipH = 13;
-  const gap = 2.5;
   const halfW = (innerW - gap) / 2;
 
   drawChip(innerX, y, halfW, chipH, "Batch", data.batchName);
@@ -263,127 +206,65 @@ export const generateFinanceVoucherPdf = async (transaction) => {
   y += chipH + gap;
 
   if (!data.isExpense) {
-    drawChip(
-      innerX,
-      y,
-      halfW,
-      chipH,
-      "Total Batch Fee",
-      data.totalBatchFee
-    );
-    drawChip(
-      innerX + halfW + gap,
-      y,
-      halfW,
-      chipH,
-      "Paid Fee",
-      data.paidFee
-    );
+    drawChip(innerX, y, halfW, chipH, "Total Fee", data.totalBatchFee);
+    drawChip(innerX + halfW + gap, y, halfW, chipH, "Paid", data.paidFee);
     y += chipH + gap;
 
-    drawChip(
-      innerX,
-      y,
-      halfW,
-      chipH,
-      "Pending Amount",
-      data.pendingAmount
-    );
+    drawChip(innerX, y, halfW, chipH, "Pending", data.pendingAmount);
     drawChip(
       innerX + halfW + gap,
       y,
       halfW,
       chipH,
-      "Next Installment",
+      "Next Due",
       data.nextInstallmentDate
     );
-    y += chipH + gap + 1;
-  } else {
-    y += 1;
+    y += chipH + gap;
   }
 
-  const bannerH = 15;
   doc.setFillColor(...COLORS.white);
   doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.7);
-  doc.roundedRect(innerX, y, innerW, bannerH, 1.5, 1.5, "FD");
+  doc.setLineWidth(0.6);
+  doc.roundedRect(innerX, y, innerW, bannerH, 1.2, 1.2, "FD");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6);
-  doc.setTextColor(...COLORS.black);
-  doc.text(amountLabel, innerX + 3, y + 5);
+  doc.setFontSize(5);
+  doc.text(amountLabel, innerX + 2.5, y + 4);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(...COLORS.black);
-  doc.text(String(data.amount), innerX + 3, y + 12);
-  y += bannerH + 5;
+  doc.setFontSize(10.5);
+  doc.text(String(data.amount), innerX + 2.5, y + 9.5);
+  y += bannerH + 2;
 
-  doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.4);
-  doc.line(innerX + 4, y, cardX + cardW - pad - 4, y);
-  y += 4;
+  doc.setLineWidth(0.35);
+  doc.line(innerX + 3, y, cardX + cardW - pad - 3, y);
+  y += 2;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6);
-  doc.setTextColor(...COLORS.black);
+  doc.setFontSize(5);
   doc.text(receiptLabel, cardX + cardW / 2, y, { align: "center" });
-  y += 4;
+  y += 3;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(5);
+  doc.setFontSize(4.5);
   doc.setTextColor(...COLORS.muted);
-  const note =
-    "Official voucher. Retain this copy as proof of the recorded transaction.";
-  const noteLines = doc.splitTextToSize(note, innerW - 4);
-  doc.text(noteLines, cardX + cardW / 2, y, { align: "center" });
-  y += noteLines.length * 2.4 + 5;
+  doc.text(
+    "Official voucher. Retain as proof of transaction.",
+    cardX + cardW / 2,
+    y,
+    { align: "center", maxWidth: innerW - 4 }
+  );
+  y += 3.5;
 
   const signerName = String(data.processedBy || "").trim() || "Administration Office";
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
+  doc.setFontSize(5.5);
   doc.setTextColor(...COLORS.black);
   doc.text(signerName, innerX, y);
-  y += 2;
-  doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.4);
-  doc.line(innerX, y, innerX + 36, y);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(5.5);
-  doc.setTextColor(...COLORS.black);
-  doc.text("Authorized Signature", innerX, y + 3.8);
+  y += 1.2;
+  doc.line(innerX, y, innerX + 28, y);
+  doc.setFontSize(4.5);
+  doc.text("Authorized Signature", innerX, y + 2.8);
 
-  const footerH = 14;
-  const footerY = cardY + cardH - footerH;
-  doc.setFillColor(...COLORS.black);
-  doc.rect(cardX, footerY, cardW, footerH, "F");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.setTextColor(...COLORS.white);
-  doc.text("0331-000-111-0  ·  0333-9800938", cardX + cardW / 2, footerY + 5, {
-    align: "center",
-  });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(5.5);
-  doc.setTextColor(...COLORS.white);
-  doc.text(
-    "13-Sher Shah, New Garden Town, Barkat Market, Lahore",
-    cardX + cardW / 2,
-    footerY + 10,
-    { align: "center" }
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.black);
-  doc.text(
-    `Lahore CSS Academy  ·  ${data.isExpense ? "Expense Voucher" : "Fee Voucher"}`,
-    pageWidth / 2,
-    pageHeight - 10,
-    { align: "center" }
-  );
+  drawFeeSlipBrandingFooter(doc, frame);
 
   const fileName = getVoucherFileName(transaction);
   const blob = doc.output("blob");
@@ -400,16 +281,10 @@ export const downloadFinanceVoucherPdf = async (transaction) => {
 };
 
 export const printFinanceVoucherPdf = async (transaction) => {
-  const { blobUrl } = await generateFinanceVoucherPdf(transaction);
-  const printWindow = window.open(blobUrl);
-  if (!printWindow) {
-    URL.revokeObjectURL(blobUrl);
-    throw new Error("Pop-up blocked. Allow pop-ups to print the voucher.");
-  }
-  printWindow.onload = () => {
-    printWindow.focus();
-    printWindow.print();
-    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-  };
-  return blobUrl;
+  const { doc, blobUrl } = await generateFinanceVoucherPdf(transaction, {
+    includeBranding: false,
+  });
+  const { printFeeSlipPdf } = await import("./feeSlipPrint");
+  await printFeeSlipPdf(doc);
+  URL.revokeObjectURL(blobUrl);
 };

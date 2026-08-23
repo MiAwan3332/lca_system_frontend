@@ -44,47 +44,20 @@ import {
   FEE_PAYMENT_METHODS,
   requiresPaymentEvidence,
 } from "../../utlls/paymentMethods";
+import { normalizeBatchSpecialFeeOptions } from "../../utlls/specialFeeOptions";
 
-const SPECIAL_OPTION_FIELDS = [
-  {
-    key: "test_session",
-    selectedField: "special_test_session",
-    label: "Test Session",
-  },
-  {
-    key: "optional_revision",
-    selectedField: "special_optional_revision",
-    label: "Optional Revision",
-  },
-  {
-    key: "compulsory_revision",
-    selectedField: "special_compulsory_revision",
-    label: "Compulsory Revision",
-  },
-];
+const getBatchSpecialOptions = (batch) =>
+  normalizeBatchSpecialFeeOptions(batch?.special_fee_options).filter(
+    (item) => Number(item.fee) > 0
+  );
 
-const EMPTY_SPECIAL_VALUES = {
-  special_test_session: false,
-  special_optional_revision: false,
-  special_compulsory_revision: false,
-};
-
-const getBatchOptionFee = (batch, key) =>
-  Number(batch?.special_fee_options?.[key]) || 0;
-
-const getSpecialTotalFromBatch = (batch, values) => {
+const getSpecialTotalFromBatch = (batch, selectedKeys = []) => {
   if (!batch || batch.is_special_batch !== true) return 0;
-  let total = 0;
-  if (values.special_test_session) {
-    total += getBatchOptionFee(batch, "test_session");
-  }
-  if (values.special_optional_revision) {
-    total += getBatchOptionFee(batch, "optional_revision");
-  }
-  if (values.special_compulsory_revision) {
-    total += getBatchOptionFee(batch, "compulsory_revision");
-  }
-  return total;
+  const selected = new Set(selectedKeys || []);
+  return getBatchSpecialOptions(batch).reduce(
+    (sum, item) => (selected.has(item.key) ? sum + Number(item.fee || 0) : sum),
+    0
+  );
 };
 
 function AddStudnet({ isOpen, onClose }) {
@@ -125,9 +98,7 @@ function AddStudnet({ isOpen, onClose }) {
         cnic: Yup.string(),
         phone: Yup.string().required("Required"),
         batch: Yup.string().required("Please select a batch"),
-        special_test_session: Yup.boolean(),
-        special_optional_revision: Yup.boolean(),
-        special_compulsory_revision: Yup.boolean(),
+        special_selected_options: Yup.array().of(Yup.string()),
         paying_now: Yup.number()
           .transform((value, originalValue) =>
             originalValue === "" || originalValue === null ? 0 : value
@@ -140,7 +111,10 @@ function AddStudnet({ isOpen, onClose }) {
             const selected = batches.find((item) => item._id === batchId);
             const isSpecial = selected?.is_special_batch === true;
             const gross = isSpecial
-              ? getSpecialTotalFromBatch(selected, this.parent)
+              ? getSpecialTotalFromBatch(
+                  selected,
+                  this.parent.special_selected_options
+                )
               : Number(selected?.batch_fee) || 0;
             const discount = Math.min(
               Math.max(0, Number(this.parent.discount_amount) || 0),
@@ -169,7 +143,10 @@ function AddStudnet({ isOpen, onClose }) {
               const selected = batches.find((item) => item._id === batchId);
               const isSpecial = selected?.is_special_batch === true;
               const gross = isSpecial
-                ? getSpecialTotalFromBatch(selected, this.parent)
+                ? getSpecialTotalFromBatch(
+                    selected,
+                    this.parent.special_selected_options
+                  )
                 : Number(selected?.batch_fee) || 0;
               return Number(value || 0) <= gross;
             }
@@ -196,13 +173,10 @@ function AddStudnet({ isOpen, onClose }) {
         function (values) {
           const selected = batches.find((item) => item._id === values?.batch);
           if (selected?.is_special_batch !== true) return true;
-          const hasOption =
-            values.special_test_session ||
-            values.special_optional_revision ||
-            values.special_compulsory_revision;
+          const hasOption = (values.special_selected_options || []).length > 0;
           if (hasOption) return true;
           return this.createError({
-            path: "special_test_session",
+            path: "special_selected_options",
             message: "Select at least one special batch option",
           });
         }
@@ -223,14 +197,14 @@ function AddStudnet({ isOpen, onClose }) {
       discount_amount: "",
       discount_description: "",
       remarks: "",
-      ...EMPTY_SPECIAL_VALUES,
+      special_selected_options: [],
     },
     validationSchema,
     onSubmit: async (values) => {
       const selected = batches.find((item) => item._id === values.batch);
       const isSpecial = selected?.is_special_batch === true;
       const grossFee = isSpecial
-        ? getSpecialTotalFromBatch(selected, values)
+        ? getSpecialTotalFromBatch(selected, values.special_selected_options)
         : Number(selected?.batch_fee) || 0;
       const discountAmount = Math.min(
         Math.max(0, Number(values.discount_amount) || 0),
@@ -348,16 +322,8 @@ function AddStudnet({ isOpen, onClose }) {
 
       if (isSpecial) {
         formData.append(
-          "special_test_session",
-          String(values.special_test_session === true)
-        );
-        formData.append(
-          "special_optional_revision",
-          String(values.special_optional_revision === true)
-        );
-        formData.append(
-          "special_compulsory_revision",
-          String(values.special_compulsory_revision === true)
+          "special_selected_options",
+          JSON.stringify(values.special_selected_options || [])
         );
       }
 
@@ -382,8 +348,8 @@ function AddStudnet({ isOpen, onClose }) {
           formik.setFieldError("next_installment_date", message);
           formik.setFieldTouched("next_installment_date", true, false);
         } else if (/special batch option/i.test(message)) {
-          formik.setFieldError("special_test_session", message);
-          formik.setFieldTouched("special_test_session", true, false);
+          formik.setFieldError("special_selected_options", message);
+          formik.setFieldTouched("special_selected_options", true, false);
         } else if (/batch fee|payment amount|paying now|payment evidence|valid fee/i.test(message)) {
           if (/evidence/i.test(message)) {
             setPaymentEvidenceError(message);
@@ -405,13 +371,14 @@ function AddStudnet({ isOpen, onClose }) {
 
   const specialTotalFee = useMemo(() => {
     if (!isSpecialBatch) return 0;
-    return getSpecialTotalFromBatch(selectedBatch, formik.values);
+    return getSpecialTotalFromBatch(
+      selectedBatch,
+      formik.values.special_selected_options
+    );
   }, [
     isSpecialBatch,
     selectedBatch,
-    formik.values.special_test_session,
-    formik.values.special_optional_revision,
-    formik.values.special_compulsory_revision,
+    formik.values.special_selected_options,
   ]);
 
   const admissionFee = isSpecialBatch ? specialTotalFee : batchFee;
@@ -485,16 +452,18 @@ function AddStudnet({ isOpen, onClose }) {
     formik.setFieldValue("next_installment_date", "");
     formik.setFieldValue("discount_amount", "");
     formik.setFieldValue("discount_description", "");
-    Object.entries(EMPTY_SPECIAL_VALUES).forEach(([field, value]) => {
-      formik.setFieldValue(field, value);
-    });
+    formik.setFieldValue("special_selected_options", []);
     setPaymentEvidenceFiles([]);
     setPaymentEvidenceError("");
     setPaymentOption("later");
   };
 
-  const handleSpecialOptionToggle = (selectedField, checked) => {
-    formik.setFieldValue(selectedField, checked);
+  const handleSpecialOptionToggle = (optionKey, checked) => {
+    const current = formik.values.special_selected_options || [];
+    const next = checked
+      ? [...new Set([...current, optionKey])]
+      : current.filter((key) => key !== optionKey);
+    formik.setFieldValue("special_selected_options", next);
   };
 
   const handleDiscountChange = (event) => {
@@ -570,7 +539,7 @@ function AddStudnet({ isOpen, onClose }) {
   const handlePrintFeeSlip = async () => {
     const errors = await formik.validateForm();
     const specialErrors = isSpecialBatch
-      ? Boolean(errors.special_test_session)
+      ? Boolean(errors.special_selected_options)
       : false;
     if (
       errors.name ||
@@ -586,9 +555,7 @@ function AddStudnet({ isOpen, onClose }) {
         batch: true,
         paying_now: true,
         payment_method: true,
-        special_test_session: true,
-        special_optional_revision: true,
-        special_compulsory_revision: true,
+        special_selected_options: true,
       });
       toast({
         title: "Complete required fields",
@@ -1093,49 +1060,67 @@ function AddStudnet({ isOpen, onClose }) {
                     <Badge colorScheme="purple">Special</Badge>
                   </Flex>
                   <Text fontSize="sm" color="gray.500" mb={4}>
-                    Select the options that apply to this student. Fees come from
-                    the batch configuration and are totaled automatically.
+                    Select <strong>1 or more</strong> options for this student.
+                    The total fee is the <strong>sum of all selected options</strong>.
                   </Text>
 
                   <VStack spacing={3} align="stretch">
-                    {SPECIAL_OPTION_FIELDS.map(({ key, selectedField, label }) => {
-                      const optionFee = getBatchOptionFee(selectedBatch, key);
-                      if (optionFee <= 0) return null;
-                      return (
-                        <Flex
-                          key={selectedField}
-                          justify="space-between"
-                          align="center"
-                          gap={3}
-                          p={3}
-                          border="1px solid"
-                          borderColor="#E0E8EC"
-                          borderRadius="lg"
-                          bg="white"
-                        >
-                          <Checkbox
-                            isChecked={formik.values[selectedField]}
-                            onChange={(e) =>
-                              handleSpecialOptionToggle(
-                                selectedField,
-                                e.target.checked
-                              )
-                            }
+                    {getBatchSpecialOptions(selectedBatch).length === 0 ? (
+                      <Box
+                        p={3}
+                        border="1px dashed"
+                        borderColor="orange.300"
+                        borderRadius="lg"
+                        bg="orange.50"
+                      >
+                        <Text fontSize="sm" color="orange.700">
+                          This special batch has no option fees configured yet.
+                          Open Update Batch and add option fees first.
+                        </Text>
+                      </Box>
+                    ) : (
+                      getBatchSpecialOptions(selectedBatch).map((option) => {
+                        const isChecked = (
+                          formik.values.special_selected_options || []
+                        ).includes(option.key);
+                        return (
+                          <Flex
+                            key={option.key}
+                            as="label"
+                            cursor="pointer"
+                            justify="space-between"
+                            align="center"
+                            gap={3}
+                            p={3}
+                            border="1px solid"
+                            borderColor={isChecked ? "#C4A574" : "#E0E8EC"}
+                            borderRadius="lg"
+                            bg={isChecked ? "#FFF8EE" : "white"}
                           >
-                            {label}
-                          </Checkbox>
-                          <Text fontWeight="600" fontSize="sm" color="#85652D">
-                            {optionFee} Rs.
-                          </Text>
-                        </Flex>
-                      );
-                    })}
+                            <Checkbox
+                              isChecked={isChecked}
+                              onChange={(e) =>
+                                handleSpecialOptionToggle(
+                                  option.key,
+                                  e.target.checked
+                                )
+                              }
+                            >
+                              {option.label}
+                            </Checkbox>
+                            <Text fontWeight="600" fontSize="sm" color="#85652D">
+                              {Number(option.fee).toLocaleString("en-PK")} Rs.
+                            </Text>
+                          </Flex>
+                        );
+                      })
+                    )}
                   </VStack>
 
-                  {formik.touched.special_test_session &&
-                  formik.errors.special_test_session ? (
+                  {formik.touched.special_selected_options &&
+                  formik.errors.special_selected_options ? (
                     <Box color="red" fontSize="sm" mt={3}>
-                      {formik.errors.special_test_session}
+                      {formik.errors.special_selected_options}
                     </Box>
                   ) : null}
 
@@ -1145,12 +1130,20 @@ function AddStudnet({ isOpen, onClose }) {
                     borderTop="1px solid"
                     borderColor="#E0E8EC"
                   >
-                    <Text fontSize="xs" color="gray.500">
-                      Calculated total fee
-                    </Text>
-                    <Text fontWeight="700" fontSize="lg">
-                      {specialTotalFee} Rs.
-                    </Text>
+                    <Flex justify="space-between" align="center" gap={3}>
+                      <Box>
+                        <Text fontSize="xs" color="gray.500">
+                          Total student fee (selected options)
+                        </Text>
+                        <Text fontWeight="700" fontSize="lg">
+                          {Number(specialTotalFee).toLocaleString("en-PK")} Rs.
+                        </Text>
+                      </Box>
+                      <Badge colorScheme={specialTotalFee > 0 ? "green" : "gray"}>
+                        {(formik.values.special_selected_options || []).length}{" "}
+                        selected
+                      </Badge>
+                    </Flex>
                   </Box>
 
                   {showFeePanel && renderPaymentPanel()}
