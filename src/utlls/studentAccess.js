@@ -27,6 +27,10 @@ import {
   getFinanceAdministratorVisibleRoutes,
 } from "./financeAdministratorAccess";
 import { canAccessRequestManagement } from "./refundAccess";
+import {
+  canAccessInterviewPanel,
+  isInterviewPanelRoute,
+} from "./interviewPanelAccess";
 
 export const STUDENT_ROUTE_PATHS = [
   "/dashboard",
@@ -56,6 +60,8 @@ export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
   "/assignments",
   "/course-quizzes",
   "/seminar",
+  "/interview-panel",
+  "/interview-panel-schedules",
   "/announcements",
   "/expenses",
   "/role",
@@ -69,16 +75,22 @@ export const isSuperAdminOnlyRoute = (path) => {
   const normalized = String(path || "");
   if (SUPER_ADMIN_ONLY_ROUTE_PATHS.includes(normalized)) return true;
   if (normalized.startsWith("/activity-logs")) return true;
+  if (normalized.startsWith("/interview-panel")) return true;
   return false;
 };
 
 /**
- * Restricted pages: all Super Admins only.
- * Teachers/students may still open teaching/learning paths on their allowlists
- * (not fees, notifications, announcements, seminars, or expenses).
+ * Restricted pages: Super Admins only by default.
+ * Interview Panel / Panel Schedules: Superadmin, Secrate Superadmin,
+ * Principal, Vice-Principal, CEO, Super Admin Development.
  */
 export const canAccessSuperAdminOnlyRoute = (path) => {
   if (!isSuperAdminOnlyRoute(path)) return true;
+
+  if (isInterviewPanelRoute(path)) {
+    return canAccessInterviewPanel();
+  }
+
   if (isPlatformSuperAdminRole()) return true;
 
   const lockedForEveryoneElse = [
@@ -90,9 +102,10 @@ export const canAccessSuperAdminOnlyRoute = (path) => {
     "/role",
     "/permission",
   ];
+  const normalized = String(path || "");
   if (
-    lockedForEveryoneElse.includes(String(path || "")) ||
-    String(path || "").startsWith("/activity-logs")
+    lockedForEveryoneElse.includes(normalized) ||
+    normalized.startsWith("/activity-logs")
   ) {
     return false;
   }

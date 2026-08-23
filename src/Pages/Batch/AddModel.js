@@ -17,19 +17,19 @@ import {
   Checkbox,
   Text,
   HStack,
+  IconButton,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
+import { Plus, Trash2 } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBatches, addBatch } from "../../Features/batchSlice";
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
-
-const SPECIAL_FEE_FIELDS = [
-  { name: "test_session_fee", label: "Test Session fee (Rs.)" },
-  { name: "optional_revision_fee", label: "Optional Revision fee (Rs.)" },
-  { name: "compulsory_revision_fee", label: "Compulsory Revision fee (Rs.)" },
-];
+import {
+  createEmptySpecialFeeRow,
+  formRowsToSpecialFeePayload,
+} from "../../utlls/specialFeeOptions";
 
 function AddModel({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
@@ -43,9 +43,7 @@ function AddModel({ isOpen, onClose }) {
       batch_type: "",
       batch_fee: "",
       is_special_batch: false,
-      test_session_fee: "",
-      optional_revision_fee: "",
-      compulsory_revision_fee: "",
+      special_fee_rows: [createEmptySpecialFeeRow(0)],
       startdate: "",
       enddate: "",
       class_start_time: "",
@@ -65,24 +63,17 @@ function AddModel({ isOpen, onClose }) {
           then: (schema) => schema.notRequired(),
           otherwise: (schema) => schema.required("Required"),
         }),
-      test_session_fee: Yup.number()
-        .transform((value, originalValue) =>
-          originalValue === "" || originalValue === null ? 0 : value
-        )
-        .typeError("Must be a number")
-        .min(0, "Fee cannot be negative"),
-      optional_revision_fee: Yup.number()
-        .transform((value, originalValue) =>
-          originalValue === "" || originalValue === null ? 0 : value
-        )
-        .typeError("Must be a number")
-        .min(0, "Fee cannot be negative"),
-      compulsory_revision_fee: Yup.number()
-        .transform((value, originalValue) =>
-          originalValue === "" || originalValue === null ? 0 : value
-        )
-        .typeError("Must be a number")
-        .min(0, "Fee cannot be negative"),
+      special_fee_rows: Yup.array().of(
+        Yup.object({
+          label: Yup.string(),
+          fee: Yup.number()
+            .transform((value, originalValue) =>
+              originalValue === "" || originalValue === null ? 0 : value
+            )
+            .typeError("Must be a number")
+            .min(0, "Fee cannot be negative"),
+        })
+      ),
       startdate: Yup.string().required("Required"),
       enddate: Yup.string().required("Required"),
       class_start_time: Yup.string().required("Required"),
@@ -99,17 +90,18 @@ function AddModel({ isOpen, onClose }) {
         ),
     }).test(
       "special-fees-required",
-      "Enter at least one special option fee greater than 0",
+      "Add at least one option with a fee greater than 0",
       function (values) {
         if (!values?.is_special_batch) return true;
-        const total =
-          (Number(values.test_session_fee) || 0) +
-          (Number(values.optional_revision_fee) || 0) +
-          (Number(values.compulsory_revision_fee) || 0);
-        if (total > 0) return true;
+        const payload = formRowsToSpecialFeePayload(values.special_fee_rows);
+        const hasValid = payload.some(
+          (row) => row.label && Number(row.fee) > 0
+        );
+        if (hasValid) return true;
         return this.createError({
-          path: "test_session_fee",
-          message: "Enter at least one special option fee greater than 0",
+          path: "special_fee_rows",
+          message:
+            "Add at least one special option with a name and fee greater than 0",
         });
       }
     ),
@@ -129,15 +121,9 @@ function AddModel({ isOpen, onClose }) {
               class_end_time: values.class_end_time,
               is_special_batch: isSpecial,
               batch_fee: isSpecial ? "0" : String(values.batch_fee),
-              test_session_fee: isSpecial
-                ? Number(values.test_session_fee) || 0
-                : 0,
-              optional_revision_fee: isSpecial
-                ? Number(values.optional_revision_fee) || 0
-                : 0,
-              compulsory_revision_fee: isSpecial
-                ? Number(values.compulsory_revision_fee) || 0
-                : 0,
+              special_fee_options: isSpecial
+                ? formRowsToSpecialFeePayload(values.special_fee_rows)
+                : [],
             },
           })
         ).unwrap();
@@ -156,15 +142,38 @@ function AddModel({ isOpen, onClose }) {
     if (checked) {
       formik.setFieldValue("batch_fee", "0");
       formik.setFieldError("batch_fee", undefined);
+      if (!formik.values.special_fee_rows?.length) {
+        formik.setFieldValue("special_fee_rows", [createEmptySpecialFeeRow(0)]);
+      }
     } else {
-      formik.setFieldValue("test_session_fee", "");
-      formik.setFieldValue("optional_revision_fee", "");
-      formik.setFieldValue("compulsory_revision_fee", "");
+      formik.setFieldValue("special_fee_rows", [createEmptySpecialFeeRow(0)]);
     }
   };
 
+  const updateSpecialFeeRow = (index, field, value) => {
+    const rows = [...(formik.values.special_fee_rows || [])];
+    rows[index] = { ...rows[index], [field]: value };
+    formik.setFieldValue("special_fee_rows", rows);
+  };
+
+  const addSpecialFeeRow = () => {
+    const rows = [...(formik.values.special_fee_rows || [])];
+    rows.push(createEmptySpecialFeeRow(rows.length));
+    formik.setFieldValue("special_fee_rows", rows);
+  };
+
+  const removeSpecialFeeRow = (index) => {
+    const rows = [...(formik.values.special_fee_rows || [])];
+    if (rows.length <= 1) {
+      formik.setFieldValue("special_fee_rows", [createEmptySpecialFeeRow(0)]);
+      return;
+    }
+    rows.splice(index, 1);
+    formik.setFieldValue("special_fee_rows", rows);
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
       <ModalContent>
         <ModalHeader className="text-xl font-semibold">Add Batch</ModalHeader>
@@ -230,8 +239,8 @@ function AddModel({ isOpen, onClose }) {
                 </Checkbox>
                 {formik.values.is_special_batch && (
                   <Text fontSize="sm" color="gray.500" mt={1}>
-                    Set option fees here. At enrollment, admins only select which
-                    options apply to each student.
+                    Add one or more option fees. At enrollment, admins select
+                    which options apply to each student.
                   </Text>
                 )}
               </FormControl>
@@ -265,32 +274,66 @@ function AddModel({ isOpen, onClose }) {
                   p={4}
                   bg="#FAFBFC"
                 >
-                  <Text fontWeight="600" fontSize="sm" mb={3}>
-                    Special Batch Option Fees
-                  </Text>
+                  <FlexHeader
+                    onAdd={addSpecialFeeRow}
+                  />
                   <VStack spacing={3} align="stretch">
-                    {SPECIAL_FEE_FIELDS.map(({ name, label }) => (
-                      <FormControl key={name} id={name}>
-                        <FormLabel fontSize={13}>{label}</FormLabel>
-                        <Input
-                          type="number"
-                          name={name}
-                          min={0}
-                          step="1"
-                          borderRadius="0.5rem"
-                          placeholder="0"
-                          value={formik.values[name]}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
+                    {(formik.values.special_fee_rows || []).map((row, index) => (
+                      <HStack
+                        key={row.id}
+                        align="flex-start"
+                        spacing={2}
+                        p={3}
+                        bg="white"
+                        border="1px solid"
+                        borderColor="#E0E8EC"
+                        borderRadius="lg"
+                      >
+                        <FormControl flex={1.4}>
+                          <FormLabel fontSize={12}>Option name</FormLabel>
+                          <Input
+                            type="text"
+                            borderRadius="0.5rem"
+                            placeholder={`e.g. Test Session`}
+                            value={row.label}
+                            onChange={(e) =>
+                              updateSpecialFeeRow(index, "label", e.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormControl flex={1}>
+                          <FormLabel fontSize={12}>Fee (Rs.)</FormLabel>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="1"
+                            borderRadius="0.5rem"
+                            placeholder="0"
+                            value={row.fee}
+                            onChange={(e) =>
+                              updateSpecialFeeRow(index, "fee", e.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <IconButton
+                          aria-label="Remove option"
+                          icon={<Trash2 size={16} />}
+                          variant="ghost"
+                          colorScheme="red"
+                          mt={7}
+                          isDisabled={
+                            (formik.values.special_fee_rows || []).length <= 1
+                          }
+                          onClick={() => removeSpecialFeeRow(index)}
                         />
-                        {formik.touched[name] && formik.errors[name] ? (
-                          <Box color="red" fontSize="sm" mt={1}>
-                            {formik.errors[name]}
-                          </Box>
-                        ) : null}
-                      </FormControl>
+                      </HStack>
                     ))}
                   </VStack>
+                  {typeof formik.errors.special_fee_rows === "string" ? (
+                    <Box color="red" fontSize="sm" mt={3}>
+                      {formik.errors.special_fee_rows}
+                    </Box>
+                  ) : null}
                 </Box>
               )}
 
@@ -434,6 +477,26 @@ function AddModel({ isOpen, onClose }) {
         </form>
       </ModalContent>
     </Modal>
+  );
+}
+
+function FlexHeader({ onAdd }) {
+  return (
+    <HStack justify="space-between" align="center" mb={3}>
+      <Text fontWeight="600" fontSize="sm">
+        Special Batch Option Fees
+      </Text>
+      <Button
+        size="sm"
+        leftIcon={<Plus size={14} />}
+        onClick={onAdd}
+        borderRadius="0.6rem"
+        variant="outline"
+        colorScheme="purple"
+      >
+        Add Option
+      </Button>
+    </HStack>
   );
 }
 
