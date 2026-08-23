@@ -39,6 +39,9 @@ import {
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
 import { generateAdmissionFeeSlip } from "../../utlls/generateAdmissionFeeSlip";
+import { formatClassTimeRange } from "../../utlls/classTime";
+import { config } from "../../utlls/config";
+import axios from "axios";
 
 import {
   FEE_PAYMENT_METHODS,
@@ -569,6 +572,41 @@ function AddStudnet({ isOpen, onClose }) {
 
     setIsPrintingSlip(true);
     try {
+      const classTimeLabel =
+        formatClassTimeRange(
+          selectedBatch?.class_start_time,
+          selectedBatch?.class_end_time
+        ) || "N/A";
+
+      let qrDataUrl = null;
+      let verifyUrl = "";
+      try {
+        const verifyResponse = await axios.post(
+          `${config.BASE_URL}/admission-slips/issue`,
+          {
+            student_name: formik.values.name,
+            cnic: formik.values.cnic || "",
+            phone: formik.values.phone || "",
+            batch_name: selectedBatch?.name || "",
+            total_fee: payableFee,
+            amount_received: payingNow,
+            remaining_fee: remainingFee,
+            payment_option: resolvedPaymentOption,
+            payment_method: paymentMethodLabel,
+            class_time: classTimeLabel,
+            authorized_by: currentUser?.name || "",
+            verify_base_url: window.location.origin,
+          },
+          {
+            headers: { Authorization: `Bearer ${authToken}` },
+          }
+        );
+        qrDataUrl = verifyResponse.data?.qr_data_url || null;
+        verifyUrl = verifyResponse.data?.verify_url || "";
+      } catch (verifyError) {
+        console.warn("Admission slip verification unavailable:", verifyError);
+      }
+
       const fileName = await generateAdmissionFeeSlip(
         {
           name: formik.values.name,
@@ -585,6 +623,8 @@ function AddStudnet({ isOpen, onClose }) {
           authorizedBy: currentUser?.name || "",
           classStartTime: selectedBatch?.class_start_time || "",
           classEndTime: selectedBatch?.class_end_time || "",
+          qrDataUrl,
+          verifyUrl,
         },
         "print"
       );
