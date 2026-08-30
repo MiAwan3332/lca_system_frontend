@@ -37,7 +37,6 @@ import {
     Calendar,
     CircleDollarSign,
     Receipt,
-    Paperclip,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchFeeLogs, selectFeeLogs } from "../../Features/feeSlice";
@@ -50,8 +49,7 @@ import {
     responsiveModalContentProps,
     responsiveModalProps,
 } from "../../utlls/responsiveModal";
-import { getPaymentEvidenceUrls } from "../../utlls/paymentEvidence";
-import { getMediaUrl } from "../../utlls/useful.js";
+import PaymentEvidenceGallery from "../../Components/PaymentEvidenceGallery";
 
 const ACTION_CONFIG = {
     Created: { label: "Fee Created", color: "blue", icon: Receipt, accent: "#2D4185" },
@@ -476,43 +474,12 @@ function FeeHistoryModal({ fee }) {
                                                                             {log.payment_method}
                                                                         </Badge>
                                                                     )}
-                                                            {log.action_type === "Paid" &&
-                                                                (log.payment_method === "Online" ||
-                                                                  log.payment_method ===
-                                                                    "Online Payment") &&
-                                                                (() => {
-                                                                  const urls =
-                                                                    getPaymentEvidenceUrls(
-                                                                      log.payment_evidence
-                                                                    );
-                                                                  if (!urls.length) return null;
-                                                                  return (
-                                                                    <VStack
-                                                                      align="start"
-                                                                      spacing={1}
-                                                                      mt={2}
-                                                                    >
-                                                                      {urls.map((url, idx) => (
-                                                                        <Link
-                                                                          key={`${url}-${idx}`}
-                                                                          href={getMediaUrl(url)}
-                                                                          isExternal
-                                                                          display="inline-flex"
-                                                                          alignItems="center"
-                                                                          gap={1}
-                                                                          fontSize="sm"
-                                                                          color="#2D4185"
-                                                                          fontWeight="medium"
-                                                                        >
-                                                                          <Paperclip size={14} />
-                                                                          {urls.length > 1
-                                                                            ? `View evidence ${idx + 1}`
-                                                                            : "View payment evidence"}
-                                                                        </Link>
-                                                                      ))}
-                                                                    </VStack>
-                                                                  );
-                                                                })()}
+                                                            {log.action_type === "Paid" ? (
+                                                              <PaymentEvidenceGallery
+                                                                value={log.payment_evidence}
+                                                                paymentMethod={log.payment_method}
+                                                              />
+                                                            ) : null}
                                                         </Box>
                                                     </HStack>
                                                 </Box>

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -29,6 +29,7 @@ import {
   FEE_PAYMENT_METHODS,
   requiresPaymentEvidence,
 } from "../../utlls/paymentMethods";
+import PaymentEvidenceUploader from "../../Components/PaymentEvidenceUploader";
 
 function PayFeeModal({ fee, isDisabled }) {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -38,7 +39,6 @@ function PayFeeModal({ fee, isDisabled }) {
   const [inputAmount, setInputAmount] = useState(0);
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [evidenceError, setEvidenceError] = useState("");
-  const evidenceInputRef = useRef(null);
   const { updateStatus } = useSelector((state) => state.fees);
   const dispatch = useDispatch();
   const balance = Number(fee?.amount) || 0;
@@ -233,56 +233,20 @@ function PayFeeModal({ fee, isDisabled }) {
                 </FormControl>
 
                 {requiresPaymentEvidence(formik.values.payment_method) && (
-                  <FormControl isRequired>
-                    <FormLabel>Online payment receipt / slip</FormLabel>
-                    <Input
-                      ref={evidenceInputRef}
-                      type="file"
-                      multiple
-                      accept="image/*,.pdf"
-                      display="none"
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        setEvidenceFiles(files);
+                  <FormControl>
+                    <PaymentEvidenceUploader
+                      files={evidenceFiles}
+                      onChange={(next) => {
+                        setEvidenceFiles(next);
                         setEvidenceError(
-                          files.length
+                          next.length
                             ? ""
                             : "Online payment receipt/slip is required"
                         );
-                        e.target.value = "";
                       }}
+                      error={evidenceError}
+                      label="Online payment receipt / slip"
                     />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => evidenceInputRef.current?.click()}
-                    >
-                      {evidenceFiles.length
-                        ? "Change attachments"
-                        : "Upload attachments"}
-                    </Button>
-                    {evidenceFiles.length > 0 ? (
-                      <Box mt={1}>
-                        {evidenceFiles.map((file) => (
-                          <Text
-                            key={`${file.name}-${file.size}`}
-                            fontSize="sm"
-                            color="gray.600"
-                          >
-                            {file.name}
-                          </Text>
-                        ))}
-                      </Box>
-                    ) : null}
-                    <Text fontSize="xs" color="gray.500" mt={1}>
-                      You can select more than one file.
-                    </Text>
-                    {evidenceError ? (
-                      <Text color="red.500" fontSize="sm" mt={1}>
-                        {evidenceError}
-                      </Text>
-                    ) : null}
                   </FormControl>
                 )}
 

@@ -50,7 +50,7 @@ import {
   selectStudentHistory,
 } from "../../Features/studentSlice";
 import { getMediaUrl } from "../../utlls/useful.js";
-import { getPaymentEvidenceUrls } from "../../utlls/paymentEvidence";
+import PaymentEvidenceGallery from "../../Components/PaymentEvidenceGallery";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -939,34 +939,12 @@ function StudentHistoryModal({ student }) {
                                     Method: {log.payment_method}
                                   </Text>
                                 ) : null}
-                                {log.action_type === "Paid" &&
-                                (log.payment_method === "Online" ||
-                                  log.payment_method === "Online Payment")
-                                  ? (() => {
-                                      const urls = getPaymentEvidenceUrls(
-                                        log.payment_evidence
-                                      );
-                                      if (!urls.length) return null;
-                                      return (
-                                        <VStack align="start" spacing={1} mt={1}>
-                                          {urls.map((url, idx) => (
-                                            <Link
-                                              key={`${url}-${idx}`}
-                                              href={getMediaUrl(url)}
-                                              isExternal
-                                              fontSize="xs"
-                                              color="#2D4185"
-                                              fontWeight="600"
-                                            >
-                                              {urls.length > 1
-                                                ? `View evidence ${idx + 1}`
-                                                : "View payment evidence"}
-                                            </Link>
-                                          ))}
-                                        </VStack>
-                                      );
-                                    })()
-                                  : null}
+                                {log.action_type === "Paid" ? (
+                                  <PaymentEvidenceGallery
+                                    value={log.payment_evidence}
+                                    paymentMethod={log.payment_method}
+                                  />
+                                ) : null}
                               </TimelineItem>
                             );
                           })}
