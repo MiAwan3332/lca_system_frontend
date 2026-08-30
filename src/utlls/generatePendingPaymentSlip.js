@@ -1,20 +1,25 @@
 import moment from "moment";
+import { formatClassTimeRange } from "./classTime";
 import { getMediaUrl } from "./useful.js";
 import {
   createFeeSlipPdf,
-  drawFeeSlipBrandingFooter,
-  drawFeeSlipBrandingHeader,
   getFeeSlipContentStartY,
   getFeeSlipFrame,
 } from "./feeSlipLayout";
 
-/** High-contrast palette — matches Admission Slip for clear B&W printing. */
+/** Compact palette — matches Admission Slip for clear thermal printing. */
 const COLORS = {
-  black: [0, 0, 0],
-  ink: [15, 15, 15],
-  muted: [55, 55, 55],
+  charcoal: [33, 37, 41],
+  ink: [26, 32, 44],
+  muted: [100, 105, 115],
+  label: [90, 95, 105],
+  border: [210, 215, 220],
+  softBorder: [230, 233, 238],
   white: [255, 255, 255],
-  lightGray: [245, 245, 245],
+  soft: [248, 249, 251],
+  panel: [242, 244, 247],
+  gold: [180, 130, 55],
+  goldSoft: [245, 236, 220],
 };
 
 const formatCurrency = (value) =>
@@ -22,9 +27,10 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   })}`;
 
-const buildFileName = (studentName = "student") => {
+const buildFileName = (studentName = "student", isDuplicate = false) => {
   const safeName = String(studentName).replace(/\s+/g, "-").toLowerCase();
-  return `fee-payment-slip-${safeName}-${moment().format("YYYYMMDD-HHmm")}.pdf`;
+  const prefix = isDuplicate ? "duplicate-fee-slip" : "fee-payment-slip";
+  return `${prefix}-${safeName}-${moment().format("YYYYMMDD-HHmm")}.pdf`;
 };
 
 const readFileAsDataUrl = (file) =>
@@ -105,53 +111,9 @@ const toJpegDataUrl = async (source, maxSide = 900) => {
   }
 };
 
-const svgUrlToPngDataUrl = async (svgUrl, widthPx = 360, options = {}) => {
-  try {
-    const res = await fetch(svgUrl);
-    if (!res.ok) return null;
-
-    const svgText = await res.text();
-    const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
-    const svgDataUrl = await readFileAsDataUrl(svgBlob);
-    const img = await loadImage(svgDataUrl);
-
-    const iconOnly = Boolean(options.iconOnly);
-    const iconFraction = 27 / 138;
-    const srcWidth = iconOnly ? img.width * iconFraction : img.width || 1;
-    const scale = widthPx / srcWidth;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = widthPx;
-    canvas.height = Math.max(1, Math.round((img.height || 1) * scale));
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (iconOnly) {
-      ctx.drawImage(
-        img,
-        0,
-        0,
-        srcWidth,
-        img.height,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
-    } else {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    }
-    return canvas.toDataURL("image/png");
-  } catch {
-    return null;
-  }
-};
-
 /**
- * Pending fee payment slip — same card layout as Admission Slip.
- * Includes batch total fee for clear B&W printing.
+ * Fee payment / duplicate slip — same compact layout as Admission Slip.
+ * When isDuplicate is true, title clearly marks it as a duplicate copy.
  */
 export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   const {
@@ -162,8 +124,6 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     batchName = "N/A",
     batchFee = 0,
     totalFee = 0,
-    paidFee = 0,
-    outstandingBalance = 0,
     payingNow = 0,
     remainingAfter = 0,
     discountAmount = 0,
@@ -185,28 +145,28 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
 
   const discount = Math.max(Number(discountAmount) || 0, 0);
   if (!(Number(payingNow) > 0) && !(discount > 0)) {
-    throw new Error("Enter a payment or discount amount before printing the fee slip.");
+    throw new Error(
+      "Enter a payment or discount amount before printing the fee slip."
+    );
   }
 
-  const paymentType =
-    paymentOption === "partial" ? "Partial Payment" : "Full Remaining Balance";
-  const issuedAt = moment().format("DD MMM YYYY, hh:mm A");
+  const paymentLabel =
+    paymentOption === "partial" ? "Partial Payment" : "Full Payment";
+  const classTimeLabel =
+    formatClassTimeRange(classStartTime, classEndTime) || "N/A";
+  const issuedAt = moment().format("DD MMM YYYY · hh:mm A");
   const cnicValue = String(cnic || "").trim() || "N/A";
   const totalBatchFee = Number(totalFee) || Number(batchFee) || 0;
-  const paymentStatus =
-    Number(remainingAfter) <= 0 ? "Fully Paid" : "Partially Paid";
+  const signerName =
+    String(authorizedBy || "").trim() || "Administration Office";
 
-  const includeBranding = mode !== "print";
-
-  const [photoDataUrl, logoPng] = await Promise.all([
-    toJpegDataUrl(photoFile || photoUrl),
-    includeBranding
-      ? svgUrlToPngDataUrl("/logo_dark.svg", 160, { iconOnly: true })
-      : Promise.resolve(null),
-  ]);
+  const photoDataUrl = await toJpegDataUrl(photoFile || photoUrl);
 
   const doc = createFeeSlipPdf();
-  const frame = getFeeSlipFrame(doc, { includeBranding });
+  const frame = getFeeSlipFrame(doc, {
+    includeBranding: false,
+    usePrintMargins: mode === "print",
+  });
   const {
     cardW,
     cardH,
@@ -215,34 +175,65 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     pad,
     innerX,
     innerW,
-    bannerH,
-    chipH,
-    gap,
     photoW,
     photoH,
+    gap,
   } = frame;
 
+  const contentBottom = cardY + cardH - pad * 0.5;
+
   doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.9);
-  doc.roundedRect(cardX, cardY, cardW, cardH, 2, 2, "FD");
-  doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(cardX + 1.5, cardY + 1.5, cardW - 3, cardH - 3, 1.5, 1.5, "S");
+  doc.rect(cardX, cardY, cardW, cardH, "F");
 
-  drawFeeSlipBrandingHeader(doc, frame, {
-    title: isDuplicate ? "FEE SLIP (DUPLICATE)" : "FEE PAYMENT SLIP",
-    logoPng,
-  });
+  doc.setDrawColor(...COLORS.border);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(innerX - 0.5, cardY + 0.5, innerW + 1, cardH - 1, 1.5, 1.5, "S");
 
-  let y = getFeeSlipContentStartY(frame, 2.5);
-  const photoX = innerX;
-  const photoY = y;
+  let y = getFeeSlipContentStartY(frame, 0.5);
 
-  doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.55);
+  // ── Title (same style as Admission Slip) ──
+  const slipTitle = isDuplicate ? "DUPLICATE SLIP" : "FEE SLIP";
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...COLORS.charcoal);
+  doc.text(slipTitle, cardX + cardW / 2, y + 3.5, { align: "center" });
+  doc.setDrawColor(...COLORS.gold);
+  doc.setLineWidth(0.6);
+  doc.line(innerX + 8, y + 5.5, innerX + innerW - 8, y + 5.5);
+  y += 8;
+
+  // Clear duplicate notice under title
+  if (isDuplicate) {
+    const noticeH = 5.5;
+    doc.setFillColor(...COLORS.goldSoft);
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(innerX, y, innerW, noticeH, 1, 1, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...COLORS.charcoal);
+    doc.text("THIS IS A DUPLICATE COPY", cardX + cardW / 2, y + 3.7, {
+      align: "center",
+    });
+    y += noticeH + 2;
+  }
+
+  // ── Student block (photo + info) — same as Admission Slip ──
+  const photoX = innerX + 1.5;
+  const identityH = Math.max(photoH + 3, 26);
+  const identityTop = y;
+  const infoX = photoX + photoW + 3;
+  const infoMaxW = cardX + cardW - pad - infoX - 1;
+
+  doc.setFillColor(...COLORS.soft);
+  doc.setDrawColor(...COLORS.softBorder);
+  doc.roundedRect(innerX, identityTop, innerW, identityH, 1.5, 1.5, "FD");
+
+  const photoY = identityTop + (identityH - photoH) / 2;
   doc.setFillColor(...COLORS.white);
-  doc.roundedRect(photoX, photoY, photoW, photoH, 1.5, 1.5, "FD");
+  doc.setDrawColor(...COLORS.gold);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(photoX, photoY, photoW, photoH, 1.2, 1.2, "FD");
 
   if (photoDataUrl) {
     try {
@@ -252,198 +243,164 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
       doc.addImage(
         photoDataUrl,
         format,
-        photoX + 0.6,
-        photoY + 0.6,
-        photoW - 1.2,
-        photoH - 1.2
+        photoX + 0.5,
+        photoY + 0.5,
+        photoW - 1,
+        photoH - 1
       );
     } catch {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(6);
-      doc.setTextColor(...COLORS.ink);
+      doc.setTextColor(...COLORS.muted);
       doc.text("Photo", photoX + photoW / 2, photoY + photoH / 2, {
         align: "center",
       });
     }
   } else {
-    doc.setFillColor(...COLORS.lightGray);
-    doc.roundedRect(
-      photoX + 0.6,
-      photoY + 0.6,
-      photoW - 1.2,
-      photoH - 1.2,
-      1,
-      1,
-      "F"
-    );
+    doc.setFillColor(...COLORS.panel);
+    doc.roundedRect(photoX + 0.5, photoY + 0.5, photoW - 1, photoH - 1, 1, 1, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    doc.setTextColor(...COLORS.ink);
+    doc.setFontSize(5.5);
+    doc.setTextColor(...COLORS.muted);
     doc.text("No Photo", photoX + photoW / 2, photoY + photoH / 2, {
       align: "center",
     });
   }
 
-  const infoX = photoX + photoW + 4;
-  const infoMaxW = cardX + cardW - pad - infoX;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...COLORS.charcoal);
+  const nameLines = doc.splitTextToSize(studentName, infoMaxW).slice(0, 2);
+  doc.text(nameLines, infoX, identityTop + 4.5);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5);
-  doc.text("STUDENT NAME", infoX, photoY + 3.5);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  const nameLines = doc.splitTextToSize(studentName, infoMaxW);
-  doc.text(nameLines.slice(0, 2), infoX, photoY + 8);
-
-  const afterNameY = photoY + 8 + Math.min(nameLines.length, 2) * 3.2 + 1;
-
-  const statusLabel = String(paymentStatus).toUpperCase();
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(5);
-  const statusTextW = Math.min(doc.getTextWidth(statusLabel) + 5, infoMaxW);
-  doc.roundedRect(infoX, afterNameY, statusTextW, 4.5, 1, 1, "FD");
-  doc.text(statusLabel, infoX + 2.5, afterNameY + 3.2);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(5.5);
-  doc.text(`Phone: ${phone || "N/A"}`, infoX, afterNameY + 8);
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.ink);
+  doc.text(`Ph: ${phone || "N/A"}`, infoX, identityTop + 12);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(4.5);
+  doc.setFontSize(6);
   doc.setTextColor(...COLORS.muted);
-  if (rollNumber) {
-    doc.text(`Roll: ${rollNumber}`, infoX, afterNameY + 11);
-    doc.text(`Issued: ${issuedAt}`, infoX, afterNameY + 13.5);
-  } else {
-    doc.text(`Issued: ${issuedAt}`, infoX, afterNameY + 11);
-  }
+  const metaLine = rollNumber
+    ? `Roll: ${rollNumber} · ${issuedAt}`
+    : issuedAt;
+  const issuedLines = doc.splitTextToSize(metaLine, infoMaxW);
+  doc.text(issuedLines.slice(0, 1), infoX, identityTop + 16.5);
 
-  y = Math.max(photoY + photoH + 2.5, afterNameY + 15);
+  y = identityTop + identityH + 2.5;
 
-  const drawChip = (x, chipY, w, h, label, value) => {
-    doc.setFillColor(...COLORS.white);
-    doc.setDrawColor(...COLORS.black);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(x, chipY, w, h, 1.5, 1.5, "FD");
+  // ── Compact detail rows ──
+  const rowH = 6.2;
+  const labelW = innerW * 0.38;
+
+  const drawRow = (label, value, rowY, alt = false) => {
+    if (rowY + rowH > contentBottom - 38) return rowY;
+    doc.setFillColor(...(alt ? COLORS.soft : COLORS.white));
+    doc.setDrawColor(...COLORS.softBorder);
+    doc.setLineWidth(0.15);
+    doc.rect(innerX, rowY, innerW, rowH, "FD");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...COLORS.label);
+    doc.text(String(label), innerX + 2, rowY + 4.2);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(4.5);
-    doc.text(String(label).toUpperCase(), x + 1.8, chipY + 2.8);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    const lines = doc.splitTextToSize(String(value || "N/A"), w - 3.5);
-    doc.text(lines[0], x + 1.8, chipY + 6.5);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...COLORS.ink);
+    const valLines = doc.splitTextToSize(
+      String(value || "N/A"),
+      innerW - labelW - 3
+    );
+    doc.text(valLines[0], innerX + labelW, rowY + 4.2);
+    return rowY + rowH + 0.4;
   };
 
-  const halfW = (innerW - gap) / 2;
-
-  drawChip(innerX, y, halfW, chipH, "Batch", batchName);
-  drawChip(innerX + halfW + gap, y, halfW, chipH, "CNIC", cnicValue);
-  y += chipH + gap;
-
-  drawChip(innerX, y, halfW, chipH, "Payment", paymentType);
-  drawChip(
-    innerX + halfW + gap,
-    y,
-    halfW,
-    chipH,
-    "Method",
-    paymentMethod || "N/A"
-  );
-  y += chipH + gap;
-
-  drawChip(innerX, y, halfW, chipH, "Total Fee", formatCurrency(totalBatchFee));
-  drawChip(innerX + halfW + gap, y, halfW, chipH, "Paid", formatCurrency(paidFee));
-  y += chipH + gap;
-
-  drawChip(
-    innerX,
-    y,
-    halfW,
-    chipH,
-    "Outstanding",
-    formatCurrency(outstandingBalance)
-  );
-  drawChip(
-    innerX + halfW + gap,
-    y,
-    halfW,
-    chipH,
-    "Discount",
-    formatCurrency(discount)
-  );
-  y += chipH + gap;
-
-  drawChip(
-    innerX,
-    y,
-    innerW,
-    chipH,
-    "Remaining",
-    formatCurrency(remainingAfter)
-  );
-  y += chipH + gap;
-
+  y = drawRow("Batch", batchName, y);
+  y = drawRow("CNIC", cnicValue, y, true);
+  y = drawRow("Class Time", classTimeLabel, y);
+  y = drawRow("Payment", paymentLabel, y, true);
+  y = drawRow("Method", paymentMethod || "N/A", y);
   if (paymentOption === "partial" && nextInstallmentDate) {
-    drawChip(
-      innerX,
-      y,
-      innerW,
-      chipH,
+    y = drawRow(
       "Next Due",
-      moment(nextInstallmentDate).format("DD MMM YYYY")
+      moment(nextInstallmentDate).format("DD MMM YYYY"),
+      y,
+      true
     );
-    y += chipH + gap;
   }
+  if (discount > 0) {
+    y = drawRow("Discount", formatCurrency(discount), y, true);
+  }
+  y += 1.5;
 
-  doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.black);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(innerX, y, innerW, bannerH, 1.2, 1.2, "FD");
+  // ── Fee chips (Total + Remaining) — same as Admission Slip ──
+  const chipH = 10;
+  const halfW = (innerW - gap) / 2;
+  const chips = [
+    { label: "Total", value: formatCurrency(totalBatchFee) },
+    { label: "Remaining", value: formatCurrency(remainingAfter) },
+  ];
+
+  chips.forEach((chip, i) => {
+    const cx = innerX + i * (halfW + gap);
+    doc.setFillColor(...COLORS.soft);
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(cx, y, halfW, chipH, 1, 1, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(5);
+    doc.setTextColor(...COLORS.label);
+    doc.text(chip.label.toUpperCase(), cx + 1.5, y + 3.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...COLORS.charcoal);
+    const vLines = doc.splitTextToSize(chip.value, halfW - 3);
+    doc.text(vLines[0], cx + 1.5, y + 8);
+  });
+  y += chipH + 2;
+
+  // ── Footer: signature ──
+  const footerStart = Math.max(y, contentBottom - 18);
+
+  doc.setDrawColor(...COLORS.border);
+  doc.setLineWidth(0.2);
+  doc.line(innerX, footerStart, innerX + innerW, footerStart);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(5);
-  doc.text("AMOUNT RECEIVED", innerX + 2.5, y + 4);
-
-  doc.setFontSize(10.5);
-  doc.text(formatCurrency(payingNow), innerX + 2.5, y + 9.5);
-  y += bannerH + 2;
-
-  doc.setLineWidth(0.35);
-  doc.line(innerX + 3, y, cardX + cardW - pad - 3, y);
-  y += 2;
-
-  doc.setFontSize(5);
-  doc.text("AUTHENTICATED FEE PAYMENT RECEIPT", cardX + cardW / 2, y, {
-    align: "center",
-  });
-  y += 3;
+  doc.setFontSize(6);
+  doc.setTextColor(...COLORS.charcoal);
+  doc.text(
+    isDuplicate
+      ? "AUTHENTICATED DUPLICATE FEE RECEIPT"
+      : "AUTHENTICATED FEE PAYMENT RECEIPT",
+    innerX,
+    footerStart + 3.5
+  );
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(4.5);
+  doc.setFontSize(5);
   doc.setTextColor(...COLORS.muted);
   doc.text(
-    "Provisional receipt until payment is submitted.",
-    cardX + cardW / 2,
-    y,
-    { align: "center", maxWidth: innerW - 4 }
+    isDuplicate
+      ? "Duplicate copy of an already issued fee slip."
+      : "Provisional receipt until payment is submitted.",
+    innerX,
+    footerStart + 7,
+    { maxWidth: innerW - 2 }
   );
-  y += 3.5;
 
-  const signerName =
-    String(authorizedBy || "").trim() || "Administration Office";
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.ink);
+  doc.text(signerName, innerX, footerStart + 13.5);
+  doc.setDrawColor(...COLORS.charcoal);
+  doc.setLineWidth(0.3);
+  doc.line(innerX, footerStart + 15, innerX + 32, footerStart + 15);
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(5.5);
-  doc.setTextColor(...COLORS.black);
-  doc.text(signerName, innerX, y);
-  y += 1.2;
-  doc.line(innerX, y, innerX + 28, y);
-  doc.setFontSize(4.5);
-  doc.text("Authorized Signature", innerX, y + 2.8);
+  doc.setTextColor(...COLORS.muted);
+  doc.text("Authorized Signature", innerX, footerStart + 17.5);
 
-  drawFeeSlipBrandingFooter(doc, frame);
-
-  const fileName = buildFileName(studentName);
+  const fileName = buildFileName(studentName, isDuplicate);
 
   if (mode === "print") {
     const { printFeeSlipPdf } = await import("./feeSlipPrint");

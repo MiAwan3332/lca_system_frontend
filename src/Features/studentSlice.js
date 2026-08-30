@@ -456,10 +456,17 @@ const studentSlice = createSlice({
             })
             .addCase(addStudent.fulfilled, (state, action) => {
                 state.addStatus = 'success';
+                const wa = action.payload?.whatsapp_welcome;
+                const waNote = wa?.sent
+                    ? " Welcome WhatsApp sent."
+                    : wa?.skipped || wa?.error
+                        ? " (WhatsApp welcome not sent — check Connect / Templates.)"
+                        : "";
                 toast({
                     title: "Student added successfully!",
+                    description: waNote.trim() || undefined,
                     status: "success",
-                    duration: 3000,
+                    duration: 4000,
                     isClosable: true,
                 });
             })

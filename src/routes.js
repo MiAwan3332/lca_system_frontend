@@ -16,7 +16,7 @@ import Roles from "./Pages/Roles/Roles.js";
 import Permissions from "./Pages/Permissions/Permissions.js";
 import Seminars from "./Pages/Seminar/seminar.js";
 import { FaQuestionCircle } from "react-icons/fa";
-import { Boxes, BrainCircuit, CalendarDays, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, UserCircle } from "lucide-react";
+import { Boxes, BrainCircuit, CalendarDays, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, UserCircle, MessageCircle, MessageSquareText } from "lucide-react";
 import Timetable from "./Pages/Timetable/Timetable.js";
 import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
@@ -39,6 +39,8 @@ import {
   TeacherActivityLogs,
   AdminActivityLogs,
 } from "./Pages/ActivityLogs/ActivityLogsPage.js";
+import WhatsAppConnect from "./Pages/WhatsApp/WhatsAppConnect.js";
+import WhatsAppTemplates from "./Pages/WhatsApp/WhatsAppTemplates.js";
 
 export const routes = [
   { name: "Dashboard", icon: LayoutDashboard, component: <Home />, path: "/dashboard" },
@@ -190,12 +192,25 @@ export const routes = [
     superAdminOnly: true,
   },
   {
+    name: "WhatsApp",
+    icon: MessageCircle,
+    component: <WhatsAppConnect />,
+    path: "/whatsapp",
+    superAdminOnly: true,
+  },
+  {
+    name: "WA Templates",
+    icon: MessageSquareText,
+    component: <WhatsAppTemplates />,
+    path: "/whatsapp-templates",
+    superAdminOnly: true,
+  },
+  {
     name: "Notifications",
     icon: Bell,
     component: <NotificationsPage />,
     path: "/notifications",
     adminOnly: true,
-    superAdminOnly: true,
   },
   {
     name: "Google Workspace",

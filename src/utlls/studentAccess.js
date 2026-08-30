@@ -50,7 +50,6 @@ export const STUDENT_ROUTE_PATHS = [
 /** Only Super Admins (teachers & students keep allowlists for teaching/learning pages only). */
 export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
   "/fees",
-  "/notifications",
   "/teacher",
   "/course",
   "/timetable",
@@ -63,6 +62,8 @@ export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
   "/interview-panel",
   "/interview-panel-schedules",
   "/announcements",
+  "/whatsapp",
+  "/whatsapp-templates",
   "/expenses",
   "/role",
   "/permission",
@@ -95,9 +96,10 @@ export const canAccessSuperAdminOnlyRoute = (path) => {
 
   const lockedForEveryoneElse = [
     "/fees",
-    "/notifications",
     "/seminar",
     "/announcements",
+    "/whatsapp",
+    "/whatsapp-templates",
     "/expenses",
     "/role",
     "/permission",

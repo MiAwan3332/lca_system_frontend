@@ -9,7 +9,6 @@ import { extractRoleFromToken } from "./useful";
  */
 export const PRINCIPAL_BLOCKED_ROUTE_PATHS = [
   "/fees",
-  "/notifications",
   "/teacher",
   "/course",
   "/timetable",

@@ -6,6 +6,7 @@ export const FINANCE_ADMIN_ROUTE_PATHS = [
   "/dashboard",
   "/profile",
   "/finance-report",
+  "/notifications",
 ];
 
 const normalizeRole = (role) =>

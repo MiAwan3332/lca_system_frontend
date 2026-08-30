@@ -8,6 +8,7 @@ export const INFORMATION_OFFICE_ROUTE_PATHS = [
   "/student",
   "/finance-report",
   "/batch",
+  "/notifications",
 ];
 
 const normalizeRole = (role) =>

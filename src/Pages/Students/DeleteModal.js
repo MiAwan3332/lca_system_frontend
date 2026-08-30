@@ -16,16 +16,21 @@ import { Trash } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteStudent, fetchStudents } from "../../Features/studentSlice";
 import ActionButton from "../../Components/ActionButton";
+import { isPlatformSuperAdminRole } from "../../utlls/useful";
 
 const DeleteModal = ({ studentId }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
 
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+  const [authToken] = useState(Cookies.get("authToken"));
 
   const { deleteStatus } = useSelector((state) => state.students);
   const dispatch = useDispatch();
+
+  if (!isPlatformSuperAdminRole()) {
+    return null;
+  }
 
   const handleDeleteStudent = () => {
     dispatch(deleteStudent({ authToken, studentId }))
@@ -53,7 +58,12 @@ const DeleteModal = ({ studentId }) => {
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <p>Are you sure you want to delete this student?</p>
+            <p>
+              Are you sure you want to permanently delete this student? This also
+              removes their login account, fees, fee logs, pending slips, refunds,
+              enrollments, attendance, submissions, quizzes, notifications, and
+              related records. This cannot be undone.
+            </p>
           </ModalBody>
           <ModalFooter>
             <Button

@@ -62,9 +62,10 @@ import ViewModal from "./ViewModal";
 import ExportModal from "./ExportModal";
 import StudentImportModal from "./StudentImportModal";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
+import DeleteModal from "./DeleteModal";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
-import { hasPermission } from "../../utlls/useful";
+import { hasPermission, isPlatformSuperAdminRole } from "../../utlls/useful";
 import { useNavigate } from "react-router-dom";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
@@ -75,6 +76,7 @@ function Student() {
   const [authToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const canDeleteStudent = isPlatformSuperAdminRole();
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
   const onImportOpen = () => setIsImportOpen(true);
@@ -553,6 +555,9 @@ function Student() {
                               <ShiftBatchModal student={student} />
                               <ChangePasswordModal student={student} />
                             </>
+                          )}
+                          {canDeleteStudent && (
+                            <DeleteModal studentId={student._id} />
                           )}
                           <RefundRequestAction student={student} />
                           <ProcessRefundAction student={student} />

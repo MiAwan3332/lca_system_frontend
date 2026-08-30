@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -28,6 +28,7 @@ import { collectPendingFee } from "../../Features/feeSlice";
 import { fetchStudents } from "../../Features/studentSlice";
 import { selectUser } from "../../Features/authSlice";
 import ActionButton from "../../Components/ActionButton";
+import PaymentEvidenceUploader from "../../Components/PaymentEvidenceUploader";
 import {
   FEE_PAYMENT_METHODS,
   requiresPaymentEvidence,
@@ -59,7 +60,6 @@ function GeneratePendingFeeSlipAction({
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
   const toast = useToast();
-  const evidenceInputRef = useRef(null);
   const { updateStatus } = useSelector((state) => state.fees);
   const currentUser = useSelector(selectUser);
 
@@ -696,59 +696,21 @@ function GeneratePendingFeeSlipAction({
 
               {payingNow > 0 &&
                 requiresPaymentEvidence(formik.values.payment_method) && (
-                <FormControl isRequired>
-                  <FormLabel fontSize={14}>
-                    Online payment receipt / slip
-                  </FormLabel>
-                  <Input
-                    ref={evidenceInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf"
-                    display="none"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setEvidenceFiles(files);
+                <FormControl>
+                  <PaymentEvidenceUploader
+                    files={evidenceFiles}
+                    onChange={(next) => {
+                      setEvidenceFiles(next);
                       setEvidenceError(
-                        files.length
+                        next.length
                           ? ""
                           : "Online payment receipt/slip is required"
                       );
                       setHasPrintedSlip(false);
-                      e.target.value = "";
                     }}
+                    error={evidenceError}
+                    label="Online payment receipt / slip"
                   />
-                  <HStack align="flex-start">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => evidenceInputRef.current?.click()}
-                    >
-                      {evidenceFiles.length
-                        ? "Change attachments"
-                        : "Upload attachments"}
-                    </Button>
-                    {evidenceFiles.length > 0 ? (
-                      <VStack align="start" spacing={0}>
-                        {evidenceFiles.map((file) => (
-                          <Text
-                            key={`${file.name}-${file.size}`}
-                            fontSize="sm"
-                            color="gray.600"
-                            noOfLines={1}
-                          >
-                            {file.name}
-                          </Text>
-                        ))}
-                      </VStack>
-                    ) : null}
-                  </HStack>
-                  {evidenceError ? (
-                    <Text color="red.500" fontSize="sm" mt={1}>
-                      {evidenceError}
-                    </Text>
-                  ) : null}
                 </FormControl>
               )}
 

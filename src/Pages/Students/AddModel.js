@@ -32,6 +32,7 @@ import { selectActiveBatches, fetchBatches } from "../../Features/batchSlice";
 import { addStudent, fetchStudents } from "../../Features/studentSlice";
 import { selectUser } from "../../Features/authSlice";
 import CameraCapture from "../../Components/CameraCapture";
+import PaymentEvidenceUploader from "../../Components/PaymentEvidenceUploader";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import {
   getResponsiveModalSize,
@@ -874,38 +875,18 @@ function AddStudnet({ isOpen, onClose }) {
 
       {resolvedPaymentOption !== "later" &&
         requiresPaymentEvidence(formik.values.payment_method) && (
-          <FormControl mt={4} isRequired>
-            <FormLabel fontSize={14}>Online Payment Evidence</FormLabel>
-            <Input
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
-              borderRadius="0.5rem"
-              pt={1}
-              onChange={(event) => {
-                const files = Array.from(event.target.files || []);
-                setPaymentEvidenceFiles(files);
-                setPaymentEvidenceError("");
+          <FormControl mt={4}>
+            <PaymentEvidenceUploader
+              files={paymentEvidenceFiles}
+              onChange={(next) => {
+                setPaymentEvidenceFiles(next);
+                setPaymentEvidenceError(
+                  next.length ? "" : "Online payment evidence is required"
+                );
               }}
+              error={paymentEvidenceError}
+              label="Online Payment Evidence"
             />
-            <Text fontSize="xs" color="gray.500" mt={2}>
-              Upload one or more payment screenshots, bank receipts, or transfer
-              proofs (image or PDF).
-            </Text>
-            {paymentEvidenceFiles.length > 0 && (
-              <Box mt={1}>
-                {paymentEvidenceFiles.map((file) => (
-                  <Text key={`${file.name}-${file.size}`} fontSize="sm" color="green.600">
-                    Selected: {file.name}
-                  </Text>
-                ))}
-              </Box>
-            )}
-            {paymentEvidenceError ? (
-              <Box color="red" fontSize="sm" mt={1}>
-                {paymentEvidenceError}
-              </Box>
-            ) : null}
           </FormControl>
         )}
 
