@@ -19,6 +19,8 @@ export const PRINCIPAL_BLOCKED_ROUTE_PATHS = [
   "/course-quizzes",
   "/seminar",
   "/announcements",
+  "/whatsapp",
+  "/whatsapp-templates",
   "/expenses",
   "/complaints",
   "/role",
