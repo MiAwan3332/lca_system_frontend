@@ -27,8 +27,10 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
+import { Navigate } from "react-router-dom";
 import PageHeader, { DataTableShell } from "../../Components/PageHeader";
 import { config } from "../../utlls/config";
+import { isPlatformSuperAdminRole } from "../../utlls/useful";
 
 const STATUS_COLOR = {
   ready: "green",
@@ -54,6 +56,7 @@ function WhatsAppConnect() {
   const authToken = Cookies.get("authToken");
   const toast = useToast();
   const pollRef = useRef(null);
+  const canView = isPlatformSuperAdminRole();
 
   const [gatewayConfig, setGatewayConfig] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -150,6 +153,7 @@ function WhatsAppConnect() {
   }, [selectedId, headers, fetchQr]);
 
   useEffect(() => {
+    if (!canView) return undefined;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -176,9 +180,10 @@ function WhatsAppConnect() {
       cancelled = true;
       stopPolling();
     };
-  }, [refreshSessions, toast]);
+  }, [canView, refreshSessions, toast]);
 
   useEffect(() => {
+    if (!canView) return undefined;
     stopPolling();
     if (!selectedId || isReady) return undefined;
 
@@ -187,7 +192,7 @@ function WhatsAppConnect() {
     }, 4000);
 
     return stopPolling;
-  }, [selectedId, isReady, refreshSelected]);
+  }, [canView, selectedId, isReady, refreshSelected]);
 
   const runAction = async (actionKey, fn, successTitle) => {
     setBusyAction(actionKey);
@@ -317,6 +322,10 @@ function WhatsAppConnect() {
       },
       "Pairing code ready"
     );
+
+  if (!canView) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (loading) {
     return (
