@@ -190,6 +190,15 @@ export const syncStudentProfileStatus = async () => {
   }
 };
 
+const isWhatsAppRoute = (path) => {
+  const normalized = String(path || "");
+  return (
+    normalized === "/whatsapp" ||
+    normalized === "/whatsapp-templates" ||
+    normalized.startsWith("/whatsapp/")
+  );
+};
+
 export const canAccessRoute = (path) => {
   if (path === "/profile" || path === "/google-workspace") {
     return true;
@@ -198,6 +207,10 @@ export const canAccessRoute = (path) => {
     return false;
   }
   if (path === "/request-management" && !canAccessRequestManagement()) {
+    return false;
+  }
+  // WhatsApp Connect + Templates: platform Super Admin only
+  if (isWhatsAppRoute(path) && !isPlatformSuperAdminRole()) {
     return false;
   }
   if (!canAccessSuperAdminOnlyRoute(path)) {
@@ -232,6 +245,9 @@ export const getVisibleRoutes = (allRoutes) => {
   const visibleRouteList = allRoutes.filter((route) => {
     if (route.hidden) return false;
     if (route.path === "/request-management" && !canAccessRequestManagement()) {
+      return false;
+    }
+    if (isWhatsAppRoute(route.path) && !isPlatformSuperAdminRole()) {
       return false;
     }
     if (!canAccessSuperAdminOnlyRoute(route.path)) {
