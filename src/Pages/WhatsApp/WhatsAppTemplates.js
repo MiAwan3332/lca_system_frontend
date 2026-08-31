@@ -27,8 +27,10 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
+import { Navigate } from "react-router-dom";
 import PageHeader, { DataTableShell } from "../../Components/PageHeader";
 import { config } from "../../utlls/config";
+import { isPlatformSuperAdminRole } from "../../utlls/useful";
 
 const PROCESS_COLORS = {
   student_admission: "green",
@@ -41,6 +43,7 @@ function WhatsAppTemplates() {
   const authToken = Cookies.get("authToken");
   const toast = useToast();
   const textareaRef = useRef(null);
+  const canView = isPlatformSuperAdminRole();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -125,8 +128,9 @@ function WhatsAppTemplates() {
   }, [headers, toast]);
 
   useEffect(() => {
+    if (!canView) return;
     loadTemplates();
-  }, [loadTemplates]);
+  }, [canView, loadTemplates]);
 
   const insertTag = (tag) => {
     const el = textareaRef.current;
@@ -324,6 +328,10 @@ function WhatsAppTemplates() {
       setTesting(false);
     }
   };
+
+  if (!canView) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <Box>
