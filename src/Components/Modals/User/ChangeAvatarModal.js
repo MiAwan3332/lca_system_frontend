@@ -36,7 +36,7 @@ import { getCroppedImageFile } from "../../../utlls/cropImage";
 const FALLBACK_AVATAR =
   "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9";
 
-function ChangeAvatarModal() {
+function ChangeAvatarModal({ showAvatar = true }) {
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
   const toast = useToast();
@@ -217,9 +217,11 @@ function ChangeAvatarModal() {
 
   return (
     <>
-      <MenuItem onClick={onOpen} className="rounded-lg">
-        Change Avatar
-      </MenuItem>
+      {showAvatar ? (
+        <MenuItem onClick={onOpen} className="rounded-lg">
+          Change Avatar
+        </MenuItem>
+      ) : null}
 
       <MenuItem onClick={onPasswordOpen} className="rounded-lg">
         Change Password
@@ -358,21 +360,23 @@ function ChangeAvatarModal() {
       </Modal>
 
       {/* Change Password Modal */}
-      <Modal isOpen={isPasswordOpen} onClose={onPasswordClose}>
+      <Modal isOpen={isPasswordOpen} onClose={onPasswordClose} isCentered>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader className="text-xl font-semibold">Change Password</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Email</FormLabel>
-                <Input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  isReadOnly
-                />
-              </FormControl>
+              {showAvatar ? (
+                <FormControl>
+                  <FormLabel>Email</FormLabel>
+                  <Input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    isReadOnly
+                  />
+                </FormControl>
+              ) : null}
               <FormControl>
                 <FormLabel>Current Password</FormLabel>
                 <Input

@@ -251,6 +251,8 @@ function BookInterviewModal({
             values: {
               schedule_index: scheduleIndex,
               booked_notes: String(bookedNotes || "").trim(),
+              date: scheduleRow.date || "",
+              start_time: scheduleRow.start_time || "",
             },
           })
         ).unwrap();

@@ -11,7 +11,6 @@ import {
   Text,
   Textarea,
   VStack,
-  HStack,
   SimpleGrid,
   Spinner,
   Center,
@@ -38,7 +37,6 @@ import {
   updateQualifier,
   fetchQualifiers,
 } from "../../Features/qualifierSlice";
-import QualifierUpdatePasswordModal from "./QualifierUpdatePasswordModal";
 import {
   QUALIFICATION_OPTIONS,
   createEmptyEducationEntry,
@@ -317,28 +315,27 @@ function QualifierSelfProfile({ qualifier, loading }) {
   const showEmail = !isDefaultQualifierEmail(qualifier.email);
 
   return (
-    <>
+    <Box w="full" minW={0} maxW="100%" overflowX="hidden">
       <PageHeader
         title="My Profile"
         subtitle="Update your details, education, and optional subjects"
       >
         <FilterStack className="filter-stack--actions">
           {!isEditing ? (
-            <>
-              <QualifierUpdatePasswordModal qualifier={qualifier} />
-              <button
-                className="table-action-btn"
-                type="button"
-                onClick={() => setIsEditing(true)}
-              >
-                Edit Profile
-              </button>
-            </>
+            <button
+              className="table-action-btn w-full sm:w-auto justify-center"
+              type="button"
+              onClick={() => setIsEditing(true)}
+            >
+              Edit Profile
+            </button>
           ) : (
             <>
               <Button
                 variant="ghost"
                 borderRadius="0.75rem"
+                w={{ base: "full", sm: "auto" }}
+                minH="44px"
                 onClick={() => {
                   formik.resetForm();
                   setIsEditing(false);
@@ -353,6 +350,8 @@ function QualifierSelfProfile({ qualifier, loading }) {
                 color="#85652D"
                 _hover={{ backgroundColor: "#E3B574", color: "#654E26" }}
                 fontWeight="500"
+                w={{ base: "full", sm: "auto" }}
+                minH="44px"
                 isLoading={updateStatus === "loading"}
                 loadingText="Saving"
                 onClick={formik.handleSubmit}
@@ -371,10 +370,18 @@ function QualifierSelfProfile({ qualifier, loading }) {
         borderColor="#E0E8EC"
         borderRadius="xl"
         bg="white"
-        p={{ base: 4, md: 6 }}
+        p={{ base: 3, sm: 4, md: 6 }}
+        w="full"
+        minW={0}
+        overflowX="hidden"
       >
-        <VStack align="stretch" spacing={6}>
-          <HStack spacing={4} align="center">
+        <VStack align="stretch" spacing={{ base: 5, md: 6 }}>
+          <Flex
+            direction={{ base: "column", sm: "row" }}
+            spacing={4}
+            gap={4}
+            align={{ base: "flex-start", sm: "center" }}
+          >
             <Image
               src={
                 photoFile
@@ -382,12 +389,18 @@ function QualifierSelfProfile({ qualifier, loading }) {
                   : getMediaUrl(qualifier.photo) || defaultAvatar
               }
               alt={qualifier.name || "Qualifier"}
-              boxSize={{ base: "72px", md: "96px" }}
+              boxSize={{ base: "80px", md: "96px" }}
               objectFit="cover"
               borderRadius="full"
+              flexShrink={0}
             />
-            <Box>
-              <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="600">
+            <Box minW={0}>
+              <Text
+                fontSize={{ base: "lg", md: "2xl" }}
+                fontWeight="600"
+                noOfLines={2}
+                wordBreak="break-word"
+              >
                 {formik.values.name || "—"}
               </Text>
               <Badge
@@ -400,7 +413,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
                 {isActive ? "Active" : "Inactive"}
               </Badge>
             </Box>
-          </HStack>
+          </Flex>
 
           {isEditing ? (
             <Box>
@@ -611,7 +624,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
                 : "gray.200"
             }
             borderRadius="lg"
-            p={4}
+            p={{ base: 3, md: 4 }}
             bg="gray.50"
           >
             <Flex
@@ -621,7 +634,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
               gap={3}
               mb={4}
             >
-              <Box>
+              <Box minW={0}>
                 <Text fontWeight="600" fontSize="sm">
                   Education Background{isEditing ? " *" : ""}
                 </Text>
@@ -638,6 +651,8 @@ function QualifierSelfProfile({ qualifier, loading }) {
                   borderRadius="0.75rem"
                   onClick={() => addEducationEntry()}
                   flexShrink={0}
+                  w={{ base: "full", sm: "auto" }}
+                  minH="40px"
                 >
                   Add Qualification
                 </Button>
@@ -691,7 +706,8 @@ function QualifierSelfProfile({ qualifier, loading }) {
                     borderColor="#E0E8EC"
                     borderRadius="lg"
                     bg="white"
-                    p={4}
+                    p={{ base: 3, md: 4 }}
+                    minW={0}
                   >
                     <Flex justify="space-between" align="center" mb={3}>
                       <Text fontWeight="600" fontSize="sm" color="#85652D">
@@ -710,7 +726,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
                       ) : null}
                     </Flex>
 
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                       <FormControl isRequired={isEditing}>
                         <FormLabel fontSize={14}>Qualification</FormLabel>
                         {isEditing ? (
@@ -912,7 +928,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
                 : "gray.200"
             }
             borderRadius="lg"
-            p={4}
+            p={{ base: 3, md: 4 }}
             bg="gray.50"
           >
             <Text fontWeight="600" fontSize="sm" mb={1}>
@@ -996,6 +1012,8 @@ function QualifierSelfProfile({ qualifier, loading }) {
                     borderRadius="0.75rem"
                     onClick={addCustomSubject}
                     flexShrink={0}
+                    w={{ base: "full", sm: "auto" }}
+                    minH="44px"
                   >
                     Add Subject
                   </Button>
@@ -1013,7 +1031,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
           </Box>
         </VStack>
       </Box>
-    </>
+    </Box>
   );
 }
 

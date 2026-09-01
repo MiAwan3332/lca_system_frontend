@@ -1,6 +1,7 @@
 import React from "react";
 import { FormControl, FormLabel, Select } from "@chakra-ui/react";
 import {
+  CircleDollarSign,
   HandCoins,
   Receipt,
   Wallet,
@@ -24,16 +25,19 @@ function TodayCollectionsSection({
   selectedUserLabel = "All users",
 }) {
   const totalCollected = Number(totalCash || 0) + Number(totalOnline || 0);
+  const netAfterExpenses = totalCollected - Number(expensesToday || 0);
 
   return (
     <section className="mb-6">
       <div className="mb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold dash-text">Today&apos;s Collections</h2>
+          <h2 className="text-lg font-semibold dash-text">
+            Daily Collection
+          </h2>
           <p className="text-sm dash-text-muted">
             {selectedUserId
-              ? `Collections for ${selectedUserLabel}`
-              : "Cash, online, expenses, and batch-wise collections for all users"}
+              ? `Collections for ${selectedUserLabel} today`
+              : "Today’s total, cash, online, and batch-wise collections"}
           </p>
         </div>
         <FormControl className="responsive-input" w={{ base: "full", sm: "16rem" }}>
@@ -60,9 +64,9 @@ function TodayCollectionsSection({
 
       <div className="kpi-grid mb-4">
         <KpiCard
-          title="Total Collected Today"
+          title="Daily Collection"
           value={formatRs(totalCollected)}
-          helpText="Cash + online fee collections today"
+          helpText="Cash + online collected today"
           icon={HandCoins}
           loading={loading}
         />
@@ -109,6 +113,13 @@ function TodayCollectionsSection({
           icon={Receipt}
           loading={loading}
         />
+        <KpiCard
+          title="Net After Expenses"
+          value={formatRs(netAfterExpenses)}
+          helpText="Daily collection minus expenses"
+          icon={CircleDollarSign}
+          loading={loading}
+        />
       </div>
 
       <div className="dash-surface-card p-4 sm:p-5">
@@ -117,14 +128,14 @@ function TodayCollectionsSection({
         </h3>
         <p className="text-sm dash-text-muted mb-4">
           {selectedUserId
-            ? `Fee collections by ${selectedUserLabel}, split by batch`
-            : "Fee collections split by batch for today"}
+            ? `Cash and online collections by ${selectedUserLabel}, split by batch`
+            : "Cash and online collections split by batch for today"}
         </p>
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="h-24 dash-skeleton rounded-xl" />
+              <div key={item} className="h-28 dash-skeleton rounded-xl" />
             ))}
           </div>
         ) : batchWise.length === 0 ? (
@@ -144,9 +155,23 @@ function TodayCollectionsSection({
                 <p className="mt-1 text-lg font-bold dash-text">
                   {formatRs(batch.total)}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs dash-text-muted">
-                  <span>Cash: {formatRs(batch.total_cash)}</span>
-                  <span>Online: {formatRs(batch.total_online)}</span>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-white/70 dark:bg-black/10 px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-wide dash-text-muted">
+                      Cash
+                    </p>
+                    <p className="text-sm font-semibold dash-text">
+                      {formatRs(batch.total_cash)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-white/70 dark:bg-black/10 px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-wide dash-text-muted">
+                      Online
+                    </p>
+                    <p className="text-sm font-semibold dash-text">
+                      {formatRs(batch.total_online)}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

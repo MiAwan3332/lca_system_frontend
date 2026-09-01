@@ -26,6 +26,7 @@ import {
   CalendarDays,
   Clock3,
   ExternalLink,
+  Eye,
   FilterX,
   MapPin,
   NotebookPen,
@@ -54,6 +55,7 @@ import {
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
 import AddPanelScheduleModal from "./AddPanelScheduleModal";
 import BookInterviewModal from "./BookInterviewModal";
+import InterviewEvaluationDetailsModal from "./InterviewEvaluationDetailsModal";
 import { isQualifierRole } from "../../utlls/qualifierAccess";
 import { isPanelistRole } from "../../utlls/panelistAccess";
 import {
@@ -62,6 +64,57 @@ import {
   QUALIFIER_PROFILE_INCOMPLETE_MESSAGE,
 } from "../../utlls/qualifierProfile";
 import { getInterviewConductPath } from "../../utlls/interviewEvaluation";
+
+const INTERVIEW_PROGRESS_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "available", label: "Available" },
+  { value: "booked", label: "Booked" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+];
+
+const getInterviewProgressMeta = (interviewStatus, bookingStatus) => {
+  const status = String(interviewStatus || "not_started").toLowerCase();
+  const booked =
+    String(bookingStatus || "available").toLowerCase() === "booked";
+  if (status === "completed") {
+    return { value: "completed", label: "Completed", colorScheme: "green" };
+  }
+  if (status === "in_progress" || status === "in-progress") {
+    return { value: "in_progress", label: "In Progress", colorScheme: "orange" };
+  }
+  if (booked) {
+    return { value: "booked", label: "Booked", colorScheme: "green" };
+  }
+  return { value: "available", label: "Available", colorScheme: "gray" };
+};
+
+const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+
+const phonesMatch = (a, b) => {
+  const left = digitsOnly(a);
+  const right = digitsOnly(b);
+  if (!left || !right || left.length < 10 || right.length < 10) return false;
+  return left === right || left.slice(-10) === right.slice(-10);
+};
+
+/** Qualifiers may see open slots and only their own booked/in-progress/completed ones. */
+const isQualifierVisibleSchedule = (row, qualifier) => {
+  if (String(row?.booking_status || "available").toLowerCase() !== "booked") {
+    return true;
+  }
+  if (!qualifier) return false;
+  if (
+    row.booked_qualifier_id &&
+    String(row.booked_qualifier_id) === String(qualifier._id)
+  ) {
+    return true;
+  }
+  if (phonesMatch(row.booked_phone, qualifier.phone)) return true;
+  const bookedName = String(row.booked_for || "").trim().toLowerCase();
+  const qualifierName = String(qualifier.name || "").trim().toLowerCase();
+  return Boolean(bookedName && qualifierName && bookedName === qualifierName);
+};
 
 function AllInterviewPanelSchedules() {
   const navigate = useNavigate();
@@ -74,9 +127,11 @@ function AllInterviewPanelSchedules() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [bookingFilter, setBookingFilter] = useState("");
+  const [progressFilter, setProgressFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedScheduleRow, setSelectedScheduleRow] = useState(null);
+  const [selectedDetailsRow, setSelectedDetailsRow] = useState(null);
   const [pendingStartRow, setPendingStartRow] = useState(null);
   const startConfirmRef = useRef(null);
   const {
@@ -93,6 +148,11 @@ function AllInterviewPanelSchedules() {
     isOpen: isBookOpen,
     onOpen: onBookOpen,
     onClose: onBookClose,
+  } = useDisclosure();
+  const {
+    isOpen: isDetailsOpen,
+    onOpen: onDetailsOpen,
+    onClose: onDetailsClose,
   } = useDisclosure();
 
   const { scheduleBoardPanels, fetchScheduleBoardStatus, startInterviewStatus } =
@@ -125,10 +185,25 @@ function AllInterviewPanelSchedules() {
     }
   }, []);
 
-  const allSchedules = useMemo(
-    () => flattenAllPanelSchedules(scheduleBoardPanels),
-    [scheduleBoardPanels]
-  );
+  const allSchedules = useMemo(() => {
+    const rows = flattenAllPanelSchedules(scheduleBoardPanels);
+    if (!isQualifier) return rows;
+    return rows.filter((row) => isQualifierVisibleSchedule(row, myQualifier));
+  }, [scheduleBoardPanels, isQualifier, myQualifier]);
+
+  const progressCounts = useMemo(() => {
+    const counts = { available: 0, booked: 0, in_progress: 0, completed: 0 };
+    allSchedules.forEach((row) => {
+      const progress = getInterviewProgressMeta(
+        row.interview_status,
+        row.booking_status
+      );
+      if (counts[progress.value] != null) {
+        counts[progress.value] += 1;
+      }
+    });
+    return counts;
+  }, [allSchedules]);
 
   const filteredSchedules = useMemo(() => {
     const q = String(query || "").trim().toLowerCase();
@@ -142,6 +217,13 @@ function AllInterviewPanelSchedules() {
       }
       if (bookingFilter === "available" && row.booking_status === "booked") {
         return false;
+      }
+      if (progressFilter) {
+        const progress = getInterviewProgressMeta(
+          row.interview_status,
+          row.booking_status
+        );
+        if (progress.value !== progressFilter) return false;
       }
       if (startDate && row.date && row.date < startDate) return false;
       if (endDate && row.date && row.date > endDate) return false;
@@ -160,12 +242,13 @@ function AllInterviewPanelSchedules() {
         memberMatch
       );
     });
-  }, [allSchedules, query, status, bookingFilter, startDate, endDate]);
+  }, [allSchedules, query, status, bookingFilter, progressFilter, startDate, endDate]);
 
   const handleClearFilters = () => {
     setQuery("");
     setStatus("");
     setBookingFilter("");
+    setProgressFilter("");
     setStartDate("");
     setEndDate("");
     loadSchedules({
@@ -199,6 +282,16 @@ function AllInterviewPanelSchedules() {
   const closeBookModal = () => {
     onBookClose();
     setSelectedScheduleRow(null);
+  };
+
+  const openDetailsModal = (row) => {
+    setSelectedDetailsRow(row);
+    onDetailsOpen();
+  };
+
+  const closeDetailsModal = () => {
+    onDetailsClose();
+    setSelectedDetailsRow(null);
   };
 
   const getStartInterviewLabel = (row) => {
@@ -282,6 +375,62 @@ function AllInterviewPanelSchedules() {
         )}
       </PageHeader>
 
+      <Box
+        mt={3}
+        w="full"
+        minW={0}
+        borderWidth="1px"
+        borderColor="var(--dash-border)"
+        borderRadius="xl"
+        bg="var(--dash-surface)"
+        boxShadow="var(--dash-shadow)"
+        px={{ base: 3, sm: 4 }}
+        py={{ base: 3, sm: 4 }}
+      >
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          color="gray.500"
+          letterSpacing="wider"
+          mb={2}
+        >
+          INTERVIEW STATUS
+        </Text>
+        <SimpleGrid columns={{ base: 2, sm: 3, lg: 5 }} spacing={2} w="full">
+          {INTERVIEW_PROGRESS_OPTIONS.map((option) => {
+            const isActive = progressFilter === option.value;
+            const count = option.value
+              ? progressCounts[option.value] || 0
+              : allSchedules.length;
+            return (
+              <Button
+                key={option.value || "all"}
+                type="button"
+                size="sm"
+                w="full"
+                minH="44px"
+                px={{ base: 2, sm: 3 }}
+                whiteSpace="normal"
+                lineHeight="1.2"
+                fontSize={{ base: "xs", sm: "sm" }}
+                borderRadius="xl"
+                border="1px solid"
+                borderColor={isActive ? "#E3B574" : "#E0E8EC"}
+                bg={isActive ? "#FFCB82" : "white"}
+                color={isActive ? "#654E26" : "#4A5568"}
+                _hover={{ bg: isActive ? "#E3B574" : "#FFFBF5" }}
+                onClick={() => setProgressFilter(option.value)}
+              >
+                {option.label}
+                <Text as="span" fontWeight="700" ml={1}>
+                  ({count})
+                </Text>
+              </Button>
+            );
+          })}
+        </SimpleGrid>
+      </Box>
+
       <FilterStack className="filter-stack--panel filter-stack--table mt-3">
         <FormControl className="responsive-input" w={{ base: "full", sm: "auto" }} minW={0}>
           <Input
@@ -291,32 +440,36 @@ function AllInterviewPanelSchedules() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </FormControl>
-        <FormControl className="responsive-input" w={{ base: "full", sm: "auto" }} minW={0}>
-          <Select
-            borderRadius="0.75rem"
-            value={status}
-            onChange={(e) => {
-              const next = e.target.value;
-              setStatus(next);
-              loadSchedules({ status: next });
-            }}
-          >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </Select>
-        </FormControl>
-        <FormControl className="responsive-input" w={{ base: "full", sm: "auto" }} minW={0}>
-          <Select
-            borderRadius="0.75rem"
-            value={bookingFilter}
-            onChange={(e) => setBookingFilter(e.target.value)}
-          >
-            <option value="">All bookings</option>
-            <option value="available">Available</option>
-            <option value="booked">Booked</option>
-          </Select>
-        </FormControl>
+        {!isQualifier && (
+          <>
+            <FormControl className="responsive-input" w={{ base: "full", sm: "auto" }} minW={0}>
+              <Select
+                borderRadius="0.75rem"
+                value={status}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setStatus(next);
+                  loadSchedules({ status: next });
+                }}
+              >
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </Select>
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", sm: "auto" }} minW={0}>
+              <Select
+                borderRadius="0.75rem"
+                value={bookingFilter}
+                onChange={(e) => setBookingFilter(e.target.value)}
+              >
+                <option value="">All bookings</option>
+                <option value="available">Available</option>
+                <option value="booked">Booked</option>
+              </Select>
+            </FormControl>
+          </>
+        )}
         <FormControl className="responsive-input" w={{ base: "full", sm: "auto" }} minW={0}>
           <Input
             type="date"
@@ -452,11 +605,21 @@ function AllInterviewPanelSchedules() {
           >
             {filteredSchedules.map((row) => {
               const statusMeta = getInterviewPanelStatusMeta(row.panel_status);
+              const progressMeta = getInterviewProgressMeta(
+                row.interview_status,
+                row.booking_status
+              );
+              const showProgressBadge =
+                progressMeta.value === "in_progress" ||
+                progressMeta.value === "completed";
               const duration =
                 formatClassTimeRange(row.start_time, row.end_time) ||
                 formatTime12Hour(row.start_time) ||
                 "—";
               const isBooked = row.booking_status === "booked";
+              const isCompleted =
+                String(row.interview_status || "").toLowerCase() ===
+                "completed";
               return (
                 <Box
                   key={row.id}
@@ -492,7 +655,13 @@ function AllInterviewPanelSchedules() {
                         Schedule {row.schedule_index}
                       </Text>
                     </Box>
-                    <VStack align="flex-end" spacing={1} flexShrink={0}>
+                    <Flex
+                      wrap="wrap"
+                      justify="flex-end"
+                      gap={1}
+                      flexShrink={0}
+                      maxW={{ base: "48%", sm: "none" }}
+                    >
                       <Badge
                         colorScheme={statusMeta.colorScheme}
                         borderRadius="md"
@@ -509,7 +678,17 @@ function AllInterviewPanelSchedules() {
                       >
                         {isBooked ? "Booked" : "Available"}
                       </Badge>
-                    </VStack>
+                      {showProgressBadge ? (
+                        <Badge
+                          colorScheme={progressMeta.colorScheme}
+                          borderRadius="md"
+                          px={2}
+                          py={1}
+                        >
+                          {progressMeta.label}
+                        </Badge>
+                      ) : null}
+                    </Flex>
                   </Flex>
 
                   <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2} color="gray.600">
@@ -560,27 +739,45 @@ function AllInterviewPanelSchedules() {
                       minW={0}
                     >
                       <Text fontSize="xs" color="green.700" fontWeight="700">
-                        Booked for
+                        {row.booked_for ? "Booked for" : "Already booked"}
                       </Text>
-                      <Text
-                        fontSize="sm"
-                        fontWeight="600"
-                        color="#276749"
-                        noOfLines={2}
-                        wordBreak="break-word"
-                      >
-                        {row.booked_for || "—"}
-                      </Text>
-                      {row.booked_phone ? (
-                        <Text fontSize="xs" color="green.700" mt={1} wordBreak="break-word">
-                          {row.booked_phone}
+                      {row.booked_for ? (
+                        <>
+                          <Text
+                            fontSize="sm"
+                            fontWeight="600"
+                            color="#276749"
+                            noOfLines={2}
+                            wordBreak="break-word"
+                          >
+                            {row.booked_for}
+                          </Text>
+                          {row.booked_phone ? (
+                            <Text
+                              fontSize="xs"
+                              color="green.700"
+                              mt={1}
+                              wordBreak="break-word"
+                            >
+                              {row.booked_phone}
+                            </Text>
+                          ) : null}
+                          {row.booked_notes ? (
+                            <Text
+                              fontSize="xs"
+                              color="green.700"
+                              mt={1}
+                              noOfLines={2}
+                            >
+                              {row.booked_notes}
+                            </Text>
+                          ) : null}
+                        </>
+                      ) : (
+                        <Text fontSize="sm" fontWeight="600" color="#276749">
+                          This slot is taken. Choose an available time.
                         </Text>
-                      ) : null}
-                      {row.booked_notes ? (
-                        <Text fontSize="xs" color="green.700" mt={1} noOfLines={2}>
-                          {row.booked_notes}
-                        </Text>
-                      ) : null}
+                      )}
                     </Box>
                   ) : null}
 
@@ -660,7 +857,23 @@ function AllInterviewPanelSchedules() {
                     align={{ base: "stretch", sm: "center" }}
                     pt={1}
                   >
-                    {!isQualifier && isBooked && (
+                    {isCompleted && (
+                      <Button
+                        size="sm"
+                        leftIcon={<Eye size={14} />}
+                        borderRadius="lg"
+                        backgroundColor="#1A202C"
+                        color="#FFCB82"
+                        _hover={{ bg: "#2D3748" }}
+                        w={{ base: "full", sm: "auto" }}
+                        minW={{ sm: "10rem" }}
+                        px={4}
+                        onClick={() => openDetailsModal(row)}
+                      >
+                        View Detail
+                      </Button>
+                    )}
+                    {!isQualifier && isBooked && !isCompleted && (
                       <Button
                         size="sm"
                         leftIcon={<Play size={14} />}
@@ -751,6 +964,11 @@ function AllInterviewPanelSchedules() {
           qualifierProfile={myQualifier}
         />
       )}
+      <InterviewEvaluationDetailsModal
+        isOpen={isDetailsOpen}
+        onClose={closeDetailsModal}
+        scheduleRow={selectedDetailsRow}
+      />
 
       <AlertDialog
         isOpen={isStartConfirmOpen}

@@ -137,15 +137,17 @@ export default function MobileNav({ onOpen, ...rest }) {
             borderColor={useColorModeValue("gray.200", "gray.700")}
             className="p-2"
           >
-            {!viewOnly && <ChangeAvatarModal user={user} />}
             <MenuItem
               onClick={() =>
                 navigate(isQualifier ? "/qualifiers" : "/profile")
               }
               className="rounded-lg"
             >
-              Profile
+              {isQualifier ? "My Profile" : "Profile"}
             </MenuItem>
+            {!viewOnly ? (
+              <ChangeAvatarModal showAvatar={!isQualifier} />
+            ) : null}
             <MenuDivider />
             <MenuItem
               onClick={handleLogout}

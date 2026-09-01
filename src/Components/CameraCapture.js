@@ -305,7 +305,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
       border="1px solid"
       borderColor="gray.200"
       borderRadius="xl"
-      p={4}
+      p={{ base: 3, md: 4 }}
       bg="gray.50"
     >
       <Text fontSize="sm" fontWeight="semibold" mb={2}>
@@ -372,13 +372,15 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
             }}
           />
           <canvas ref={canvasRef} style={{ display: "none" }} />
-          <HStack mt={3} spacing={2} flexWrap="wrap">
+          <HStack mt={3} spacing={2} flexWrap="wrap" align="stretch">
             <Button
               size="sm"
               type="button"
               colorScheme="yellow"
               leftIcon={<Camera size={16} />}
               onClick={handleCapture}
+              w={{ base: "full", sm: "auto" }}
+              minH="40px"
             >
               Capture Photo
             </Button>
@@ -389,16 +391,25 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
               leftIcon={<SwitchCamera size={16} />}
               onClick={switchCamera}
               isLoading={switching}
+              w={{ base: "full", sm: "auto" }}
+              minH="40px"
             >
               {switchLabel}
             </Button>
-            <Button size="sm" type="button" variant="outline" onClick={stopCamera}>
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={stopCamera}
+              w={{ base: "full", sm: "auto" }}
+              minH="40px"
+            >
               Stop Camera
             </Button>
           </HStack>
         </>
       ) : (
-        <HStack spacing={2} flexWrap="wrap">
+        <HStack spacing={2} flexWrap="wrap" align="stretch">
           <Button
             size="sm"
             type="button"
@@ -406,6 +417,8 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
             onClick={() =>
               startCamera({ preferredDeviceId: null, mode: facingMode })
             }
+            w={{ base: "full", sm: "auto" }}
+            minH="40px"
           >
             Open Camera
           </Button>
@@ -415,6 +428,8 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
             variant="outline"
             leftIcon={<Upload size={16} />}
             onClick={() => fileInputRef.current?.click()}
+            w={{ base: "full", sm: "auto" }}
+            minH="40px"
           >
             Upload Photo
           </Button>

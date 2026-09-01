@@ -100,8 +100,7 @@ function ConductInterview() {
 
   const scheduleIdx = Number(scheduleIndex);
   const isCompleted =
-    conductData?.evaluation?.status === "completed" ||
-    conductData?.slot?.interview_status === "completed";
+    conductData?.evaluation?.status === "completed";
 
   useEffect(() => {
     if (authToken && panelId && Number.isInteger(scheduleIdx)) {

@@ -558,7 +558,9 @@ function WhatsAppTemplates() {
                     fontFamily="mono"
                     fontSize="sm"
                   />
-                  <FormHelperText>{body.length}/4000 characters</FormHelperText>
+                  <FormHelperText>
+                    {body.length.toLocaleString()} characters
+                  </FormHelperText>
                 </FormControl>
 
                 <HStack flexWrap="wrap" gap={3}>

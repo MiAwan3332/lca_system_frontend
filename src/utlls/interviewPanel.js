@@ -158,6 +158,9 @@ export const panelToScheduleRows = (panel) => {
         : null,
       interview_status: item.interview_status || "not_started",
       interview_started_at: item.interview_started_at || null,
+      schedule_array_index: Number.isInteger(Number(item.schedule_array_index))
+        ? Number(item.schedule_array_index)
+        : index,
     }));
   }
 
@@ -258,21 +261,27 @@ export const flattenAllPanelSchedules = (panels = []) => {
     const slots = panelToScheduleRows(panel);
     slots.forEach((slot, index) => {
       if (!slot.date && !slot.start_time && !slot.end_time) return;
+      const originalIndex = Number.isInteger(Number(slot.schedule_array_index))
+        ? Number(slot.schedule_array_index)
+        : index;
       rows.push({
-        id: `${panel._id}_${index}_${slot.date || "na"}`,
+        id: `${panel._id}_${originalIndex}_${slot.date || "na"}`,
         panel_id: panel._id,
         panel_title: panel.title || "Untitled panel",
         panel_status: panel.status,
         panel_venue: panel.venue || "",
         members,
-        schedule_index: index + 1,
-        schedule_array_index: index,
+        schedule_index: originalIndex + 1,
+        schedule_array_index: originalIndex,
         date: slot.date || "",
         start_time: slot.start_time || "",
         end_time: slot.end_time || "",
         venue: slot.venue || panel.venue || "",
         notes: slot.notes || "",
-        booking_status: slot.booking_status || "available",
+        booking_status:
+          String(slot.booking_status || "available").toLowerCase() === "booked"
+            ? "booked"
+            : "available",
         booked_for: slot.booked_for || "",
         booked_phone: slot.booked_phone || "",
         booked_notes: slot.booked_notes || "",

@@ -27,6 +27,8 @@ const initialState = {
   deleteStatus: "idle",
   conductData: null,
   conductStatus: "idle",
+  evaluationDetails: null,
+  evaluationDetailsStatus: "idle",
   startInterviewStatus: "idle",
   submitEvaluationStatus: "idle",
   error: null,
@@ -241,6 +243,26 @@ export const submitInterviewEvaluation = createAsyncThunk(
   }
 );
 
+export const fetchInterviewEvaluationDetails = createAsyncThunk(
+  "interviewPanels/fetchEvaluationDetails",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { authToken, panelId, scheduleIndex } = payload;
+      const response = await axios.get(
+        `${BASE_URL}/interview-panels/evaluation-details/${panelId}/${scheduleIndex}`,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to load interview details"
+      );
+    }
+  }
+);
+
 const interviewPanelSlice = createSlice({
   name: "interviewPanels",
   initialState,
@@ -278,6 +300,10 @@ const interviewPanelSlice = createSlice({
     clearCurrentInterviewPanel(state) {
       state.currentPanel = null;
       state.fetchOneStatus = "idle";
+    },
+    clearInterviewEvaluationDetails(state) {
+      state.evaluationDetails = null;
+      state.evaluationDetailsStatus = "idle";
     },
   },
   extraReducers: (builder) => {
@@ -541,6 +567,25 @@ const interviewPanelSlice = createSlice({
           isClosable: true,
         });
       })
+      .addCase(fetchInterviewEvaluationDetails.pending, (state) => {
+        state.evaluationDetailsStatus = "loading";
+      })
+      .addCase(fetchInterviewEvaluationDetails.fulfilled, (state, action) => {
+        state.evaluationDetailsStatus = "success";
+        state.evaluationDetails = action.payload;
+      })
+      .addCase(fetchInterviewEvaluationDetails.rejected, (state, action) => {
+        state.evaluationDetailsStatus = "failure";
+        state.evaluationDetails = null;
+        state.error = action.payload || action.error.message;
+        toast({
+          title: "Could not load interview details",
+          description: state.error,
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+      })
       .addCase(submitInterviewEvaluation.pending, (state) => {
         state.submitEvaluationStatus = "loading";
       })
@@ -582,6 +627,7 @@ export const {
   setEndDateFilter,
   clearInterviewPanelFilters,
   clearCurrentInterviewPanel,
+  clearInterviewEvaluationDetails,
 } = interviewPanelSlice.actions;
 
 export default interviewPanelSlice.reducer;

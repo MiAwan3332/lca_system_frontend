@@ -9,6 +9,11 @@ export const INTERVIEW_SCORE_FIELDS = [
   { key: "ethics_decision", label: "Ethics / Decision", max: 10 },
 ];
 
+export const INTERVIEW_SCORE_MAX_TOTAL = INTERVIEW_SCORE_FIELDS.reduce(
+  (sum, field) => sum + field.max,
+  0
+);
+
 export const INTERVIEW_VERDICT_OPTIONS = [
   {
     value: "ready_final_css",
@@ -23,6 +28,17 @@ export const INTERVIEW_VERDICT_OPTIONS = [
     label: "Intensive 1-1 Coaching Required",
   },
 ];
+
+export const getInterviewVerdictLabel = (value) =>
+  INTERVIEW_VERDICT_OPTIONS.find((item) => item.value === value)?.label ||
+  value ||
+  "—";
+
+export const getEvaluationScoreTotal = (evaluation) =>
+  INTERVIEW_SCORE_FIELDS.reduce((sum, field) => {
+    const value = Number(evaluation?.[field.key]);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
 
 export const getInterviewConductPath = (panelId, scheduleIndex) =>
   `/interview-panel-schedules/${panelId}/conduct/${scheduleIndex}`;
