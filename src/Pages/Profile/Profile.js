@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -10,13 +10,20 @@ import {
   VStack,
   createStandaloneToast,
 } from "@chakra-ui/react";
+import Cookies from "js-cookie";
 import { useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Mail, Shield, UserRound } from "lucide-react";
 import PageHeader from "../../Components/PageHeader";
 import GoogleAccountCard from "../../Components/GoogleAccountCard";
 import { selectUser } from "../../Features/authSlice";
+import {
+  fetchQualifiers,
+  selectAllQualifiers,
+} from "../../Features/qualifierSlice";
 import { getMediaUrl } from "../../utlls/useful";
+import { isQualifierRole } from "../../utlls/qualifierAccess";
+import QualifierSelfProfile from "../Qualifiers/QualifierSelfProfile";
 
 const { toast } = createStandaloneToast();
 
@@ -41,6 +48,16 @@ function DetailRow({ icon: Icon, label, value }) {
 function Profile() {
   const user = useSelector(selectUser);
   const location = useLocation();
+  const dispatch = useDispatch();
+  const isQualifier = isQualifierRole();
+  const [authToken] = useState(Cookies.get("authToken"));
+  const qualifiers = useSelector(selectAllQualifiers);
+  const { fetchStatus } = useSelector((state) => state.qualifiers);
+
+  useEffect(() => {
+    if (!isQualifier || !authToken) return;
+    dispatch(fetchQualifiers({ authToken }));
+  }, [isQualifier, authToken, dispatch]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -64,6 +81,15 @@ function Profile() {
       });
     }
   }, [location.search]);
+
+  if (isQualifier) {
+    return (
+      <QualifierSelfProfile
+        qualifier={qualifiers[0] || null}
+        loading={fetchStatus === "loading"}
+      />
+    );
+  }
 
   return (
     <>

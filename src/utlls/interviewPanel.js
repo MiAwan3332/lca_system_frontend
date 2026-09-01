@@ -33,6 +33,15 @@ export const getInterviewPanelStatusMeta = (status) => {
 
 export const DEFAULT_MEMBER_ROLE = "Panelist";
 
+/** Roles a person can hold on an interview panel. */
+export const PANEL_MEMBER_ROLES = [
+  "Chairperson",
+  "Co-Chair",
+  "Panelist",
+  "Subject Expert",
+  "Observer",
+];
+
 /** Resolve start/end time from panel (supports legacy `time` field). */
 export const getPanelTimeRange = (panel) => {
   const start = panel?.start_time || panel?.time || "";
@@ -42,6 +51,7 @@ export const getPanelTimeRange = (panel) => {
 
 export const createEmptyMemberRow = (index = 0) => ({
   id: `member_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 6)}`,
+  panelist_id: "",
   name: "",
   role: DEFAULT_MEMBER_ROLE,
   description: "",
@@ -53,6 +63,9 @@ export const membersToFormRows = (members = []) => {
   }
   return members.map((item, index) => ({
     id: `existing_${String(item.name || "m").replace(/\s+/g, "_")}_${index}`,
+    panelist_id: item.panelist_id
+      ? String(item.panelist_id._id || item.panelist_id)
+      : "",
     name: item.name || "",
     role: item.role || DEFAULT_MEMBER_ROLE,
     description: item.description || "",
@@ -62,28 +75,43 @@ export const membersToFormRows = (members = []) => {
 export const formRowsToMembersPayload = (rows = []) =>
   (rows || [])
     .map((row) => ({
+      panelist_id: row.panelist_id || undefined,
       name: String(row.name || "").trim(),
       role: String(row.role || "").trim() || DEFAULT_MEMBER_ROLE,
       description: String(row.description || "").trim(),
     }))
-    .filter((row) => row.name || row.description);
+    .filter((row) => row.name || row.description || row.panelist_id);
 
 /** Returns an error message if any member is incomplete; otherwise null. */
 export const getMembersValidationError = (rows = []) => {
   const filled = (rows || []).filter(
     (row) =>
-      String(row.name || "").trim() || String(row.description || "").trim()
+      String(row.panelist_id || "").trim() ||
+      String(row.name || "").trim() ||
+      String(row.description || "").trim()
   );
   if (filled.length === 0) {
-    return "Add at least one panelist with name and description";
+    return "Add at least one panelist";
   }
   for (const row of filled) {
+    if (!String(row.panelist_id || "").trim() && !String(row.name || "").trim()) {
+      return "Select a panelist for each member row";
+    }
     if (!String(row.name || "").trim()) {
-      return "Each panelist member requires a name";
+      return "Each panel member requires a name";
+    }
+    if (!String(row.role || "").trim()) {
+      return "Select a role for each panel member";
     }
     if (!String(row.description || "").trim()) {
       return "Each panelist member requires a description";
     }
+  }
+  const ids = filled
+    .map((row) => String(row.panelist_id || "").trim())
+    .filter(Boolean);
+  if (ids.length !== new Set(ids).size) {
+    return "The same panelist cannot be added twice";
   }
   return null;
 };
@@ -125,6 +153,11 @@ export const panelToScheduleRows = (panel) => {
         ? String(item.booked_user_id)
         : null,
       booked_at: item.booked_at || null,
+      booked_qualifier_id: item.booked_qualifier_id
+        ? String(item.booked_qualifier_id._id || item.booked_qualifier_id)
+        : null,
+      interview_status: item.interview_status || "not_started",
+      interview_started_at: item.interview_started_at || null,
     }));
   }
 
@@ -245,6 +278,9 @@ export const flattenAllPanelSchedules = (panels = []) => {
         booked_notes: slot.booked_notes || "",
         booked_user_id: slot.booked_user_id || null,
         booked_at: slot.booked_at || null,
+        booked_qualifier_id: slot.booked_qualifier_id || null,
+        interview_status: slot.interview_status || "not_started",
+        interview_started_at: slot.interview_started_at || null,
       });
     });
   });

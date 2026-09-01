@@ -50,15 +50,17 @@ function AddModel({ batch }) {
 
   const submitUpdate = async (values) => {
     const isSpecial = values.is_special_batch === true;
+    const isInterview = values.is_interview_batch === true;
     const payload = {
       name: values.name,
       description: values.description,
       batch_type: values.batch_type,
       startdate: values.startdate,
       enddate: values.enddate,
-      class_start_time: values.class_start_time,
-      class_end_time: values.class_end_time,
+      class_start_time: isInterview ? "" : values.class_start_time,
+      class_end_time: isInterview ? "" : values.class_end_time,
       is_special_batch: isSpecial,
+      is_interview_batch: isInterview,
       batch_fee: isSpecial ? "0" : String(values.batch_fee),
       special_fee_options: isSpecial
         ? formRowsToSpecialFeePayload(values.special_fee_rows)
@@ -84,6 +86,7 @@ function AddModel({ batch }) {
       batch_type: batch.batch_type,
       batch_fee: batch.batch_fee ?? "",
       is_special_batch: batch.is_special_batch === true,
+      is_interview_batch: batch.is_interview_batch === true,
       special_fee_rows: batchSpecialFeesToFormRows(batch.special_fee_options),
       startdate: batch.startdate,
       enddate: batch.enddate,
@@ -119,13 +122,22 @@ function AddModel({ batch }) {
       ),
       startdate: Yup.string().required("Required"),
       enddate: Yup.string().required("Required"),
-      class_start_time: Yup.string().required("Required"),
+      class_start_time: Yup.string().when("is_interview_batch", {
+        is: true,
+        then: (schema) => schema.notRequired(),
+        otherwise: (schema) => schema.required("Required"),
+      }),
       class_end_time: Yup.string()
-        .required("Required")
+        .when("is_interview_batch", {
+          is: true,
+          then: (schema) => schema.notRequired(),
+          otherwise: (schema) => schema.required("Required"),
+        })
         .test(
           "after-start",
           "End time must be after start time",
           function (value) {
+            if (this.parent.is_interview_batch) return true;
             const start = this.parent.class_start_time;
             if (!start || !value) return true;
             return String(value) > String(start);
@@ -167,6 +179,7 @@ function AddModel({ batch }) {
     const checked = e.target.checked;
     formik.setFieldValue("is_special_batch", checked);
     if (checked) {
+      formik.setFieldValue("is_interview_batch", false);
       formik.setFieldValue("batch_fee", "0");
       formik.setFieldError("batch_fee", undefined);
       if (!formik.values.special_fee_rows?.length) {
@@ -174,6 +187,19 @@ function AddModel({ batch }) {
       }
     } else {
       formik.setFieldValue("special_fee_rows", [createEmptySpecialFeeRow(0)]);
+    }
+  };
+
+  const handleInterviewBatchChange = (e) => {
+    const checked = e.target.checked;
+    formik.setFieldValue("is_interview_batch", checked);
+    if (checked) {
+      formik.setFieldValue("is_special_batch", false);
+      formik.setFieldValue("special_fee_rows", [createEmptySpecialFeeRow(0)]);
+      formik.setFieldValue("class_start_time", "");
+      formik.setFieldValue("class_end_time", "");
+      formik.setFieldError("class_start_time", undefined);
+      formik.setFieldError("class_end_time", undefined);
     }
   };
 
@@ -285,6 +311,20 @@ function AddModel({ batch }) {
                       which options apply to each student.
                     </Text>
                   )}
+                </FormControl>
+
+                <FormControl id="is_interview_batch">
+                  <Checkbox
+                    name="is_interview_batch"
+                    isChecked={formik.values.is_interview_batch}
+                    onChange={handleInterviewBatchChange}
+                  >
+                    Interview Batch
+                  </Checkbox>
+                  <Text fontSize="sm" color="gray.500" mt={1}>
+                    Mark this batch as used for interviews / qualifiers. Cannot
+                    be combined with Special Batch.
+                  </Text>
                 </FormControl>
 
                 {!formik.values.is_special_batch && (
@@ -440,6 +480,7 @@ function AddModel({ batch }) {
                   ) : null}
                 </FormControl>
 
+                {!formik.values.is_interview_batch && (
                 <Box
                   w="100%"
                   border="1px solid"
@@ -511,6 +552,7 @@ function AddModel({ batch }) {
                     </Text>
                   ) : null}
                 </Box>
+                )}
 
                 <FormControl id="is_active">
                   <FormLabel fontSize={14}>Status</FormLabel>

@@ -17,6 +17,16 @@ import {
   getInformationOfficeVisibleRoutes,
 } from "./informationOfficeAccess";
 import {
+  isQualifierRole,
+  canAccessQualifierRoute,
+  getQualifierVisibleRoutes,
+} from "./qualifierAccess";
+import {
+  isPanelistRole,
+  canAccessPanelistRoute,
+  getPanelistVisibleRoutes,
+} from "./panelistAccess";
+import {
   isPrincipalRole,
   canAccessPrincipalRoute,
   getPrincipalVisibleRoutes,
@@ -30,7 +40,10 @@ import { canAccessRequestManagement } from "./refundAccess";
 import {
   canAccessInterviewPanel,
   isInterviewPanelRoute,
+  canAccessPanelists,
+  isPanelistsRoute,
 } from "./interviewPanelAccess";
+import { isInterviewConductRoute } from "./interviewEvaluation";
 
 export const STUDENT_ROUTE_PATHS = [
   "/dashboard",
@@ -75,6 +88,7 @@ export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
 export const isSuperAdminOnlyRoute = (path) => {
   const normalized = String(path || "");
   if (SUPER_ADMIN_ONLY_ROUTE_PATHS.includes(normalized)) return true;
+  if (isInterviewConductRoute(normalized)) return true;
   if (normalized.startsWith("/activity-logs")) return true;
   if (normalized.startsWith("/interview-panel")) return true;
   return false;
@@ -82,11 +96,23 @@ export const isSuperAdminOnlyRoute = (path) => {
 
 /**
  * Restricted pages: Super Admins only by default.
- * Interview Panel / Panel Schedules: Superadmin, Secrate Superadmin,
- * Principal, Vice-Principal, CEO, Super Admin Development.
+ * Interview Panel: Superadmin, Secrate Superadmin, Principal, Vice-Principal, CEO, Super Admin Development.
+ * Panel Schedules: interview-panel staff, Qualifiers (bookings), and Panelists (view all).
  */
 export const canAccessSuperAdminOnlyRoute = (path) => {
   if (!isSuperAdminOnlyRoute(path)) return true;
+
+  const normalized = String(path || "");
+
+  if (normalized === "/interview-panel-schedules") {
+    return (
+      canAccessInterviewPanel() || isQualifierRole() || isPanelistRole()
+    );
+  }
+
+  if (isInterviewConductRoute(normalized)) {
+    return canAccessInterviewPanel() || isPanelistRole();
+  }
 
   if (isInterviewPanelRoute(path)) {
     return canAccessInterviewPanel();
@@ -104,7 +130,6 @@ export const canAccessSuperAdminOnlyRoute = (path) => {
     "/role",
     "/permission",
   ];
-  const normalized = String(path || "");
   if (
     lockedForEveryoneElse.includes(normalized) ||
     normalized.startsWith("/activity-logs")
@@ -113,6 +138,7 @@ export const canAccessSuperAdminOnlyRoute = (path) => {
   }
 
   if (isTeacherRole()) return canAccessTeacherRoute(path);
+  if (isQualifierRole()) return canAccessQualifierRoute(path);
   if (isStudentRole()) {
     if (isStudentProfileIncomplete() && path !== "/student") return false;
     return STUDENT_ROUTE_PATHS.includes(path);
@@ -213,6 +239,9 @@ export const canAccessRoute = (path) => {
   if (isWhatsAppRoute(path) && !isPlatformSuperAdminRole()) {
     return false;
   }
+  if (isPanelistsRoute(path) && !canAccessPanelists()) {
+    return false;
+  }
   if (!canAccessSuperAdminOnlyRoute(path)) {
     return false;
   }
@@ -222,6 +251,12 @@ export const canAccessRoute = (path) => {
   }
   if (isTeacherRole()) {
     return canAccessTeacherRoute(path);
+  }
+  if (isQualifierRole()) {
+    return canAccessQualifierRoute(path);
+  }
+  if (isPanelistRole()) {
+    return canAccessPanelistRoute(path);
   }
   if (isInformationOfficeRole()) {
     return canAccessInformationOfficeRoute(path);
@@ -250,6 +285,9 @@ export const getVisibleRoutes = (allRoutes) => {
     if (isWhatsAppRoute(route.path) && !isPlatformSuperAdminRole()) {
       return false;
     }
+    if (isPanelistsRoute(route.path) && !canAccessPanelists()) {
+      return false;
+    }
     if (!canAccessSuperAdminOnlyRoute(route.path)) {
       return false;
     }
@@ -261,6 +299,12 @@ export const getVisibleRoutes = (allRoutes) => {
   }
   if (isTeacherRole()) {
     return getTeacherVisibleRoutes(visibleRouteList).filter((route) => !route.adminOnly);
+  }
+  if (isQualifierRole()) {
+    return getQualifierVisibleRoutes(allRoutes);
+  }
+  if (isPanelistRole()) {
+    return getPanelistVisibleRoutes(allRoutes);
   }
   if (isInformationOfficeRole()) {
     return getInformationOfficeVisibleRoutes(visibleRouteList);

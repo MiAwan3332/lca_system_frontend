@@ -9,9 +9,12 @@ import {
   ClipboardList,
   UserRoundCheck,
   Plus,
+  BadgeCheck,
+  CalendarDays,
 } from "lucide-react";
 import { isTeacherRole } from "../../utlls/teacherAccess";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import { isQualifierRole } from "../../utlls/qualifierAccess";
 
 const ADMIN_ACTIONS = [
   { label: "Add Student", icon: GraduationCap, path: "/student" },
@@ -39,16 +42,24 @@ const STUDENT_ACTIONS = [
   { label: "Attendance", icon: UserRoundCheck, path: "/attendance" },
 ];
 
+const QUALIFIER_ACTIONS = [
+  { label: "My Profile", icon: BadgeCheck, path: "/qualifiers" },
+  { label: "My Panel Schedules", icon: CalendarDays, path: "/interview-panel-schedules" },
+];
+
 function QuickActions() {
   const navigate = useNavigate();
   const isTeacher = isTeacherRole();
   const viewOnly = isStudentViewOnly();
+  const isQualifier = isQualifierRole();
 
-  const actions = viewOnly
-    ? STUDENT_ACTIONS
-    : isTeacher
-      ? TEACHER_ACTIONS
-      : ADMIN_ACTIONS;
+  const actions = isQualifier
+    ? QUALIFIER_ACTIONS
+    : viewOnly
+      ? STUDENT_ACTIONS
+      : isTeacher
+        ? TEACHER_ACTIONS
+        : ADMIN_ACTIONS;
 
   return (
     <div className="dash-surface-card p-5 h-full">

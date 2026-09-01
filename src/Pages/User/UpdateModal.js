@@ -81,12 +81,14 @@ function UpdateModal({ user }) {
     initialValues: {
       name: user.name,
       email: user.email,
+      phone: user.phone || "",
       password: "",
       role: user.role,
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
+      phone: Yup.string().trim(),
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
@@ -161,6 +163,17 @@ function UpdateModal({ user }) {
                       {formik.errors.email}
                     </Box>
                   ) : null}
+                </FormControl>
+                <FormControl id="phone">
+                  <FormLabel fontSize={14}>Phone No</FormLabel>
+                  <Input
+                    type="tel"
+                    name="phone"
+                    borderRadius={"0.5rem"}
+                    placeholder="03XXXXXXXXX"
+                    value={formik.values.phone}
+                    onChange={formik.handleChange}
+                  />
                 </FormControl>
                 <FormControl id="password">
                   <FormLabel fontSize={14}>Password</FormLabel>

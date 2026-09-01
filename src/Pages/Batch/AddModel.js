@@ -43,6 +43,7 @@ function AddModel({ isOpen, onClose }) {
       batch_type: "",
       batch_fee: "",
       is_special_batch: false,
+      is_interview_batch: false,
       special_fee_rows: [createEmptySpecialFeeRow(0)],
       startdate: "",
       enddate: "",
@@ -76,13 +77,22 @@ function AddModel({ isOpen, onClose }) {
       ),
       startdate: Yup.string().required("Required"),
       enddate: Yup.string().required("Required"),
-      class_start_time: Yup.string().required("Required"),
+      class_start_time: Yup.string().when("is_interview_batch", {
+        is: true,
+        then: (schema) => schema.notRequired(),
+        otherwise: (schema) => schema.required("Required"),
+      }),
       class_end_time: Yup.string()
-        .required("Required")
+        .when("is_interview_batch", {
+          is: true,
+          then: (schema) => schema.notRequired(),
+          otherwise: (schema) => schema.required("Required"),
+        })
         .test(
           "after-start",
           "End time must be after start time",
           function (value) {
+            if (this.parent.is_interview_batch) return true;
             const start = this.parent.class_start_time;
             if (!start || !value) return true;
             return String(value) > String(start);
@@ -117,9 +127,16 @@ function AddModel({ isOpen, onClose }) {
               batch_type: values.batch_type,
               startdate: values.startdate,
               enddate: values.enddate,
-              class_start_time: values.class_start_time,
-              class_end_time: values.class_end_time,
+              class_start_time:
+                values.is_interview_batch === true
+                  ? ""
+                  : values.class_start_time,
+              class_end_time:
+                values.is_interview_batch === true
+                  ? ""
+                  : values.class_end_time,
               is_special_batch: isSpecial,
+              is_interview_batch: values.is_interview_batch === true,
               batch_fee: isSpecial ? "0" : String(values.batch_fee),
               special_fee_options: isSpecial
                 ? formRowsToSpecialFeePayload(values.special_fee_rows)
@@ -140,6 +157,7 @@ function AddModel({ isOpen, onClose }) {
     const checked = e.target.checked;
     formik.setFieldValue("is_special_batch", checked);
     if (checked) {
+      formik.setFieldValue("is_interview_batch", false);
       formik.setFieldValue("batch_fee", "0");
       formik.setFieldError("batch_fee", undefined);
       if (!formik.values.special_fee_rows?.length) {
@@ -147,6 +165,19 @@ function AddModel({ isOpen, onClose }) {
       }
     } else {
       formik.setFieldValue("special_fee_rows", [createEmptySpecialFeeRow(0)]);
+    }
+  };
+
+  const handleInterviewBatchChange = (e) => {
+    const checked = e.target.checked;
+    formik.setFieldValue("is_interview_batch", checked);
+    if (checked) {
+      formik.setFieldValue("is_special_batch", false);
+      formik.setFieldValue("special_fee_rows", [createEmptySpecialFeeRow(0)]);
+      formik.setFieldValue("class_start_time", "");
+      formik.setFieldValue("class_end_time", "");
+      formik.setFieldError("class_start_time", undefined);
+      formik.setFieldError("class_end_time", undefined);
     }
   };
 
@@ -243,6 +274,20 @@ function AddModel({ isOpen, onClose }) {
                     which options apply to each student.
                   </Text>
                 )}
+              </FormControl>
+
+              <FormControl id="is_interview_batch">
+                <Checkbox
+                  name="is_interview_batch"
+                  isChecked={formik.values.is_interview_batch}
+                  onChange={handleInterviewBatchChange}
+                >
+                  Interview Batch
+                </Checkbox>
+                <Text fontSize="sm" color="gray.500" mt={1}>
+                  Mark this batch as used for interviews / qualifiers. Cannot
+                  be combined with Special Batch.
+                </Text>
               </FormControl>
 
               {!formik.values.is_special_batch && (
@@ -375,6 +420,7 @@ function AddModel({ isOpen, onClose }) {
                 ) : null}
               </FormControl>
 
+              {!formik.values.is_interview_batch && (
               <Box
                 w="100%"
                 border="1px solid"
@@ -446,6 +492,7 @@ function AddModel({ isOpen, onClose }) {
                   </Text>
                 ) : null}
               </Box>
+              )}
             </VStack>
           </ModalBody>
 

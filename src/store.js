@@ -27,6 +27,8 @@ import complaintReducer from './Features/complaintSlice';
 import announcementReducer from './Features/announcementSlice';
 import activityLogReducer from './Features/activityLogSlice';
 import interviewPanelReducer from './Features/interviewPanelSlice';
+import panelistReducer from './Features/panelistSlice';
+import qualifierReducer from './Features/qualifierSlice';
 
 export const store = configureStore({
   reducer: {
@@ -57,5 +59,7 @@ export const store = configureStore({
     announcements: announcementReducer,
     activityLogs: activityLogReducer,
     interviewPanels: interviewPanelReducer,
+    panelists: panelistReducer,
+    qualifiers: qualifierReducer,
   },
 });

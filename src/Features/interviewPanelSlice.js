@@ -25,6 +25,10 @@ const initialState = {
   addStatus: "idle",
   updateStatus: "idle",
   deleteStatus: "idle",
+  conductData: null,
+  conductStatus: "idle",
+  startInterviewStatus: "idle",
+  submitEvaluationStatus: "idle",
   error: null,
 };
 
@@ -134,6 +138,27 @@ export const updateInterviewPanel = createAsyncThunk(
   }
 );
 
+export const bookInterviewPanelSlot = createAsyncThunk(
+  "interviewPanels/bookSlot",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { authToken, id, values } = payload;
+      const response = await axios.post(
+        `${BASE_URL}/interview-panels/book/${id}`,
+        values,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to book interview"
+      );
+    }
+  }
+);
+
 export const deleteInterviewPanel = createAsyncThunk(
   "interviewPanels/delete",
   async (payload, { rejectWithValue }) => {
@@ -149,6 +174,68 @@ export const deleteInterviewPanel = createAsyncThunk(
         error.response?.data?.message ||
           error.message ||
           "Failed to delete panel"
+      );
+    }
+  }
+);
+
+export const startInterviewSession = createAsyncThunk(
+  "interviewPanels/startInterview",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { authToken, panelId, schedule_index } = payload;
+      const response = await axios.post(
+        `${BASE_URL}/interview-panels/start-interview/${panelId}`,
+        { schedule_index },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to start interview"
+      );
+    }
+  }
+);
+
+export const fetchConductInterview = createAsyncThunk(
+  "interviewPanels/fetchConduct",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { authToken, panelId, scheduleIndex } = payload;
+      const response = await axios.get(
+        `${BASE_URL}/interview-panels/conduct/${panelId}/${scheduleIndex}`,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to load interview session"
+      );
+    }
+  }
+);
+
+export const submitInterviewEvaluation = createAsyncThunk(
+  "interviewPanels/submitEvaluation",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { authToken, panelId, values } = payload;
+      const response = await axios.post(
+        `${BASE_URL}/interview-panels/submit-evaluation/${panelId}`,
+        values,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to submit evaluation"
       );
     }
   }
@@ -304,13 +391,20 @@ const interviewPanelSlice = createSlice({
         state.updateStatus = "success";
         const updated = action.payload;
         if (updated?._id) {
-          state.panels = state.panels.map((item) =>
-            item._id === updated._id ? updated : item
-          );
-          state.scheduleBoardPanels = state.scheduleBoardPanels.map((item) =>
-            item._id === updated._id ? updated : item
-          );
-          if (state.currentPanel?._id === updated._id) {
+          const matchId = (item) =>
+            String(item?._id) === String(updated._id);
+          state.panels = state.panels.some(matchId)
+            ? state.panels.map((item) => (matchId(item) ? updated : item))
+            : [updated, ...state.panels];
+          state.scheduleBoardPanels = state.scheduleBoardPanels.some(matchId)
+            ? state.scheduleBoardPanels.map((item) =>
+                matchId(item) ? updated : item
+              )
+            : [updated, ...state.scheduleBoardPanels];
+          if (
+            state.currentPanel &&
+            String(state.currentPanel._id) === String(updated._id)
+          ) {
             state.currentPanel = updated;
           }
         }
@@ -329,6 +423,48 @@ const interviewPanelSlice = createSlice({
           description: state.error,
           status: "error",
           duration: 4000,
+          isClosable: true,
+        });
+      })
+      .addCase(bookInterviewPanelSlot.pending, (state) => {
+        state.updateStatus = "loading";
+      })
+      .addCase(bookInterviewPanelSlot.fulfilled, (state, action) => {
+        state.updateStatus = "success";
+        const updated = action.payload;
+        if (updated?._id) {
+          const matchId = (item) =>
+            String(item?._id) === String(updated._id);
+          state.panels = state.panels.some(matchId)
+            ? state.panels.map((item) => (matchId(item) ? updated : item))
+            : [updated, ...state.panels];
+          state.scheduleBoardPanels = state.scheduleBoardPanels.some(matchId)
+            ? state.scheduleBoardPanels.map((item) =>
+                matchId(item) ? updated : item
+              )
+            : [updated, ...state.scheduleBoardPanels];
+          if (
+            state.currentPanel &&
+            String(state.currentPanel._id) === String(updated._id)
+          ) {
+            state.currentPanel = updated;
+          }
+        }
+        toast({
+          title: "Interview booked",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      })
+      .addCase(bookInterviewPanelSlot.rejected, (state, action) => {
+        state.updateStatus = "failure";
+        state.error = action.payload || action.error.message;
+        toast({
+          title: "Could not book interview",
+          description: state.error,
+          status: "error",
+          duration: 5000,
           isClosable: true,
         });
       })
@@ -356,6 +492,81 @@ const interviewPanelSlice = createSlice({
           description: state.error,
           status: "error",
           duration: 4000,
+          isClosable: true,
+        });
+      })
+      .addCase(startInterviewSession.pending, (state) => {
+        state.startInterviewStatus = "loading";
+      })
+      .addCase(startInterviewSession.fulfilled, (state, action) => {
+        state.startInterviewStatus = "success";
+        state.conductData = action.payload;
+        const updated = action.payload?.panel;
+        if (updated?._id) {
+          const matchId = (item) => String(item?._id) === String(updated._id);
+          state.scheduleBoardPanels = state.scheduleBoardPanels.some(matchId)
+            ? state.scheduleBoardPanels.map((item) =>
+                matchId(item) ? updated : item
+              )
+            : state.scheduleBoardPanels;
+        }
+      })
+      .addCase(startInterviewSession.rejected, (state, action) => {
+        state.startInterviewStatus = "failure";
+        state.error = action.payload || action.error.message;
+        toast({
+          title: "Could not start interview",
+          description: state.error,
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+      })
+      .addCase(fetchConductInterview.pending, (state) => {
+        state.conductStatus = "loading";
+      })
+      .addCase(fetchConductInterview.fulfilled, (state, action) => {
+        state.conductStatus = "success";
+        state.conductData = action.payload;
+      })
+      .addCase(fetchConductInterview.rejected, (state, action) => {
+        state.conductStatus = "failure";
+        state.conductData = null;
+        state.error = action.payload || action.error.message;
+        toast({
+          title: "Could not load interview",
+          description: state.error,
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+      })
+      .addCase(submitInterviewEvaluation.pending, (state) => {
+        state.submitEvaluationStatus = "loading";
+      })
+      .addCase(submitInterviewEvaluation.fulfilled, (state, action) => {
+        state.submitEvaluationStatus = "success";
+        if (state.conductData) {
+          state.conductData = {
+            ...state.conductData,
+            evaluation: action.payload?.evaluation || state.conductData.evaluation,
+          };
+        }
+        toast({
+          title: "Mock evaluation submitted",
+          status: "success",
+          duration: 4000,
+          isClosable: true,
+        });
+      })
+      .addCase(submitInterviewEvaluation.rejected, (state, action) => {
+        state.submitEvaluationStatus = "failure";
+        state.error = action.payload || action.error.message;
+        toast({
+          title: "Could not submit evaluation",
+          description: state.error,
+          status: "error",
+          duration: 5000,
           isClosable: true,
         });
       });

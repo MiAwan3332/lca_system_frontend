@@ -30,10 +30,12 @@ import NotificationBell from "./NotificationBell";
 import GlobalSearch from "./Dashboard/GlobalSearch";
 import { ChevronDown, Info } from "lucide-react";
 import { isStudentViewOnly } from "../utlls/studentAccess";
+import { isQualifierRole } from "../utlls/qualifierAccess";
 import { getMediaUrl } from "../utlls/useful.js";
 
 export default function MobileNav({ onOpen, ...rest }) {
   const viewOnly = isStudentViewOnly();
+  const isQualifier = isQualifierRole();
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -137,7 +139,9 @@ export default function MobileNav({ onOpen, ...rest }) {
           >
             {!viewOnly && <ChangeAvatarModal user={user} />}
             <MenuItem
-              onClick={() => navigate("/profile")}
+              onClick={() =>
+                navigate(isQualifier ? "/qualifiers" : "/profile")
+              }
               className="rounded-lg"
             >
               Profile

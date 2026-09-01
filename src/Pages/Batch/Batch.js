@@ -309,7 +309,14 @@ function Batch() {
                     }
                   >
                     <Td>{batches.indexOf(batch) + 1}</Td>
-                    <Td>{batch.name}</Td>
+                    <Td>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>{batch.name}</span>
+                        {batch.is_interview_batch ? (
+                          <Badge colorScheme="blue">Interview</Badge>
+                        ) : null}
+                      </div>
+                    </Td>
                     <Td>{batch.description}</Td>
                     <Td>{batch.batch_type ? batch.batch_type : "N/A"}</Td>
                     {showFeeAndDates && (

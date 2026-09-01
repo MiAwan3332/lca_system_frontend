@@ -1,4 +1,3 @@
-import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -14,6 +13,13 @@ import {
   Select,
   Input,
   useDisclosure,
+  useToast,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
 } from "@chakra-ui/react";
 import {
   CalendarCheck2,
@@ -23,6 +29,7 @@ import {
   FilterX,
   MapPin,
   NotebookPen,
+  Play,
   Plus,
   Users,
 } from "lucide-react";
@@ -30,8 +37,16 @@ import Cookies from "js-cookie";
 import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PageHeader, { FilterStack } from "../../Components/PageHeader";
-import { fetchInterviewPanelScheduleBoard } from "../../Features/interviewPanelSlice";
+import {
+  fetchInterviewPanelScheduleBoard,
+  startInterviewSession,
+} from "../../Features/interviewPanelSlice";
+import {
+  fetchQualifiers,
+  selectAllQualifiers,
+} from "../../Features/qualifierSlice";
 import {
   flattenAllPanelSchedules,
   getInterviewPanelStatusMeta,
@@ -39,10 +54,22 @@ import {
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
 import AddPanelScheduleModal from "./AddPanelScheduleModal";
 import BookInterviewModal from "./BookInterviewModal";
+import { isQualifierRole } from "../../utlls/qualifierAccess";
+import { isPanelistRole } from "../../utlls/panelistAccess";
+import {
+  isQualifierProfileComplete,
+  getQualifierProfileIncompleteFields,
+  QUALIFIER_PROFILE_INCOMPLETE_MESSAGE,
+} from "../../utlls/qualifierProfile";
+import { getInterviewConductPath } from "../../utlls/interviewEvaluation";
 
 function AllInterviewPanelSchedules() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const toast = useToast();
+  const isQualifier = isQualifierRole();
+  const isPanelist = isPanelistRole();
+  const isReadOnlyRole = isQualifier || isPanelist;
   const [authToken] = useState(Cookies.get("authToken"));
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
@@ -50,6 +77,13 @@ function AllInterviewPanelSchedules() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedScheduleRow, setSelectedScheduleRow] = useState(null);
+  const [pendingStartRow, setPendingStartRow] = useState(null);
+  const startConfirmRef = useRef(null);
+  const {
+    isOpen: isStartConfirmOpen,
+    onOpen: onStartConfirmOpen,
+    onClose: onStartConfirmClose,
+  } = useDisclosure();
   const {
     isOpen: isAddOpen,
     onOpen: onAddOpen,
@@ -61,9 +95,16 @@ function AllInterviewPanelSchedules() {
     onClose: onBookClose,
   } = useDisclosure();
 
-  const { scheduleBoardPanels, fetchScheduleBoardStatus } = useSelector(
-    (state) => state.interviewPanels
-  );
+  const { scheduleBoardPanels, fetchScheduleBoardStatus, startInterviewStatus } =
+    useSelector((state) => state.interviewPanels);
+  const qualifiers = useSelector(selectAllQualifiers);
+  const myQualifier = isQualifier ? qualifiers[0] || null : null;
+  const profileComplete = isQualifier
+    ? isQualifierProfileComplete(myQualifier)
+    : true;
+  const missingProfileFields = isQualifier
+    ? getQualifierProfileIncompleteFields(myQualifier)
+    : [];
 
   const loadSchedules = (overrides = {}) => {
     dispatch(
@@ -79,6 +120,9 @@ function AllInterviewPanelSchedules() {
 
   useEffect(() => {
     loadSchedules();
+    if (isQualifier && authToken) {
+      dispatch(fetchQualifiers({ authToken }));
+    }
   }, []);
 
   const allSchedules = useMemo(
@@ -133,6 +177,21 @@ function AllInterviewPanelSchedules() {
   };
 
   const openBookModal = (row) => {
+    if (isQualifier && !profileComplete) {
+      toast({
+        title: "Complete your profile first",
+        description: `${QUALIFIER_PROFILE_INCOMPLETE_MESSAGE}${
+          missingProfileFields.length
+            ? ` Missing: ${missingProfileFields.join(", ")}.`
+            : ""
+        }`,
+        status: "warning",
+        duration: 6000,
+        isClosable: true,
+      });
+      navigate("/qualifiers");
+      return;
+    }
     setSelectedScheduleRow(row);
     onBookOpen();
   };
@@ -140,6 +199,46 @@ function AllInterviewPanelSchedules() {
   const closeBookModal = () => {
     onBookClose();
     setSelectedScheduleRow(null);
+  };
+
+  const getStartInterviewLabel = (row) => {
+    const status = String(row.interview_status || "not_started");
+    if (status === "completed") return "View Evaluation";
+    if (status === "in_progress") return "Continue Interview";
+    return "Start Interview";
+  };
+
+  const openConductPage = (row) => {
+    navigate(
+      getInterviewConductPath(row.panel_id, row.schedule_array_index)
+    );
+  };
+
+  const handleStartInterviewClick = (row) => {
+    const status = String(row.interview_status || "not_started");
+    if (status === "in_progress" || status === "completed") {
+      openConductPage(row);
+      return;
+    }
+    setPendingStartRow(row);
+    onStartConfirmOpen();
+  };
+
+  const confirmStartInterview = async () => {
+    if (!pendingStartRow || !authToken) return;
+    const row = pendingStartRow;
+    const result = await dispatch(
+      startInterviewSession({
+        authToken,
+        panelId: row.panel_id,
+        schedule_index: row.schedule_array_index,
+      })
+    );
+    onStartConfirmClose();
+    setPendingStartRow(null);
+    if (startInterviewSession.fulfilled.match(result)) {
+      openConductPage(row);
+    }
   };
 
   const selectedPanelForBooking = scheduleBoardPanels.find(
@@ -155,24 +254,32 @@ function AllInterviewPanelSchedules() {
 
   return (
     <Box w="full" maxW="100%" minW={0} overflowX="hidden">
-      <PageHeader title="All Panel Schedules">
-        <FilterStack className="filter-stack--actions">
-          <button
-            className="table-action-btn table-action-btn--primary"
-            type="button"
-            onClick={onAddOpen}
-          >
-            <Plus size={18} />
-            <span>Add Schedule</span>
-          </button>
-          <button
-            className="table-action-btn"
-            type="button"
-            onClick={() => navigate("/interview-panel")}
-          >
-            <span>Interview Panels</span>
-          </button>
-        </FilterStack>
+      <PageHeader
+        title={
+          isQualifier
+            ? "My Panel Schedules"
+            : "All Panel Schedules"
+        }
+      >
+        {!isReadOnlyRole && (
+          <FilterStack className="filter-stack--actions">
+            <button
+              className="table-action-btn table-action-btn--primary"
+              type="button"
+              onClick={onAddOpen}
+            >
+              <Plus size={18} />
+              <span>Add Schedule</span>
+            </button>
+            <button
+              className="table-action-btn"
+              type="button"
+              onClick={() => navigate("/interview-panel")}
+            >
+              <span>Interview Panels</span>
+            </button>
+          </FilterStack>
+        )}
       </PageHeader>
 
       <FilterStack className="filter-stack--panel filter-stack--table mt-3">
@@ -247,6 +354,39 @@ function AllInterviewPanelSchedules() {
         {scheduleBoardPanels.length === 1 ? "" : "s"}
       </Text>
 
+      {isQualifier && !profileComplete ? (
+        <Box
+          mt={3}
+          borderWidth="1px"
+          borderColor="orange.200"
+          borderRadius="xl"
+          bg="orange.50"
+          px={4}
+          py={3}
+        >
+          <Text fontWeight="600" fontSize="sm" color="orange.800">
+            Complete your profile to book an interview
+          </Text>
+          <Text fontSize="sm" color="orange.700" mt={1}>
+            {QUALIFIER_PROFILE_INCOMPLETE_MESSAGE}
+            {missingProfileFields.length
+              ? ` Missing: ${missingProfileFields.join(", ")}.`
+              : ""}
+          </Text>
+          <Button
+            mt={3}
+            size="sm"
+            borderRadius="lg"
+            backgroundColor="#FFCB82"
+            color="#85652D"
+            _hover={{ bg: "#E3B574" }}
+            onClick={() => navigate("/qualifiers")}
+          >
+            Go to My Profile
+          </Button>
+        </Box>
+      ) : null}
+
       <Box mt={{ base: 3, md: 4 }} w="full" minW={0}>
         {fetchScheduleBoardStatus === "loading" ? (
           <Center py={{ base: 12, md: 16 }}>
@@ -266,8 +406,13 @@ function AllInterviewPanelSchedules() {
                 No schedules found
               </Text>
               <Text fontSize="sm" color="gray.500">
-                Select a panel and add a schedule to get started.
+                {isQualifier
+                  ? "No available panel schedules match your filters."
+                  : isPanelist
+                    ? "No panel schedules match your filters."
+                    : "Select a panel and add a schedule to get started."}
               </Text>
+              {!isReadOnlyRole && (
               <Flex
                 direction={{ base: "column", sm: "row" }}
                 gap={3}
@@ -296,6 +441,7 @@ function AllInterviewPanelSchedules() {
                   Go to Interview Panels
                 </Button>
               </Flex>
+              )}
             </VStack>
           </Center>
         ) : (
@@ -514,37 +660,71 @@ function AllInterviewPanelSchedules() {
                     align={{ base: "stretch", sm: "center" }}
                     pt={1}
                   >
-                    <Button
-                      size="sm"
-                      leftIcon={<CalendarCheck2 size={14} />}
-                      borderRadius="lg"
-                      backgroundColor={isBooked ? "white" : "#FFCB82"}
-                      color="#85652D"
-                      border="1px solid"
-                      borderColor="#E3B574"
-                      _hover={{ bg: "#FFF8EE" }}
-                      w={{ base: "full", sm: "auto" }}
-                      minW={{ sm: "11rem" }}
-                      px={4}
-                      onClick={() => openBookModal(row)}
-                    >
-                      {isBooked ? "View / Edit Booking" : "Book Interview"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      leftIcon={<ExternalLink size={14} />}
-                      variant="outline"
-                      borderRadius="lg"
-                      borderColor="#E3B574"
-                      color="#85652D"
-                      _hover={{ bg: "#FFF8EE" }}
-                      w={{ base: "full", sm: "auto" }}
-                      onClick={() =>
-                        navigate(`/interview-panel/${row.panel_id}/schedules`)
-                      }
-                    >
-                      Schedules
-                    </Button>
+                    {!isQualifier && isBooked && (
+                      <Button
+                        size="sm"
+                        leftIcon={<Play size={14} />}
+                        borderRadius="lg"
+                        backgroundColor="#1A202C"
+                        color="#FFCB82"
+                        _hover={{ bg: "#2D3748" }}
+                        w={{ base: "full", sm: "auto" }}
+                        minW={{ sm: "10rem" }}
+                        px={4}
+                        isLoading={
+                          startInterviewStatus === "loading" &&
+                          pendingStartRow?.id === row.id
+                        }
+                        onClick={() => handleStartInterviewClick(row)}
+                      >
+                        {getStartInterviewLabel(row)}
+                      </Button>
+                    )}
+                    {!isPanelist && (isQualifier ? !isBooked : true) && (
+                      <Button
+                        size="sm"
+                        leftIcon={<CalendarCheck2 size={14} />}
+                        borderRadius="lg"
+                        backgroundColor={
+                          isBooked ? "white" : profileComplete ? "#FFCB82" : "gray.100"
+                        }
+                        color="#85652D"
+                        border="1px solid"
+                        borderColor="#E3B574"
+                        _hover={{ bg: "#FFF8EE" }}
+                        w={{ base: "full", sm: "auto" }}
+                        minW={{ sm: "11rem" }}
+                        px={4}
+                        onClick={() => openBookModal(row)}
+                      >
+                        {isQualifier
+                          ? profileComplete
+                            ? "Book Interview"
+                            : "Complete Profile to Book"
+                          : isBooked
+                            ? "View / Edit Booking"
+                            : "Book Interview"}
+                      </Button>
+                    )}
+                    {!isReadOnlyRole && (
+                      <Button
+                        size="sm"
+                        leftIcon={<ExternalLink size={14} />}
+                        variant="outline"
+                        borderRadius="lg"
+                        borderColor="#E3B574"
+                        color="#85652D"
+                        _hover={{ bg: "#FFF8EE" }}
+                        w={{ base: "full", sm: "auto" }}
+                        onClick={() =>
+                          navigate(
+                            `/interview-panel/${row.panel_id}/schedules`
+                          )
+                        }
+                      >
+                        Schedules
+                      </Button>
+                    )}
                   </Flex>
                 </Box>
               );
@@ -553,19 +733,67 @@ function AllInterviewPanelSchedules() {
         )}
       </Box>
 
-      <AddPanelScheduleModal
-        isOpen={isAddOpen}
-        onClose={onAddClose}
-        panels={scheduleBoardPanels}
-        boardFilters={boardFilters}
-      />
-      <BookInterviewModal
-        isOpen={isBookOpen}
-        onClose={closeBookModal}
-        panel={selectedPanelForBooking}
-        scheduleRow={selectedScheduleRow}
-        boardFilters={boardFilters}
-      />
+      {!isReadOnlyRole && (
+        <AddPanelScheduleModal
+          isOpen={isAddOpen}
+          onClose={onAddClose}
+          panels={scheduleBoardPanels}
+          boardFilters={boardFilters}
+        />
+      )}
+      {!isPanelist && (
+        <BookInterviewModal
+          isOpen={isBookOpen}
+          onClose={closeBookModal}
+          panel={selectedPanelForBooking}
+          scheduleRow={selectedScheduleRow}
+          boardFilters={boardFilters}
+          qualifierProfile={myQualifier}
+        />
+      )}
+
+      <AlertDialog
+        isOpen={isStartConfirmOpen}
+        leastDestructiveRef={startConfirmRef}
+        onClose={onStartConfirmClose}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent borderRadius="2xl" mx={4}>
+            <AlertDialogHeader fontFamily="Georgia, serif">
+              Start Interview?
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              {pendingStartRow ? (
+                <>
+                  Start the mock interview with{" "}
+                  <strong>{pendingStartRow.booked_for || "this candidate"}</strong>
+                  ?
+                  <Text mt={2} fontSize="sm" color="gray.600">
+                    {pendingStartRow.panel_title} · {pendingStartRow.date}
+                  </Text>
+                </>
+              ) : (
+                "Start this interview session?"
+              )}
+            </AlertDialogBody>
+            <AlertDialogFooter gap={2}>
+              <Button ref={startConfirmRef} onClick={onStartConfirmClose}>
+                Cancel
+              </Button>
+              <Button
+                backgroundColor="#FFCB82"
+                color="#85652D"
+                _hover={{ backgroundColor: "#E3B574" }}
+                onClick={confirmStartInterview}
+                isLoading={startInterviewStatus === "loading"}
+              >
+                Start Interview
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 }

@@ -123,6 +123,10 @@ const Login = () => {
 
         const teacherId =
           response.data.teacherId || response.data.teacherData?._id;
+        const qualifierId =
+          response.data.qualifierId || response.data.qualifierData?._id;
+        const panelistId =
+          response.data.panelistId || response.data.panelistData?._id;
 
         Cookies.set("authToken", authToken, {
           expires: getSessionCookieExpiry(),
@@ -135,6 +139,8 @@ const Login = () => {
           role,
           studentId,
           teacherId,
+          qualifierId,
+          panelistId,
           profileUpdatedOnce,
           skipProfileCompletion,
         });
@@ -334,7 +340,7 @@ const Login = () => {
               Welcome Back
             </Heading>
             <Text fontSize="sm" color="gray.500">
-              Staff: email · Students: phone number
+              Staff: email · Students / Qualifiers: phone number
             </Text>
           </VStack>
 
@@ -369,7 +375,7 @@ const Login = () => {
                   h="44px"
                   pl="10"
                   borderRadius="xl"
-                  placeholder="Email or student phone"
+                  placeholder="Email or phone number"
                   bg="gray.50"
                   border="1px solid"
                   borderColor="gray.200"

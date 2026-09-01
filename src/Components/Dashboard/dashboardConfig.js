@@ -199,6 +199,65 @@ export const STUDENT_KPI_CONFIG = [
   },
 ];
 
+export const QUALIFIER_KPI_CONFIG = [
+  {
+    key: "batch_name",
+    title: "Interview Batch",
+    helpText: "Your assigned interview batch",
+    icon: Boxes,
+    gradient: "indigo",
+    trend: 0,
+  },
+  {
+    key: "total_fee_record",
+    title: "Batch Fee",
+    helpText: "Fee before discount",
+    icon: DollarSign,
+    gradient: "purple",
+    trend: 0,
+  },
+  {
+    key: "discount_amount",
+    title: "Discount",
+    helpText: "Discount applied",
+    icon: Receipt,
+    gradient: "amber",
+    trend: 0,
+  },
+  {
+    key: "total_fee_recovered",
+    title: "Fee Paid",
+    helpText: "Amount you have paid",
+    icon: HandCoins,
+    gradient: "emerald",
+    trend: 0,
+  },
+  {
+    key: "total_fee_pending",
+    title: "Fee Pending",
+    helpText: "Outstanding balance",
+    icon: ArrowDown01,
+    gradient: "rose",
+    trend: 0,
+  },
+  {
+    key: "upcoming_interviews_count",
+    title: "Upcoming Interviews",
+    helpText: "Your booked upcoming slots",
+    icon: Clock,
+    gradient: "sky",
+    trend: 0,
+  },
+  {
+    key: "interview_bookings_count",
+    title: "Total Bookings",
+    helpText: "All interview slots booked for you",
+    icon: Users,
+    gradient: "slate",
+    trend: 0,
+  },
+];
+
 export const buildActivityItems = (statistics = {}, notifications = []) => {
   const items = [];
 

@@ -16,7 +16,7 @@ import Roles from "./Pages/Roles/Roles.js";
 import Permissions from "./Pages/Permissions/Permissions.js";
 import Seminars from "./Pages/Seminar/seminar.js";
 import { FaQuestionCircle } from "react-icons/fa";
-import { Boxes, BrainCircuit, CalendarDays, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, UserCircle, MessageCircle, MessageSquareText } from "lucide-react";
+import { Boxes, BrainCircuit, CalendarDays, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, UserCircle, MessageCircle, MessageSquareText, Contact, BadgeCheck } from "lucide-react";
 import Timetable from "./Pages/Timetable/Timetable.js";
 import Attendance from "./Pages/Attendance/Attendance.js";
 import Fees from "./Pages/Fees/Fees.js";
@@ -31,6 +31,9 @@ import Announcements from "./Pages/Announcements/Announcements.js";
 import InterviewPanel from "./Pages/InterviewPanel/InterviewPanel.js";
 import InterviewPanelSchedules from "./Pages/InterviewPanel/InterviewPanelSchedules.js";
 import AllInterviewPanelSchedules from "./Pages/InterviewPanel/AllInterviewPanelSchedules.js";
+import ConductInterview from "./Pages/InterviewPanel/ConductInterview.js";
+import Panelists from "./Pages/Panelists/Panelists.js";
+import Qualifiers from "./Pages/Qualifiers/Qualifiers.js";
 import NotificationsPage from "./Pages/Notifications/NotificationsPage.js";
 import GoogleWorkspaceRedirect from "./Pages/GoogleWorkspace/GoogleWorkspaceRedirect.js";
 import Profile from "./Pages/Profile/Profile.js";
@@ -57,6 +60,12 @@ export const routes = [
     icon: GraduationCap,
     component: <Students />,
     path: "/student",
+  },
+  {
+    name: "Qualifiers",
+    icon: BadgeCheck,
+    component: <Qualifiers />,
+    path: "/qualifiers",
   },
   {
     name: "Fees",
@@ -135,11 +144,25 @@ export const routes = [
     superAdminOnly: true,
   },
   {
-    name: "Panel Schedules",
+    name: "Panelists",
+    icon: Contact,
+    component: <Panelists />,
+    path: "/panelists",
+  },
+  {
+    name: "All Panel Schedules",
     icon: CalendarDays,
     component: <AllInterviewPanelSchedules />,
     path: "/interview-panel-schedules",
     superAdminOnly: true,
+  },
+  {
+    name: "Conduct Interview",
+    icon: ClipboardPenLine,
+    component: <ConductInterview />,
+    path: "/interview-panel-schedules/:panelId/conduct/:scheduleIndex",
+    superAdminOnly: true,
+    hidden: true,
   },
   {
     name: "Panel Schedules Detail",
