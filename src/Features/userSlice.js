@@ -3,6 +3,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { createStandaloneToast } from "@chakra-ui/react";
 import axios from 'axios';
 import { config } from "../utlls/config.js";
+import { whatsappWelcomeDescription } from "../utlls/whatsappWelcome.js";
 
 const { toast } = createStandaloneToast();
 
@@ -38,11 +39,21 @@ const addUser = createAsyncThunk(
     async (payload, { rejectWithValue }) => {
         const { formData, authToken } = payload;
         try {
-            const response = await axios.post(`${BASE_URL}/users/add`, formData, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
+            const response = await axios.post(
+                `${BASE_URL}/users/add`,
+                {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    role: formData.role,
                 },
-            });
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
             return response.data;
         } catch (error) {
             return rejectWithValue(
@@ -122,16 +133,14 @@ const userSlice = createSlice({
             .addCase(addUser.fulfilled, (state, action) => {
                 state.addStatus = 'succeeded';
                 const wa = action.payload?.whatsapp_welcome;
-                const waNote = wa?.sent
-                    ? " Welcome WhatsApp sent."
-                    : wa?.skipped || wa?.error
-                        ? " (WhatsApp welcome not sent — check Connect / Templates.)"
-                        : "";
+                const waNote = whatsappWelcomeDescription(wa);
                 toast({
                     title: 'User added successfully',
-                    description: waNote.trim() || undefined,
-                    status: 'success',
-                    duration: 5000,
+                    description: waNote,
+                    status: wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
+                        ? "warning"
+                        : "success",
+                    duration: 7000,
                     isClosable: true,
                 });
             })

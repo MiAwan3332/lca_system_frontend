@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { createStandaloneToast } from "@chakra-ui/react";
 import { config } from "../utlls/config.js";
+import { whatsappWelcomeDescription } from "../utlls/whatsappWelcome.js";
 import axios from 'axios';
 
 const { toast } = createStandaloneToast();
@@ -457,16 +458,13 @@ const studentSlice = createSlice({
             .addCase(addStudent.fulfilled, (state, action) => {
                 state.addStatus = 'success';
                 const wa = action.payload?.whatsapp_welcome;
-                const waNote = wa?.sent
-                    ? " Welcome WhatsApp sent."
-                    : wa?.skipped || wa?.error
-                        ? " (WhatsApp welcome not sent — check Connect / Templates.)"
-                        : "";
                 toast({
                     title: "Student added successfully!",
-                    description: waNote.trim() || undefined,
-                    status: "success",
-                    duration: 4000,
+                    description: whatsappWelcomeDescription(wa),
+                    status: wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
+                        ? "warning"
+                        : "success",
+                    duration: 7000,
                     isClosable: true,
                 });
             })
