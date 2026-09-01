@@ -82,7 +82,7 @@ function AddModel({ isOpen, onClose }) {
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
-      phone: Yup.string().trim().required("Phone is required for WhatsApp welcome"),
+      phone: Yup.string().trim().required("Contact number is required"),
       // password: Yup.string().required("Required"),
       role: Yup.string().required("Required"),
     }),
@@ -138,7 +138,7 @@ function AddModel({ isOpen, onClose }) {
                 ) : null}
               </FormControl>
               <FormControl id="phone" isRequired>
-                <FormLabel fontSize={14}>Phone No</FormLabel>
+                <FormLabel fontSize={14}>Contact Number</FormLabel>
                 <Input
                   type="tel"
                   name="phone"

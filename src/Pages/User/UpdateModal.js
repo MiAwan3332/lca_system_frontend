@@ -88,7 +88,7 @@ function UpdateModal({ user }) {
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
-      phone: Yup.string().trim(),
+      phone: Yup.string().trim().required("Contact number is required"),
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
@@ -164,8 +164,8 @@ function UpdateModal({ user }) {
                     </Box>
                   ) : null}
                 </FormControl>
-                <FormControl id="phone">
-                  <FormLabel fontSize={14}>Phone No</FormLabel>
+                <FormControl id="phone" isRequired>
+                  <FormLabel fontSize={14}>Contact Number</FormLabel>
                   <Input
                     type="tel"
                     name="phone"
@@ -174,6 +174,11 @@ function UpdateModal({ user }) {
                     value={formik.values.phone}
                     onChange={formik.handleChange}
                   />
+                  {formik.touched.phone && formik.errors.phone ? (
+                    <Box color="red" fontSize="sm">
+                      {formik.errors.phone}
+                    </Box>
+                  ) : null}
                 </FormControl>
                 <FormControl id="password">
                   <FormLabel fontSize={14}>Password</FormLabel>
