@@ -7,7 +7,7 @@ import Dashboard from "./Layouts/Dashboard.js";
 import VerifySlip from "./Pages/VerifySlip/VerifySlip.js";
 import { routes } from "./routes.js";
 import { useEffect } from "react";
-import { extractPermissionsFromToken, extractRoleFromToken, extractStudentIdFromToken, extractTeacherIdFromToken, storeAuthSession } from "./utlls/useful.js";
+import { extractPermissionsFromToken, extractRoleFromToken, extractStudentIdFromToken, extractTeacherIdFromToken, extractQualifierIdFromToken, extractPanelistIdFromToken, storeAuthSession } from "./utlls/useful.js";
 import ErrorBoundary from "./Components/ErrorBoundary.js";
 import SessionGuard from "./Components/SessionGuard.js";
 import { setupGlobalErrorHandlers } from "./utlls/errorHandler.js";
@@ -24,7 +24,9 @@ function App() {
       const role = extractRoleFromToken(authToken);
       const studentId = extractStudentIdFromToken(authToken);
       const teacherId = extractTeacherIdFromToken(authToken);
-      storeAuthSession({ permissions, role, studentId, teacherId });
+      const qualifierId = extractQualifierIdFromToken(authToken);
+      const panelistId = extractPanelistIdFromToken(authToken);
+      storeAuthSession({ permissions, role, studentId, teacherId, qualifierId, panelistId });
     }
 
     return setupGlobalErrorHandlers();

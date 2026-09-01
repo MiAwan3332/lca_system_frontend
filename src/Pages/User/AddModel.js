@@ -75,12 +75,14 @@ function AddModel({ isOpen, onClose }) {
     initialValues: {
       name: "",
       email: "",
+      phone: "",
       // password: "",
       role: "",
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
+      phone: Yup.string().trim().required("Phone is required for WhatsApp welcome"),
       // password: Yup.string().required("Required"),
       role: Yup.string().required("Required"),
     }),
@@ -88,9 +90,11 @@ function AddModel({ isOpen, onClose }) {
       dispatch(addUser({ formData: values, authToken }))
         .unwrap()
         .then(() => {
+          formik.resetForm();
           onClose();
           dispatch(fetchUsers({ authToken }));
-        });
+        })
+        .catch(() => {});
     },
   });
 
@@ -103,7 +107,7 @@ function AddModel({ isOpen, onClose }) {
         <form onSubmit={formik.handleSubmit}>
           <ModalBody>
             <VStack spacing={4}>
-              <FormControl id="name">
+              <FormControl id="name" isRequired>
                 <FormLabel fontSize={14}>Name</FormLabel>
                 <Input
                   type="text"
@@ -118,7 +122,7 @@ function AddModel({ isOpen, onClose }) {
                   </Box>
                 ) : null}
               </FormControl>
-              <FormControl id="email">
+              <FormControl id="email" isRequired>
                 <FormLabel fontSize={14}>Email</FormLabel>
                 <Input
                   type="email"
@@ -130,6 +134,22 @@ function AddModel({ isOpen, onClose }) {
                 {formik.touched.email && formik.errors.email ? (
                   <Box color="red" fontSize="sm">
                     {formik.errors.email}
+                  </Box>
+                ) : null}
+              </FormControl>
+              <FormControl id="phone" isRequired>
+                <FormLabel fontSize={14}>Phone No</FormLabel>
+                <Input
+                  type="tel"
+                  name="phone"
+                  borderRadius={"0.5rem"}
+                  placeholder="03XXXXXXXXX"
+                  value={formik.values.phone}
+                  onChange={formik.handleChange}
+                />
+                {formik.touched.phone && formik.errors.phone ? (
+                  <Box color="red" fontSize="sm">
+                    {formik.errors.phone}
                   </Box>
                 ) : null}
               </FormControl>
@@ -148,7 +168,7 @@ function AddModel({ isOpen, onClose }) {
                   </Box>
                 ) : null}
               </FormControl> */}
-              <FormControl id="role">
+              <FormControl id="role" isRequired>
                 <FormLabel fontSize={14}>Role</FormLabel>
                 <Select
                   placeholder={rolesLoading ? "Loading roles..." : "Select Role"}

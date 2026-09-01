@@ -6,6 +6,7 @@ export const INFORMATION_OFFICE_ROUTE_PATHS = [
   "/dashboard",
   "/profile",
   "/student",
+  "/qualifiers",
   "/finance-report",
   "/batch",
   "/notifications",

@@ -75,6 +75,8 @@ export const clearAuthSession = () => {
   sessionStorage.removeItem("role");
   sessionStorage.removeItem("studentId");
   sessionStorage.removeItem("teacherId");
+  sessionStorage.removeItem("qualifierId");
+  sessionStorage.removeItem("panelistId");
   sessionStorage.removeItem("profileUpdatedOnce");
   sessionStorage.removeItem("skipProfileCompletion");
   sessionStorage.removeItem("sessionExpiresAt");

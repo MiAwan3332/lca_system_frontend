@@ -33,15 +33,24 @@ const fetchUsers = createAsyncThunk('users/fetchUsers', async (payload, { getSta
     return response.data;
 });
 
-const addUser = createAsyncThunk('users/addUser', async (payload) => {
-    const { formData, authToken } = payload;
-    const response = await axios.post(`${BASE_URL}/users/add`, formData, {
-        headers: {
-            Authorization: `Bearer ${authToken}`,
-        },
-    });
-    return response.data;
-});
+const addUser = createAsyncThunk(
+    'users/addUser',
+    async (payload, { rejectWithValue }) => {
+        const { formData, authToken } = payload;
+        try {
+            const response = await axios.post(`${BASE_URL}/users/add`, formData, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error?.response?.data?.message || error.message || "Failed to add user"
+            );
+        }
+    }
+);
 
 const updateUser = createAsyncThunk('users/updateUser', async (payload) => {
     const { userId, values, authToken } = payload;
@@ -112,8 +121,15 @@ const userSlice = createSlice({
             })
             .addCase(addUser.fulfilled, (state, action) => {
                 state.addStatus = 'succeeded';
+                const wa = action.payload?.whatsapp_welcome;
+                const waNote = wa?.sent
+                    ? " Welcome WhatsApp sent."
+                    : wa?.skipped || wa?.error
+                        ? " (WhatsApp welcome not sent — check Connect / Templates.)"
+                        : "";
                 toast({
                     title: 'User added successfully',
+                    description: waNote.trim() || undefined,
                     status: 'success',
                     duration: 5000,
                     isClosable: true,
@@ -121,7 +137,13 @@ const userSlice = createSlice({
             })
             .addCase(addUser.rejected, (state, action) => {
                 state.addStatus = 'failed';
-                state.error = action.error.message;
+                state.error = action.payload || action.error.message;
+                toast({
+                    title: action.payload || action.error.message || 'Failed to add user',
+                    status: 'error',
+                    duration: 5000,
+                    isClosable: true,
+                });
             })
 
             // Update User

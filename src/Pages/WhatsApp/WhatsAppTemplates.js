@@ -34,6 +34,9 @@ import { isPlatformSuperAdminRole } from "../../utlls/useful";
 
 const PROCESS_COLORS = {
   student_admission: "green",
+  user_welcome: "purple",
+  panelist_welcome: "teal",
+  qualifier_welcome: "cyan",
   fee_payment: "blue",
   fee_reminder: "orange",
   custom: "gray",

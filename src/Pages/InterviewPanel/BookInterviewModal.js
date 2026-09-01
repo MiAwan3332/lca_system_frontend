@@ -38,6 +38,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import {
   updateInterviewPanel,
+  bookInterviewPanelSlot,
   fetchInterviewPanelScheduleBoard,
   fetchInterviewPanels,
 } from "../../Features/interviewPanelSlice";
@@ -48,11 +49,18 @@ import {
 } from "../../utlls/interviewPanel";
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
 import { extractUserIdFromToken } from "../../utlls/useful";
+import { isQualifierRole } from "../../utlls/qualifierAccess";
+import {
+  isQualifierProfileComplete,
+  getQualifierProfileIncompleteFields,
+  QUALIFIER_PROFILE_INCOMPLETE_MESSAGE,
+} from "../../utlls/qualifierProfile";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import { useNavigate } from "react-router-dom";
 
 function BookInterviewModal({
   isOpen,
@@ -60,6 +68,7 @@ function BookInterviewModal({
   panel,
   scheduleRow,
   boardFilters = {},
+  qualifierProfile = null,
 }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [bookedFor, setBookedFor] = useState("");
@@ -78,13 +87,21 @@ function BookInterviewModal({
   const currentUser = useSelector(selectUser);
   const authStatus = useSelector((state) => state.auth.status);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const isQualifier = isQualifierRole();
 
   const isBooked = scheduleRow?.booking_status === "booked";
   const duration =
     formatClassTimeRange(scheduleRow?.start_time, scheduleRow?.end_time) ||
     formatTime12Hour(scheduleRow?.start_time) ||
     "—";
-  const loadingUser = authStatus === "loading" && !currentUser;
+  const loadingUser = authStatus === "loading" && !currentUser && !isQualifier;
+  const profileComplete = isQualifier
+    ? isQualifierProfileComplete(qualifierProfile)
+    : true;
+  const missingFields = isQualifier
+    ? getQualifierProfileIncompleteFields(qualifierProfile)
+    : [];
 
   useEffect(() => {
     if (!isOpen || !authToken) return;
@@ -113,18 +130,30 @@ function BookInterviewModal({
       return;
     }
 
-    // New booking: fill from logged-in user
+    // New booking: fill from qualifier profile or logged-in user
+    if (isQualifier && qualifierProfile) {
+      setBookedFor(String(qualifierProfile.name || "").trim());
+      setBookedPhone(String(qualifierProfile.phone || "").trim());
+      setBookedUserId(currentUser?._id || null);
+      return;
+    }
+
     if (currentUser) {
       setBookedFor(String(currentUser.name || "").trim());
       setBookedPhone(String(currentUser.email || "").trim());
       setBookedUserId(currentUser._id || null);
-      return;
+    } else {
+      setBookedFor("");
+      setBookedPhone("");
+      setBookedUserId(null);
     }
-
-    setBookedFor("");
-    setBookedPhone("");
-    setBookedUserId(null);
-  }, [isOpen, scheduleRow?.id, currentUser?._id, currentUser?.name, currentUser?.email]);
+  }, [
+    isOpen,
+    scheduleRow,
+    currentUser,
+    isQualifier,
+    qualifierProfile,
+  ]);
 
   if (!panel || !scheduleRow) return null;
 
@@ -176,9 +205,19 @@ function BookInterviewModal({
 
   const requestBookConfirm = (event) => {
     event.preventDefault();
+    if (isQualifier && !profileComplete) {
+      setError(
+        `${QUALIFIER_PROFILE_INCOMPLETE_MESSAGE}${
+          missingFields.length ? ` Missing: ${missingFields.join(", ")}.` : ""
+        }`
+      );
+      return;
+    }
     const name = String(bookedFor || "").trim();
     if (!name) {
-      setError("Logged-in user details are missing. Please refresh and try again.");
+      setError(
+        "Logged-in user details are missing. Please refresh and try again."
+      );
       return;
     }
     setError("");
@@ -187,6 +226,10 @@ function BookInterviewModal({
   };
 
   const requestClearConfirm = () => {
+    if (isQualifier) {
+      setError("Qualifiers cannot clear bookings. Contact the academy.");
+      return;
+    }
     setError("");
     setConfirmAction("clear");
     onConfirmOpen();
@@ -194,6 +237,44 @@ function BookInterviewModal({
 
   const executeBook = async () => {
     const name = String(bookedFor || "").trim();
+
+    if (isQualifier) {
+      const scheduleIndex =
+        typeof scheduleRow.schedule_array_index === "number"
+          ? scheduleRow.schedule_array_index
+          : Number(scheduleRow.schedule_index) - 1;
+      try {
+        await dispatch(
+          bookInterviewPanelSlot({
+            authToken,
+            id: panel._id,
+            values: {
+              schedule_index: scheduleIndex,
+              booked_notes: String(bookedNotes || "").trim(),
+            },
+          })
+        ).unwrap();
+        handleClose();
+        dispatch(
+          fetchInterviewPanelScheduleBoard({
+            authToken,
+            query: boardFilters.query || "",
+            status: boardFilters.status || "",
+            start_date: boardFilters.start_date || "",
+            end_date: boardFilters.end_date || "",
+          })
+        );
+      } catch (err) {
+        setError(
+          typeof err === "string"
+            ? err
+            : err?.message || "Could not book interview"
+        );
+        closeConfirm();
+      }
+      return;
+    }
+
     const result = buildUpdatedSchedules({
       booking_status: "booked",
       booked_for: name,
@@ -366,8 +447,39 @@ function BookInterviewModal({
                   </Text>
                 </HStack>
                 <Text fontSize="xs" color="gray.500" mb={3}>
-                  Filled automatically from the logged-in user.
+                  {isQualifier
+                    ? "Filled from your My Profile details."
+                    : "Filled automatically from the logged-in user."}
                 </Text>
+
+                {!profileComplete ? (
+                  <Box
+                    mb={3}
+                    borderWidth="1px"
+                    borderColor="orange.200"
+                    borderRadius="lg"
+                    bg="orange.50"
+                    p={3}
+                  >
+                    <Text fontSize="sm" color="orange.800" fontWeight="600">
+                      Complete your profile to book
+                    </Text>
+                    <Text fontSize="xs" color="orange.700" mt={1}>
+                      Missing: {missingFields.join(", ") || "required fields"}
+                    </Text>
+                    <Button
+                      mt={2}
+                      size="sm"
+                      borderRadius="lg"
+                      onClick={() => {
+                        handleClose();
+                        navigate("/qualifiers");
+                      }}
+                    >
+                      Go to My Profile
+                    </Button>
+                  </Box>
+                ) : null}
 
                 {loadingUser ? (
                   <Flex py={6} justify="center" align="center" gap={2}>
@@ -394,7 +506,7 @@ function BookInterviewModal({
 
                     <FormControl>
                       <FormLabel fontSize={13} color="#654E26">
-                        Email
+                        {isQualifier ? "Phone" : "Email"}
                       </FormLabel>
                       <Input
                         borderRadius="0.75rem"
@@ -402,11 +514,15 @@ function BookInterviewModal({
                         value={bookedPhone}
                         isReadOnly
                         bg="#F7F3EC"
-                        placeholder="Logged-in user email"
+                        placeholder={
+                          isQualifier
+                            ? "Your phone number"
+                            : "Logged-in user email"
+                        }
                       />
                     </FormControl>
 
-                    {currentUser?.role ? (
+                    {!isQualifier && currentUser?.role ? (
                       <Text fontSize="xs" color="gray.500">
                         Role: {currentUser.role}
                       </Text>
@@ -423,6 +539,7 @@ function BookInterviewModal({
                         value={bookedNotes}
                         onChange={(e) => setBookedNotes(e.target.value)}
                         placeholder="Optional notes"
+                        isReadOnly={isQualifier && isBooked}
                       />
                     </FormControl>
                   </VStack>
@@ -456,7 +573,7 @@ function BookInterviewModal({
             >
               Cancel
             </Button>
-            {isBooked ? (
+            {isBooked && !isQualifier ? (
               <Button
                 type="button"
                 variant="outline"
@@ -470,25 +587,32 @@ function BookInterviewModal({
                 Clear booking
               </Button>
             ) : null}
-            <Button
-              type="submit"
-              borderRadius="0.85rem"
-              background="linear-gradient(135deg, #FFCB82 0%, #E3B574 100%)"
-              color="#654E26"
-              _hover={{
-                background: "linear-gradient(135deg, #E3B574 0%, #D4A45F 100%)",
-              }}
-              fontWeight="700"
-              w={{ base: "full", sm: "auto" }}
-              minW={{ sm: "12rem" }}
-              px={6}
-              leftIcon={<CalendarCheck2 size={16} />}
-              isLoading={updateStatus === "loading"}
-              loadingText="Saving"
-              isDisabled={loadingUser || !bookedFor}
-            >
-              {isBooked ? "Update booking" : "Book Interview"}
-            </Button>
+            {!isBooked || !isQualifier ? (
+              <Button
+                type="submit"
+                borderRadius="0.85rem"
+                background="linear-gradient(135deg, #FFCB82 0%, #E3B574 100%)"
+                color="#654E26"
+                _hover={{
+                  background:
+                    "linear-gradient(135deg, #E3B574 0%, #D4A45F 100%)",
+                }}
+                fontWeight="700"
+                w={{ base: "full", sm: "auto" }}
+                minW={{ sm: "12rem" }}
+                px={6}
+                leftIcon={<CalendarCheck2 size={16} />}
+                isLoading={updateStatus === "loading"}
+                loadingText="Saving"
+                isDisabled={
+                  loadingUser ||
+                  !bookedFor ||
+                  (isQualifier && !profileComplete)
+                }
+              >
+                {isBooked ? "Update booking" : "Book Interview"}
+              </Button>
+            ) : null}
           </ModalFooter>
         </ModalContent>
       </Modal>

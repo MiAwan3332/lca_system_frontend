@@ -551,6 +551,13 @@ export const selectAllBatches = (state) => state.batches.batches;
 export const selectActiveBatches = (state) =>
   state.batches.batches.filter((batch) => batch.is_active !== false);
 
+/** Active batches marked as interview batches (for Qualifiers). */
+export const selectActiveInterviewBatches = (state) =>
+  state.batches.batches.filter(
+    (batch) =>
+      batch.is_active !== false && batch.is_interview_batch === true
+  );
+
 export const filterActiveBatches = (batches = []) =>
   batches.filter((batch) => batch?.is_active !== false);
 export const selectBatchCourses = (state) => state.batches.batchCourses;

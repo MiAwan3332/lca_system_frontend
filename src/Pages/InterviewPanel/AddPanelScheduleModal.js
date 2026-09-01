@@ -46,7 +46,6 @@ import {
   createEmptyScheduleRow,
   formRowsToSchedulesPayload,
   getSchedulesValidationError,
-  panelToScheduleRows,
 } from "../../utlls/interviewPanel";
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
@@ -223,7 +222,7 @@ function AddPanelScheduleModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!panelId || !selectedPanel) {
+    if (!panelId) {
       setError("Please select a panel");
       return;
     }
@@ -234,9 +233,6 @@ function AddPanelScheduleModal({
       return;
     }
 
-    const existing = formRowsToSchedulesPayload(
-      panelToScheduleRows(selectedPanel)
-    );
     const nextSchedules = formRowsToSchedulesPayload(schedules);
     if (nextSchedules.length === 0) {
       setError("Add at least one schedule with a date");
@@ -247,9 +243,11 @@ function AddPanelScheduleModal({
       await dispatch(
         updateInterviewPanel({
           authToken,
-          id: selectedPanel._id,
+          id: panelId,
           values: {
-            schedules: [...existing, ...nextSchedules],
+            // Server merges onto the latest DB schedules (avoids stale client overwrite)
+            append_schedules: true,
+            schedules: nextSchedules,
           },
         })
       ).unwrap();
@@ -264,8 +262,12 @@ function AddPanelScheduleModal({
         })
       );
       dispatch(fetchInterviewPanels({ authToken }));
-    } catch {
-      // toast handled in slice
+    } catch (err) {
+      setError(
+        typeof err === "string"
+          ? err
+          : err?.message || "Could not save schedule. Please try again."
+      );
     }
   };
 
@@ -280,6 +282,7 @@ function AddPanelScheduleModal({
       <ModalContent
         {...responsiveModalContentProps}
         as="form"
+        noValidate
         onSubmit={handleSubmit}
         display="flex"
         flexDirection="column"

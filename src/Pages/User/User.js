@@ -81,16 +81,17 @@ function User() {
                 <Th>No</Th>
                 <Th data-searchable>Avatar/Name</Th>
                 <Th data-searchable>Email</Th>
+                <Th data-searchable>Phone</Th>
                 <Th>User Role</Th>
                 {!viewOnly && <Th isNumeric>Actions</Th>}
               </Tr>
             </Thead>
             <Tbody>
               {fetchStatus === "loading" ? (
-                <TableRowLoading nOfColumns={4} actions={["w-10", "w-10"]} />
+                <TableRowLoading nOfColumns={5} actions={["w-10", "w-10"]} />
               ) : users.length === 0 ? (
                 <Tr>
-                  <Td colSpan={5}>
+                  <Td colSpan={6}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No user records found
@@ -112,6 +113,7 @@ function User() {
                       </div>
                     </Td>
                     <Td>{user.email}</Td>
+                    <Td>{user.phone || "—"}</Td>
                     <Td>
                       <span className="uppercase bg-gray-200 text-gray-500 font-medium px-2 py-1 text-xs rounded-lg">
                         {user.role}

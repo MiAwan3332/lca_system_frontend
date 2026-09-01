@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -30,7 +30,12 @@ import {
   fetchInterviewPanels,
 } from "../../Features/interviewPanelSlice";
 import {
+  fetchPanelists,
+  selectAllPanelists,
+} from "../../Features/panelistSlice";
+import {
   INTERVIEW_PANEL_STATUSES,
+  PANEL_MEMBER_ROLES,
   createEmptyMemberRow,
   formRowsToMembersPayload,
   getMembersValidationError,
@@ -67,7 +72,35 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
   const [members, setMembers] = useState(() => [createEmptyMemberRow(0)]);
   const [membersError, setMembersError] = useState("");
   const { updateStatus } = useSelector((state) => state.interviewPanels);
+  const panelists = useSelector(selectAllPanelists);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!isOpen || !authToken) return;
+    dispatch(
+      fetchPanelists({
+        authToken,
+        queryParams: {
+          page: 1,
+          limit: 500,
+          query: "",
+          is_active: "true",
+        },
+      })
+    );
+  }, [isOpen, authToken, dispatch]);
+
+  const activePanelists = useMemo(
+    () =>
+      [...(panelists || [])]
+        .filter((item) => item.is_active !== false)
+        .sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || ""), undefined, {
+            sensitivity: "base",
+          })
+        ),
+    [panelists]
+  );
 
   const formik = useFormik({
     initialValues: {
@@ -124,10 +157,58 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
     setMembersError("");
   }, [isOpen, panel?._id]);
 
+  // Link legacy members (name-only) to panelist records when list loads
+  useEffect(() => {
+    if (!isOpen || !activePanelists.length) return;
+    setMembers((prev) =>
+      prev.map((row) => {
+        if (row.panelist_id) return row;
+        const match = activePanelists.find(
+          (item) =>
+            String(item.name || "").trim().toLowerCase() ===
+            String(row.name || "").trim().toLowerCase()
+        );
+        if (!match) return row;
+        return {
+          ...row,
+          panelist_id: String(match._id),
+          name: match.name || row.name,
+          description: match.description || row.description,
+        };
+      })
+    );
+  }, [isOpen, activePanelists]);
+
   const updateMember = (index, field, value) => {
     setMembersError("");
     setMembers((prev) =>
       prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const selectPanelist = (index, panelistId) => {
+    setMembersError("");
+    const panelist = activePanelists.find(
+      (item) => String(item._id) === String(panelistId)
+    );
+    setMembers((prev) =>
+      prev.map((row, i) => {
+        if (i !== index) return row;
+        if (!panelist) {
+          return {
+            ...row,
+            panelist_id: "",
+            name: "",
+            description: "",
+          };
+        }
+        return {
+          ...row,
+          panelist_id: String(panelist._id),
+          name: panelist.name || "",
+          description: panelist.description || "",
+        };
+      })
     );
   };
 
@@ -145,6 +226,16 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
       return prev.filter((_, i) => i !== index);
     });
   };
+
+  const selectedPanelistIds = useMemo(
+    () =>
+      new Set(
+        members
+          .map((row) => String(row.panelist_id || "").trim())
+          .filter(Boolean)
+      ),
+    [members]
+  );
 
   if (!panel) return null;
 
@@ -361,8 +452,7 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
                       Panel Members
                     </Text>
                     <Text fontSize="xs" color="gray.500">
-                      {members.length} member{members.length === 1 ? "" : "s"} —
-                      add as many as you need
+                      Select panelists and assign their role on this panel
                     </Text>
                   </Box>
                   <Button
@@ -379,68 +469,94 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
                   </Button>
                 </Flex>
                 <VStack spacing={3} align="stretch">
-                  {members.map((row, index) => (
-                    <Box
-                      key={row.id}
-                      border="1px solid"
-                      borderColor="#E8EEF2"
-                      borderRadius="lg"
-                      p={{ base: 2.5, sm: 3 }}
-                      bg="white"
-                    >
-                      <Stack
-                        direction={{ base: "column", sm: "row" }}
-                        align="stretch"
-                        spacing={2}
-                        mb={2}
+                  {members.map((row, index) => {
+                    const availablePanelists = activePanelists.filter(
+                      (item) =>
+                        String(item._id) === String(row.panelist_id) ||
+                        !selectedPanelistIds.has(String(item._id))
+                    );
+                    const roleOptions = PANEL_MEMBER_ROLES.includes(row.role)
+                      ? PANEL_MEMBER_ROLES
+                      : [row.role, ...PANEL_MEMBER_ROLES].filter(Boolean);
+                    return (
+                      <Box
+                        key={row.id}
+                        border="1px solid"
+                        borderColor="#E8EEF2"
+                        borderRadius="lg"
+                        p={{ base: 2.5, sm: 3 }}
+                        bg="white"
                       >
-                        <FormControl isRequired flex={1}>
-                          <FormLabel fontSize={12}>Name</FormLabel>
-                          <Input
-                            borderRadius="0.5rem"
-                            value={row.name}
-                            onChange={(e) =>
-                              updateMember(index, "name", e.target.value)
-                            }
+                        <Stack
+                          direction={{ base: "column", sm: "row" }}
+                          align="stretch"
+                          spacing={2}
+                          mb={2}
+                        >
+                          <FormControl isRequired flex={1.4}>
+                            <FormLabel fontSize={12}>Panelist</FormLabel>
+                            <Select
+                              borderRadius="0.5rem"
+                              placeholder="Select panelist"
+                              value={row.panelist_id || ""}
+                              onChange={(e) =>
+                                selectPanelist(index, e.target.value)
+                              }
+                            >
+                              {!row.panelist_id && row.name ? (
+                                <option value="">
+                                  {row.name} (legacy — reselect)
+                                </option>
+                              ) : null}
+                              {availablePanelists.map((item) => (
+                                <option key={item._id} value={item._id}>
+                                  {item.name}
+                                  {item.phone ? ` (${item.phone})` : ""}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <FormControl isRequired flex={1}>
+                            <FormLabel fontSize={12}>Role in panel</FormLabel>
+                            <Select
+                              borderRadius="0.5rem"
+                              value={row.role || "Panelist"}
+                              onChange={(e) =>
+                                updateMember(index, "role", e.target.value)
+                              }
+                            >
+                              {roleOptions.map((role) => (
+                                <option key={role} value={role}>
+                                  {role}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <IconButton
+                            type="button"
+                            aria-label="Remove member"
+                            icon={<Trash2 size={16} />}
+                            variant="ghost"
+                            colorScheme="red"
+                            alignSelf={{ base: "flex-end", sm: "flex-end" }}
+                            mt={{ base: 0, sm: 7 }}
+                            isDisabled={members.length <= 1}
+                            onClick={() => removeMember(index)}
                           />
-                        </FormControl>
-                        <FormControl flex={1}>
-                          <FormLabel fontSize={12}>Role</FormLabel>
-                          <Input
-                            borderRadius="0.5rem"
-                            placeholder="Panelist"
-                            value={row.role}
-                            onChange={(e) =>
-                              updateMember(index, "role", e.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <IconButton
-                          type="button"
-                          aria-label="Remove member"
-                          icon={<Trash2 size={16} />}
-                          variant="ghost"
-                          colorScheme="red"
-                          alignSelf={{ base: "flex-end", sm: "flex-end" }}
-                          mt={{ base: 0, sm: 7 }}
-                          isDisabled={members.length <= 1}
-                          onClick={() => removeMember(index)}
-                        />
-                      </Stack>
-                      <FormControl isRequired>
-                        <FormLabel fontSize={12}>Description</FormLabel>
-                        <Textarea
-                          borderRadius="0.5rem"
-                          placeholder="Panelist description"
-                          rows={2}
-                          value={row.description}
-                          onChange={(e) =>
-                            updateMember(index, "description", e.target.value)
-                          }
-                        />
-                      </FormControl>
-                    </Box>
-                  ))}
+                        </Stack>
+                        {row.description ? (
+                          <Box>
+                            <Text fontSize={12} color="gray.500" mb={1}>
+                              Description
+                            </Text>
+                            <Text fontSize="sm" whiteSpace="pre-wrap">
+                              {row.description}
+                            </Text>
+                          </Box>
+                        ) : null}
+                      </Box>
+                    );
+                  })}
                   {membersError ? (
                     <Text fontSize="sm" color="red.500">
                       {membersError}

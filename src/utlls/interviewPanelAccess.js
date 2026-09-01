@@ -1,10 +1,13 @@
 import Cookies from "js-cookie";
 import { extractRoleFromToken } from "./useful";
+import {
+  isFullAccessRoleName,
+  isPlatformSuperAdminRoleName,
+} from "./fullAccessRoles";
 
 /**
- * Roles allowed to open Interview Panel and Panel Schedules.
- * Matches: Superadmin, Secrate Superadmin, Principal, Vice-Principal, CEO,
- * Super Admin Development.
+ * Roles allowed to open Interview Panel management.
+ * Panel Schedules (`/interview-panel-schedules`) is also open to Qualifiers and Panelists.
  */
 export const INTERVIEW_PANEL_ALLOWED_ROLE_NAMES = [
   "ceo",
@@ -88,5 +91,22 @@ export const isInterviewPanelRoute = (path) => {
     normalized === "/interview-panel" ||
     normalized === "/interview-panel-schedules" ||
     normalized.startsWith("/interview-panel/")
+  );
+};
+
+/** Panelists appears in sidebar for interview-panel staff and full-access admins. */
+export const canAccessPanelists = () => {
+  const role = getCurrentRoleName();
+  return (
+    isInterviewPanelAllowedRoleName(role) ||
+    isFullAccessRoleName(role) ||
+    isPlatformSuperAdminRoleName(role)
+  );
+};
+
+export const isPanelistsRoute = (path) => {
+  const normalized = String(path || "");
+  return (
+    normalized === "/panelists" || normalized.startsWith("/panelists/")
   );
 };

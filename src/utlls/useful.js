@@ -61,6 +61,16 @@ const extractTeacherIdFromToken = (token) => {
   return jwtPayload.user?.teacherId || null;
 };
 
+const extractQualifierIdFromToken = (token) => {
+  const jwtPayload = parseJwtPayload(token);
+  return jwtPayload.user?.qualifierId || null;
+};
+
+const extractPanelistIdFromToken = (token) => {
+  const jwtPayload = parseJwtPayload(token);
+  return jwtPayload.user?.panelistId || null;
+};
+
 const parseStoredPermissions = (storedPermissions) => {
   if (!storedPermissions) return [];
   const trimmed = storedPermissions.trim();
@@ -134,6 +144,8 @@ const storeAuthSession = ({
   role,
   studentId,
   teacherId,
+  qualifierId,
+  panelistId,
   profileUpdatedOnce,
   skipProfileCompletion,
 }) => {
@@ -164,6 +176,22 @@ const storeAuthSession = ({
     const tokenTeacherId = extractTeacherIdFromToken(authToken);
     if (tokenTeacherId) {
       sessionStorage.setItem("teacherId", tokenTeacherId);
+    }
+  }
+  if (qualifierId) {
+    sessionStorage.setItem("qualifierId", qualifierId);
+  } else if (authToken) {
+    const tokenQualifierId = extractQualifierIdFromToken(authToken);
+    if (tokenQualifierId) {
+      sessionStorage.setItem("qualifierId", tokenQualifierId);
+    }
+  }
+  if (panelistId) {
+    sessionStorage.setItem("panelistId", panelistId);
+  } else if (authToken) {
+    const tokenPanelistId = extractPanelistIdFromToken(authToken);
+    if (tokenPanelistId) {
+      sessionStorage.setItem("panelistId", tokenPanelistId);
     }
   }
   if (profileUpdatedOnce !== undefined) {
@@ -200,6 +228,8 @@ export {
   extractPermissionsFromToken,
   extractStudentIdFromToken,
   extractTeacherIdFromToken,
+  extractQualifierIdFromToken,
+  extractPanelistIdFromToken,
   hasPermission,
   hasFullAccess,
   isFullAccessRole,
