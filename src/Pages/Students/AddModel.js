@@ -596,6 +596,7 @@ function AddStudnet({ isOpen, onClose }) {
             payment_method: paymentMethodLabel,
             class_time: classTimeLabel,
             authorized_by: currentUser?.name || "",
+            slip_type: "admission",
             verify_base_url: window.location.origin,
           },
           {

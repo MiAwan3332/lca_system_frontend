@@ -35,6 +35,8 @@ import {
 } from "../../utlls/paymentMethods";
 import { generatePendingPaymentSlip } from "../../utlls/generatePendingPaymentSlip";
 import { saveLastFeeSlipPayload } from "../../utlls/feeSlipStorage";
+import { issueSlipVerificationQr } from "../../utlls/slipVerification";
+import { formatClassTimeRange } from "../../utlls/classTime";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -412,7 +414,28 @@ function GeneratePendingFeeSlipAction({
     setIsPrinting(true);
     try {
       const payload = { ...buildSlipPayload(), isDuplicate: duplicate };
-      await generatePendingPaymentSlip(payload, "print");
+      const { qrDataUrl, verifyUrl } = await issueSlipVerificationQr({
+        authToken,
+        student_name: payload.name,
+        cnic: payload.cnic,
+        phone: payload.phone,
+        batch_name: payload.batchName,
+        total_fee: payload.totalFee,
+        amount_received: payload.payingNow,
+        remaining_fee: payload.remainingAfter,
+        payment_option: payload.paymentOption,
+        payment_method: payload.paymentMethod,
+        class_time: formatClassTimeRange(
+          payload.classStartTime,
+          payload.classEndTime
+        ),
+        authorized_by: payload.authorizedBy,
+        slip_type: "fee",
+      });
+      await generatePendingPaymentSlip(
+        { ...payload, qrDataUrl, verifyUrl },
+        "print"
+      );
       saveLastFeeSlipPayload(student._id, payload);
       setHasPrintedSlip(true);
       toast({

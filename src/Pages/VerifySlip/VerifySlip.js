@@ -5,40 +5,15 @@ import {
   Badge,
   Center,
   Flex,
+  Image,
   Spinner,
   Text,
   VStack,
-  SimpleGrid,
 } from "@chakra-ui/react";
-import { CheckCircle2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { CheckCircle2, MapPin, Phone, ShieldAlert } from "lucide-react";
 import axios from "axios";
-import moment from "moment";
 import { config } from "../../utlls/config";
-
-const formatRs = (value) =>
-  `Rs. ${Number(value || 0).toLocaleString("en-PK", {
-    maximumFractionDigits: 0,
-  })}`;
-
-function Detail({ label, value }) {
-  return (
-    <Box
-      border="1px solid"
-      borderColor="#E8EEF2"
-      borderRadius="xl"
-      px={4}
-      py={3}
-      bg="white"
-    >
-      <Text fontSize="xs" color="gray.500" fontWeight="600" mb={1}>
-        {label}
-      </Text>
-      <Text fontSize="sm" fontWeight="700" color="#2D3748" wordBreak="break-word">
-        {value || "—"}
-      </Text>
-    </Box>
-  );
-}
+import { ACADEMY_BRANDING } from "../../utlls/academyBranding";
 
 function VerifySlip() {
   const { token } = useParams();
@@ -82,6 +57,8 @@ function VerifySlip() {
 
   const authentic = Boolean(result?.authentic);
   const slip = result?.slip || {};
+  const isFeeSlip = (result?.slip_type || slip.slip_type) === "fee";
+  const slipLabel = isFeeSlip ? "Fee Slip" : "Admission Slip";
 
   return (
     <Box
@@ -91,16 +68,17 @@ function VerifySlip() {
       py={{ base: 8, md: 12 }}
     >
       <Center>
-        <Box w="full" maxW="32rem">
-          <VStack spacing={2} mb={6} textAlign="center">
-            <Text fontSize="sm" fontWeight="700" color="#85652D">
-              Lahore CSS Academy
-            </Text>
-            <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="800" color="#2D3748">
-              Admission Slip Verification
-            </Text>
-            <Text fontSize="sm" color="gray.500">
-              Scan result for authenticity check
+        <Box w="full" maxW="26rem">
+          <VStack spacing={3} mb={6} textAlign="center">
+            <Image
+              src={ACADEMY_BRANDING.logoSrc}
+              alt={ACADEMY_BRANDING.name}
+              h={{ base: "64px", md: "80px" }}
+              mx="auto"
+              objectFit="contain"
+            />
+            <Text fontSize="sm" fontWeight="800" letterSpacing="0.08em" color="#85652D">
+              {ACADEMY_BRANDING.name.toUpperCase()}
             </Text>
           </VStack>
 
@@ -127,25 +105,31 @@ function VerifySlip() {
                 align="center"
                 gap={2}
                 px={5}
-                py={6}
+                py={7}
                 bg={authentic ? "#F0FFF4" : "#FFF5F5"}
                 borderBottom="1px solid"
                 borderColor={authentic ? "#C6F6D5" : "#FED7D7"}
               >
                 {authentic ? (
-                  <ShieldCheck size={42} color="#276749" />
+                  <CheckCircle2 size={52} color="#276749" />
                 ) : (
-                  <ShieldAlert size={42} color="#C53030" />
+                  <ShieldAlert size={52} color="#C53030" />
                 )}
                 <Badge
                   colorScheme={authentic ? "green" : "red"}
                   borderRadius="full"
-                  px={3}
-                  py={1}
-                  fontSize="sm"
+                  px={4}
+                  py={1.5}
+                  fontSize="md"
+                  letterSpacing="0.12em"
                 >
-                  {authentic ? "REAL · AUTHENTIC" : "FAKE · NOT FOUND"}
+                  {authentic ? "VERIFIED" : "NOT VERIFIED"}
                 </Badge>
+                {authentic && (
+                  <Text fontSize="xs" fontWeight="700" color="green.700">
+                    Authentic {slipLabel}
+                  </Text>
+                )}
                 <Text
                   fontSize="sm"
                   color={authentic ? "green.700" : "red.600"}
@@ -157,39 +141,31 @@ function VerifySlip() {
               </Flex>
 
               {authentic ? (
-                <Box p={5}>
-                  <Flex align="center" gap={2} mb={4}>
-                    <CheckCircle2 size={16} color="#276749" />
-                    <Text fontWeight="700" fontSize="sm" color="#2D3748">
-                      Issued slip details
-                    </Text>
-                  </Flex>
-                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
-                    <Detail label="Student" value={slip.student_name} />
-                    <Detail label="Phone" value={slip.phone} />
-                    <Detail label="CNIC" value={slip.cnic} />
-                    <Detail label="Batch" value={slip.batch_name} />
-                    <Detail label="Total fee" value={formatRs(slip.total_fee)} />
-                    <Detail
-                      label="Amount received"
-                      value={formatRs(slip.amount_received)}
-                    />
-                    <Detail
-                      label="Remaining"
-                      value={formatRs(slip.remaining_fee)}
-                    />
-                    <Detail label="Payment method" value={slip.payment_method} />
-                    <Detail label="Class time" value={slip.class_time} />
-                    <Detail label="Authorized by" value={slip.authorized_by} />
-                    <Detail
-                      label="Issued at"
-                      value={
-                        slip.issued_at
-                          ? moment(slip.issued_at).format("DD MMM YYYY, hh:mm A")
-                          : "—"
-                      }
-                    />
-                  </SimpleGrid>
+                <Box p={6} textAlign="center">
+                  <Text fontSize="xs" fontWeight="700" color="gray.500" letterSpacing="0.08em">
+                    STUDENT NAME
+                  </Text>
+                  <Text
+                    fontSize={{ base: "xl", md: "2xl" }}
+                    fontWeight="800"
+                    color="#1A202C"
+                    mt={1}
+                    wordBreak="break-word"
+                  >
+                    {slip.student_name || "—"}
+                  </Text>
+                  <Text fontSize="xs" fontWeight="700" color="gray.500" letterSpacing="0.08em" mt={5}>
+                    BATCH
+                  </Text>
+                  <Text
+                    fontSize="lg"
+                    fontWeight="700"
+                    color="#2D3748"
+                    mt={1}
+                    wordBreak="break-word"
+                  >
+                    {slip.batch_name || "—"}
+                  </Text>
                 </Box>
               ) : (
                 <Box p={5}>
@@ -199,6 +175,43 @@ function VerifySlip() {
                   </Text>
                 </Box>
               )}
+
+              <Box
+                px={5}
+                py={5}
+                borderTop="1px solid"
+                borderColor="#EDF2F7"
+                bg="#FAFBFC"
+              >
+                <VStack spacing={2.5} align="stretch">
+                  <Flex align="flex-start" gap={2.5}>
+                    <Box mt="2px" color="#85652D">
+                      <Phone size={16} />
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" fontWeight="700" color="gray.500">
+                        Contact
+                      </Text>
+                      <Text fontSize="sm" fontWeight="700" color="#2D3748">
+                        {ACADEMY_BRANDING.phonesLine}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  <Flex align="flex-start" gap={2.5}>
+                    <Box mt="2px" color="#85652D">
+                      <MapPin size={16} />
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" fontWeight="700" color="gray.500">
+                        Address
+                      </Text>
+                      <Text fontSize="sm" fontWeight="600" color="#2D3748">
+                        {ACADEMY_BRANDING.address}
+                      </Text>
+                    </Box>
+                  </Flex>
+                </VStack>
+              </Box>
             </Box>
           )}
         </Box>

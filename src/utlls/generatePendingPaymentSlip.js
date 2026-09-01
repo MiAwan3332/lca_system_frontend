@@ -111,6 +111,49 @@ const toJpegDataUrl = async (source, maxSide = 900) => {
   }
 };
 
+const getImageFormat = (dataUrl) =>
+  String(dataUrl || "").includes("image/jpeg") ? "JPEG" : "PNG";
+
+const QR_LABEL = "SCAN TO VERIFY";
+const QR_LABEL_H = 3.2;
+
+const resolveQrDataUrl = async (qrDataUrl, verifyUrl) => {
+  if (qrDataUrl) return qrDataUrl;
+  if (!verifyUrl) return null;
+  try {
+    const QRCode = (await import("qrcode")).default;
+    return await QRCode.toDataURL(verifyUrl, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 320,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+  } catch {
+    return null;
+  }
+};
+
+const drawQrBadge = (doc, dataUrl, x, y, size) => {
+  if (!dataUrl) return false;
+  try {
+    doc.setFillColor(...COLORS.white);
+    doc.setDrawColor(...COLORS.charcoal);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(x - 0.8, y - 0.8, size + 1.6, size + 1.6, 0.8, 0.8, "FD");
+    doc.addImage(dataUrl, getImageFormat(dataUrl), x, y, size, size);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(3.2);
+    doc.setTextColor(...COLORS.charcoal);
+    doc.text(QR_LABEL, x + size / 2, y + size + 2.4, {
+      align: "center",
+      maxWidth: size + 2,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Fee payment / duplicate slip — same compact layout as Admission Slip.
  * When isDuplicate is true, title clearly marks it as a duplicate copy.
@@ -136,6 +179,8 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     classStartTime = "",
     classEndTime = "",
     isDuplicate = false,
+    qrDataUrl = null,
+    verifyUrl = "",
   } = data;
 
   const studentName = String(name || "").trim();
@@ -161,6 +206,8 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     String(authorizedBy || "").trim() || "Administration Office";
 
   const photoDataUrl = await toJpegDataUrl(photoFile || photoUrl);
+  const resolvedQrDataUrl = await resolveQrDataUrl(qrDataUrl, verifyUrl);
+  const hasQr = Boolean(resolvedQrDataUrl);
 
   const doc = createFeeSlipPdf();
   const frame = getFeeSlipFrame(doc, {
@@ -218,12 +265,20 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     y += noticeH + 2;
   }
 
-  // ── Student block (photo + info) — same as Admission Slip ──
+  // ── Student block (photo + info + QR on card right) ──
+  const qrSize = hasQr ? Math.min(photoW, 16) : 0;
+  const qrPad = 1.5;
+  const qrBlockH = hasQr ? qrSize + 2.4 + QR_LABEL_H : 0;
   const photoX = innerX + 1.5;
-  const identityH = Math.max(photoH + 3, 26);
+  const identityH = Math.max(photoH + 3, qrBlockH + 3, 26);
   const identityTop = y;
+  const qrX = innerX + innerW - qrSize - qrPad;
   const infoX = photoX + photoW + 3;
-  const infoMaxW = cardX + cardW - pad - infoX - 1;
+  const infoMaxW = Math.max(
+    20,
+    hasQr ? qrX - infoX - 2.5 : cardX + cardW - pad - infoX - 1
+  );
+  const qrY = identityTop + (identityH - qrBlockH) / 2;
 
   doc.setFillColor(...COLORS.soft);
   doc.setDrawColor(...COLORS.softBorder);
@@ -382,11 +437,22 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   doc.text(
     isDuplicate
       ? "Duplicate copy of an already issued fee slip."
-      : "Provisional receipt until payment is submitted.",
+      : hasQr
+        ? "Scan QR to confirm this fee slip is verified."
+        : "Provisional receipt until payment is submitted.",
     innerX,
     footerStart + 7,
     { maxWidth: innerW - 2 }
   );
+
+  if (verifyUrl) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(3.8);
+    doc.setTextColor(...COLORS.label);
+    const shortUrl = String(verifyUrl).replace(/^https?:\/\//, "");
+    const urlLines = doc.splitTextToSize(shortUrl, innerW - 4);
+    doc.text(urlLines.slice(0, 1), innerX, footerStart + 10);
+  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
@@ -399,6 +465,10 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   doc.setFontSize(5.5);
   doc.setTextColor(...COLORS.muted);
   doc.text("Authorized Signature", innerX, footerStart + 17.5);
+
+  if (hasQr) {
+    drawQrBadge(doc, resolvedQrDataUrl, qrX, qrY, qrSize);
+  }
 
   const fileName = buildFileName(studentName, isDuplicate);
 

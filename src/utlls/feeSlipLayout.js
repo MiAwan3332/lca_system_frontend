@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { ACADEMY_BRANDING } from "./academyBranding";
 
 /** Printable fee slip: 5 inches wide × 7 inches tall. */
 export const SLIP_WIDTH_IN = 5;
@@ -154,7 +155,7 @@ export const drawFeeSlipBrandingFooter = (doc, frame) => {
   doc.setFontSize(5);
   doc.setTextColor(...BRANDING_COLORS.white);
   doc.text(
-    "0331-000-111-0  ·  0333-9800938",
+    ACADEMY_BRANDING.phonesLine,
     cardX + cardW / 2,
     footerY + 3.8,
     { align: "center" }
@@ -164,7 +165,7 @@ export const drawFeeSlipBrandingFooter = (doc, frame) => {
   doc.setFontSize(4);
   doc.setTextColor(...BRANDING_COLORS.goldSoft);
   doc.text(
-    "13-Sher Shah, New Garden Town, Barkat Market, Lahore",
+    ACADEMY_BRANDING.address,
     cardX + cardW / 2,
     footerY + 7,
     { align: "center", maxWidth: innerW }

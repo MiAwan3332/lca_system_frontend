@@ -111,7 +111,9 @@ export const setupAxiosSessionInterceptor = () => {
   axios.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401) {
+      const requestUrl = String(error.config?.url || "");
+      const isPublicSlipVerify = requestUrl.includes("/admission-slips/verify/");
+      if (error.response?.status === 401 && !isPublicSlipVerify) {
         expireAuthSession({ showToast: true });
         sessionExpiryHandler?.();
       }
