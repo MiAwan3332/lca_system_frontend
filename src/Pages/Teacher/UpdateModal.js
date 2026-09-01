@@ -45,7 +45,7 @@ function AddModel({ teacher, getTeachers }) {
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
-      phone: Yup.string().required("Required"),
+      phone: Yup.string().trim().required("Contact number is required"),
     }),
     onSubmit: async (values) => {
       const formData = new FormData();
@@ -111,16 +111,17 @@ function AddModel({ teacher, getTeachers }) {
                     </Box>
                   ) : null}
                 </FormControl>
-                <FormControl id="phone">
-                  <FormLabel fontSize={14}>Phone</FormLabel>
+                <FormControl id="phone" isRequired>
+                  <FormLabel fontSize={14}>Contact Number</FormLabel>
                   <Input
-                    type="phone"
+                    type="tel"
                     name="phone"
                     borderRadius={"0.5rem"}
+                    placeholder="03XXXXXXXXX"
                     value={formik.values.phone}
                     onChange={formik.handleChange}
                   />
-                  {formik.touched.password && formik.errors.phone ? (
+                  {formik.touched.phone && formik.errors.phone ? (
                     <Box color="red" fontSize="sm">
                       {formik.errors.phone}
                     </Box>

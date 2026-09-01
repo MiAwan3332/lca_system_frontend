@@ -37,15 +37,13 @@ function AddTeacher({ isOpen, onClose }) {
     validationSchema: Yup.object({
       name: Yup.string().trim().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
-      phone: Yup.string(),
+      phone: Yup.string().trim().required("Contact number is required"),
     }),
     onSubmit: async (values) => {
       const formData = new FormData();
       formData.append("name", values.name.trim());
       formData.append("email", values.email.trim());
-      if (values.phone?.trim()) {
-        formData.append("phone", values.phone.trim());
-      }
+      formData.append("phone", values.phone.trim());
       if (values.image) {
         formData.append("image", values.image);
       }
@@ -103,14 +101,20 @@ function AddTeacher({ isOpen, onClose }) {
                     </Box>
                   ) : null}
                 </FormControl>
-                <FormControl id="phone">
-                  <FormLabel fontSize={14}>Phone</FormLabel>
+                <FormControl id="phone" isRequired>
+                  <FormLabel fontSize={14}>Contact Number</FormLabel>
                   <Input
-                    type="phone"
+                    type="tel"
                     name="phone"
+                    placeholder="03XXXXXXXXX"
                     value={formik.values.phone}
                     onChange={formik.handleChange}
                   />
+                  {formik.touched.phone && formik.errors.phone ? (
+                    <Box color="red" fontSize="sm">
+                      {formik.errors.phone}
+                    </Box>
+                  ) : null}
                 </FormControl>
                 <FormControl id="image">
                   <FormLabel fontSize={14}>Image</FormLabel>
