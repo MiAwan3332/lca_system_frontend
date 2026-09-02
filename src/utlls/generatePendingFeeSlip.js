@@ -1,6 +1,7 @@
 import moment from "moment";
 import {
   createFeeSlipPdf,
+  drawFeeNonRefundableNote,
   drawFeeSlipBrandingFooter,
   drawFeeSlipBrandingHeader,
   getFeeSlipContentStartY,
@@ -376,6 +377,14 @@ export const generatePendingFeeSlipPdf = async (data = {}) => {
     y,
     { align: "center", maxWidth: innerW - 4 }
   );
+  y += 3;
+  drawFeeNonRefundableNote(doc, {
+    x: cardX + cardW / 2,
+    y,
+    align: "center",
+    fontSize: 8,
+    color: COLORS.black,
+  });
   y += 4;
 
   const signerName =

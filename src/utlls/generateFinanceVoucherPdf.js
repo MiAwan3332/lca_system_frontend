@@ -2,7 +2,7 @@ import {
   buildVoucherData,
   getVoucherFileName,
 } from "./financeVoucherUtils";
-import { createFeeSlipPdf, drawFeeSlipBrandingFooter, drawFeeSlipBrandingHeader, getFeeSlipContentStartY, getFeeSlipFrame } from "./feeSlipLayout";
+import { createFeeSlipPdf, drawFeeNonRefundableNote, drawFeeSlipBrandingFooter, drawFeeSlipBrandingHeader, getFeeSlipContentStartY, getFeeSlipFrame } from "./feeSlipLayout";
 
 /** Same high-contrast palette as Admission Slip. */
 const COLORS = {
@@ -253,6 +253,17 @@ export const generateFinanceVoucherPdf = async (transaction, options = {}) => {
     { align: "center", maxWidth: innerW - 4 }
   );
   y += 3.5;
+
+  if (!data.isExpense) {
+    drawFeeNonRefundableNote(doc, {
+      x: cardX + cardW / 2,
+      y,
+      align: "center",
+      fontSize: 8,
+      color: COLORS.black,
+    });
+    y += 3.5;
+  }
 
   const signerName = String(data.processedBy || "").trim() || "Administration Office";
   doc.setFont("helvetica", "bold");
