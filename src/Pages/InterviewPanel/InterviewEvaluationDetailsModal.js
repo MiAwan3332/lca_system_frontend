@@ -132,6 +132,16 @@ function InterviewEvaluationDetailsModal({ isOpen, onClose, scheduleRow }) {
     [qualifier]
   );
 
+  const interviewStatus = String(
+    slot?.interview_status || scheduleRow?.interview_status || ""
+  ).toLowerCase();
+  const statusBadge =
+    interviewStatus === "completed"
+      ? { label: "Completed", colorScheme: "green" }
+      : interviewStatus === "in_progress" || interviewStatus === "in-progress"
+        ? { label: "In Progress", colorScheme: "orange" }
+        : { label: "Booked", colorScheme: "green" };
+
   const slotTime =
     formatClassTimeRange(slot?.start_time, slot?.end_time) ||
     formatTime12Hour(slot?.start_time) ||
@@ -193,8 +203,8 @@ function InterviewEvaluationDetailsModal({ isOpen, onClose, scheduleRow }) {
                     <Text fontSize="xl" fontWeight="700" color="#2D3748">
                       {qualifier?.name || slot?.booked_for || "Candidate"}
                     </Text>
-                    <Badge colorScheme="green" borderRadius="md">
-                      Completed
+                    <Badge colorScheme={statusBadge.colorScheme} borderRadius="md">
+                      {statusBadge.label}
                     </Badge>
                   </Flex>
                   <Text fontSize="sm" color="gray.500" mt={1}>
@@ -273,6 +283,7 @@ function InterviewEvaluationDetailsModal({ isOpen, onClose, scheduleRow }) {
                 <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
                   <InfoRow label="CNIC" value={qualifier?.cnic} />
                   <InfoRow label="City" value={qualifier?.city} />
+                  <InfoRow label="Province" value={qualifier?.province} />
                   <InfoRow label="Father Name" value={qualifier?.father_name} />
                   <InfoRow label="Father Phone" value={qualifier?.father_phone} />
                   <InfoRow

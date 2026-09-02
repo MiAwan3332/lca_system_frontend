@@ -46,6 +46,8 @@ import {
   getResponsiveModalSize,
 } from "../../utlls/responsiveModal";
 import { formatStudentEmail } from "../../utlls/studentEmail";
+import { provinceSelectOptions, citySelectOptions, getCitiesForProvince } from "../../utlls/pakistanProvinces";
+import SearchableTextSelect from "../../Components/SearchableTextSelect";
 
 function ViewModal({ student, forced = false, onComplete }) {
   const [isOpen, setIsOpen] = useState(forced);
@@ -137,6 +139,7 @@ function ViewModal({ student, forced = false, onComplete }) {
     initialValues: {
       cnic: student.cnic || "",
       city: student.city || "",
+      province: student.province || "",
       date_of_birth: student.date_of_birth || "",
       father_name: student.father_name || "",
       father_phone: student.father_phone || "",
@@ -149,6 +152,7 @@ function ViewModal({ student, forced = false, onComplete }) {
       ? Yup.object({
           cnic: Yup.string().required("Required"),
           city: Yup.string().required("Required"),
+          province: Yup.string().required("Required"),
           date_of_birth: Yup.string().required("Required"),
           father_name: Yup.string().required("Required"),
           father_phone: Yup.string().required("Required"),
@@ -381,7 +385,89 @@ function ViewModal({ student, forced = false, onComplete }) {
                     {renderTextField("father_name", "Father's Name")}
                     {renderTextField("father_phone", "Father's Phone")}
                     {renderTextField("cnic", "CNIC")}
-                    {renderTextField("city", "City")}
+                    <FormControl
+                      id="province"
+                      isInvalid={
+                        formik.touched.province && formik.errors.province
+                      }
+                      isRequired={canEditProfile}
+                    >
+                      <FormLabel fontSize={14}>Province</FormLabel>
+                      {canEditProfile ? (
+                        <SearchableTextSelect
+                          name="province"
+                          placeholder="Type to search province"
+                          emptyMessage="No province found"
+                          options={provinceSelectOptions(formik.values.province)}
+                          value={formik.values.province}
+                          onChange={(nextProvince) => {
+                            formik.setFieldValue("province", nextProvince);
+                            const cities = getCitiesForProvince(nextProvince);
+                            if (
+                              formik.values.city &&
+                              !cities.includes(formik.values.city)
+                            ) {
+                              formik.setFieldValue("city", "");
+                            }
+                          }}
+                          onBlur={() => formik.setFieldTouched("province", true)}
+                        />
+                      ) : (
+                        <Input
+                          borderRadius="0.5rem"
+                          value={student.province || ""}
+                          isReadOnly
+                        />
+                      )}
+                      {canEditProfile &&
+                      formik.touched.province &&
+                      formik.errors.province ? (
+                        <Box color="red" fontSize="sm">
+                          {formik.errors.province}
+                        </Box>
+                      ) : null}
+                    </FormControl>
+                    <FormControl
+                      id="city"
+                      isInvalid={formik.touched.city && formik.errors.city}
+                      isRequired={canEditProfile}
+                    >
+                      <FormLabel fontSize={14}>City</FormLabel>
+                      {canEditProfile ? (
+                        <SearchableTextSelect
+                          name="city"
+                          placeholder={
+                            formik.values.province
+                              ? "Type to search city"
+                              : "Select province first"
+                          }
+                          emptyMessage="No city found"
+                          options={citySelectOptions(
+                            formik.values.province,
+                            formik.values.city
+                          )}
+                          value={formik.values.city}
+                          onChange={(nextCity) =>
+                            formik.setFieldValue("city", nextCity)
+                          }
+                          onBlur={() => formik.setFieldTouched("city", true)}
+                          isDisabled={!formik.values.province}
+                        />
+                      ) : (
+                        <Input
+                          borderRadius="0.5rem"
+                          value={student.city || ""}
+                          isReadOnly
+                        />
+                      )}
+                      {canEditProfile &&
+                      formik.touched.city &&
+                      formik.errors.city ? (
+                        <Box color="red" fontSize="sm">
+                          {formik.errors.city}
+                        </Box>
+                      ) : null}
+                    </FormControl>
                     {renderTextField("latest_degree", "Latest Degree")}
                     {renderTextField("completion_year", "Completion Year")}
                     {renderTextField("marks_cgpa", "Marks / CGPA")}

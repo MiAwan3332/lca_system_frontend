@@ -71,6 +71,7 @@ function AddStudnet({ isOpen, onClose }) {
   const [paymentEvidenceError, setPaymentEvidenceError] = useState("");
   const [paymentOption, setPaymentOption] = useState("later");
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
+  const [createdStudent, setCreatedStudent] = useState(null);
   const toast = useToast();
 
   const { addStatus } = useSelector((state) => state.students);
@@ -92,6 +93,7 @@ function AddStudnet({ isOpen, onClose }) {
       setPaymentEvidenceFiles([]);
       setPaymentEvidenceError("");
       setPaymentOption("later");
+      setCreatedStudent(null);
     }
   }, [isOpen]);
 
@@ -196,7 +198,7 @@ function AddStudnet({ isOpen, onClose }) {
       phone: "",
       batch: "",
       paying_now: "",
-      payment_method: "Cash",
+      payment_method: "",
       next_installment_date: "",
       discount_amount: "",
       discount_description: "",
@@ -273,6 +275,19 @@ function AddStudnet({ isOpen, onClose }) {
         return;
       }
 
+      if (amountToPay > 0 && !String(values.payment_method || "").trim()) {
+        formik.setFieldError("payment_method", "Select a payment method");
+        formik.setFieldTouched("payment_method", true, false);
+        toast({
+          title: "Select payment method",
+          description: "Choose Cash or Online Payment before adding the student.",
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+
       if (
         amountToPay > 0 &&
         requiresPaymentEvidence(values.payment_method) &&
@@ -332,14 +347,11 @@ function AddStudnet({ isOpen, onClose }) {
       }
 
       try {
-        await dispatch(addStudent({ authToken, formData })).unwrap();
+        const created = await dispatch(
+          addStudent({ authToken, formData })
+        ).unwrap();
         dispatch(fetchStudents({ authToken }));
-        formik.resetForm();
-        setPhotoFile(null);
-        setPaymentEvidenceFiles([]);
-        setPaymentEvidenceError("");
-        setPaymentOption("later");
-        onClose();
+        setCreatedStudent(created);
       } catch (error) {
         const message =
           typeof error === "string"
@@ -434,19 +446,14 @@ function AddStudnet({ isOpen, onClose }) {
     if (option === "later") {
       formik.setFieldValue("paying_now", "");
       formik.setFieldValue("next_installment_date", "");
+      formik.setFieldValue("payment_method", "");
       setPaymentEvidenceFiles([]);
       setPaymentEvidenceError("");
     } else if (option === "full") {
       formik.setFieldValue("paying_now", String(payableFee));
       formik.setFieldValue("next_installment_date", "");
-      if (!formik.values.payment_method) {
-        formik.setFieldValue("payment_method", "Cash");
-      }
     } else {
       formik.setFieldValue("paying_now", "");
-      if (!formik.values.payment_method) {
-        formik.setFieldValue("payment_method", "Cash");
-      }
     }
   };
 
@@ -457,6 +464,7 @@ function AddStudnet({ isOpen, onClose }) {
     formik.setFieldValue("discount_amount", "");
     formik.setFieldValue("discount_description", "");
     formik.setFieldValue("special_selected_options", []);
+    formik.setFieldValue("payment_method", "");
     setPaymentEvidenceFiles([]);
     setPaymentEvidenceError("");
     setPaymentOption("later");
@@ -483,14 +491,14 @@ function AddStudnet({ isOpen, onClose }) {
   };
 
   const handlePayingNowChange = (event) => {
-    const rawValue = event.target.value;
-    if (rawValue === "") {
+    const digits = String(event.target.value || "").replace(/\D/g, "");
+    if (!digits) {
       formik.setFieldValue("paying_now", "");
       return;
     }
 
-    const parsed = Number(rawValue);
-    if (Number.isNaN(parsed)) {
+    const parsed = Number(digits);
+    if (!Number.isFinite(parsed)) {
       return;
     }
 
@@ -541,29 +549,10 @@ function AddStudnet({ isOpen, onClose }) {
   ]);
 
   const handlePrintFeeSlip = async () => {
-    const errors = await formik.validateForm();
-    const specialErrors = isSpecialBatch
-      ? Boolean(errors.special_selected_options)
-      : false;
-    if (
-      errors.name ||
-      errors.batch ||
-      errors.paying_now ||
-      errors.payment_method ||
-      specialErrors
-    ) {
-      formik.setTouched({
-        name: true,
-        cnic: true,
-        phone: true,
-        batch: true,
-        paying_now: true,
-        payment_method: true,
-        special_selected_options: true,
-      });
+    if (!createdStudent) {
       toast({
-        title: "Complete required fields",
-        description: "Enter student name, batch, and payment details before printing.",
+        title: "Add the student first",
+        description: "Save the student, then print the admission slip.",
         status: "warning",
         duration: 4000,
         isClosable: true,
@@ -614,6 +603,7 @@ function AddStudnet({ isOpen, onClose }) {
           name: formik.values.name,
           cnic: formik.values.cnic || "N/A",
           phone: formik.values.phone,
+          rollNumber: createdStudent.roll_number || "",
           batchName: selectedBatch?.name || "N/A",
           batchFee: payableFee,
           payingNow,
@@ -631,10 +621,10 @@ function AddStudnet({ isOpen, onClose }) {
         "print"
       );
       toast({
-        title: "Fee slip opened for printing",
-        description: photoFile
-          ? "Use your browser print dialog to finish."
-          : "Printed without photo. Capture student photo first to include it on the slip.",
+        title: "Admission slip opened for printing",
+        description: createdStudent.roll_number
+          ? `Roll no. ${createdStudent.roll_number}. Use your browser print dialog to finish.`
+          : "Use your browser print dialog to finish.",
         status: photoFile ? "success" : "info",
         duration: 4000,
         isClosable: true,
@@ -891,36 +881,35 @@ function AddStudnet({ isOpen, onClose }) {
           </FormControl>
         )}
 
-      <Button
-        mt={4}
-        size="sm"
-        leftIcon={<Printer size={14} />}
-        variant="outline"
-        borderRadius="lg"
-        borderColor="#E0E8EC"
-        onClick={handlePrintFeeSlip}
-        isLoading={isPrintingSlip}
-        loadingText="Preparing"
-        type="button"
-        isDisabled={!formik.values.name}
-      >
-        Print fee slip
-      </Button>
-
       {resolvedPaymentOption === "partial" && (
         <FormControl id="paying_now" mt={4}>
           <FormLabel fontSize={14}>Amount paying now (Rs.)</FormLabel>
           <Input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             name="paying_now"
-            min={1}
-            max={payableFee}
-            step="1"
             borderRadius="0.5rem"
             placeholder={`Enter amount (max ${payableFee} Rs.)`}
             value={formik.values.paying_now}
             onChange={handlePayingNowChange}
             onBlur={formik.handleBlur}
+            onWheel={(event) => event.currentTarget.blur()}
+            onKeyDown={(event) => {
+              if (
+                event.key === "ArrowUp" ||
+                event.key === "ArrowDown" ||
+                event.key === "PageUp" ||
+                event.key === "PageDown" ||
+                event.key === "e" ||
+                event.key === "E" ||
+                event.key === "+" ||
+                event.key === "-" ||
+                event.key === "."
+              ) {
+                event.preventDefault();
+              }
+            }}
           />
           {formik.touched.paying_now && formik.errors.paying_now ? (
             <Box color="red" fontSize="sm" mt={1}>
@@ -959,7 +948,9 @@ function AddStudnet({ isOpen, onClose }) {
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={createdStudent ? () => {} : onClose}
+      closeOnOverlayClick={!createdStudent}
+      closeOnEsc={!createdStudent}
       {...responsiveModalProps}
       {...getResponsiveModalSize("2xl")}
     >
@@ -980,8 +971,30 @@ function AddStudnet({ isOpen, onClose }) {
         <ModalHeader className="text-xl font-semibold" flexShrink={0}>
           Add Student
         </ModalHeader>
-        <ModalCloseButton />
+        {createdStudent ? null : <ModalCloseButton />}
         <ModalBody flex="1" overflowY="auto" py={4}>
+          {createdStudent ? (
+            <Box
+              mb={4}
+              border="1px solid"
+              borderColor="#C6F6D5"
+              borderRadius="xl"
+              bg="#F0FFF4"
+              px={4}
+              py={3}
+            >
+              <Text fontWeight="700" fontSize="sm" color="#276749">
+                Student added
+                {createdStudent.roll_number
+                  ? ` · Roll no. ${createdStudent.roll_number}`
+                  : ""}
+              </Text>
+              <Text fontSize="sm" color="green.700" mt={1}>
+                Print the admission slip now. Keep this window open until you
+                click Close.
+              </Text>
+            </Box>
+          ) : null}
           <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
             <GridItem>
               <FormControl id="name" isRequired>
@@ -992,6 +1005,7 @@ function AddStudnet({ isOpen, onClose }) {
                   borderRadius="0.5rem"
                   value={formik.values.name}
                   onChange={formik.handleChange}
+                  isReadOnly={Boolean(createdStudent)}
                 />
                 {formik.touched.name && formik.errors.name ? (
                   <Box color="red" fontSize="sm">
@@ -1011,6 +1025,7 @@ function AddStudnet({ isOpen, onClose }) {
                   placeholder="Optional"
                   value={formik.values.cnic}
                   onChange={formik.handleChange}
+                  isReadOnly={Boolean(createdStudent)}
                 />
                 {formik.touched.cnic && formik.errors.cnic ? (
                   <Box color="red" fontSize="sm">
@@ -1029,6 +1044,7 @@ function AddStudnet({ isOpen, onClose }) {
                   borderRadius="0.5rem"
                   value={formik.values.phone}
                   onChange={formik.handleChange}
+                  isReadOnly={Boolean(createdStudent)}
                 />
                 {formik.touched.phone && formik.errors.phone ? (
                   <Box color="red" fontSize="sm">
@@ -1062,7 +1078,8 @@ function AddStudnet({ isOpen, onClose }) {
                 label="Student Photo (included on fee slip)"
               />
               <Text fontSize="xs" color="gray.500" mt={2}>
-                Capture the student photo before printing the admission fee slip.
+                Capture the student photo before adding. It is included on the
+                admission slip after the student is saved.
               </Text>
             </GridItem>
 
@@ -1219,7 +1236,18 @@ function AddStudnet({ isOpen, onClose }) {
           flexWrap="wrap"
           gap={2}
         >
-          <Button variant="ghost" borderRadius="0.75rem" onClick={onClose}>
+          <Button
+            variant={createdStudent ? "solid" : "ghost"}
+            borderRadius="0.75rem"
+            backgroundColor={createdStudent ? "#FFCB82" : undefined}
+            color={createdStudent ? "#85652D" : undefined}
+            _hover={
+              createdStudent
+                ? { backgroundColor: "#E3B574", color: "#654E26" }
+                : undefined
+            }
+            onClick={onClose}
+          >
             Close
           </Button>
           <Button
@@ -1230,10 +1258,10 @@ function AddStudnet({ isOpen, onClose }) {
             onClick={handlePrintFeeSlip}
             isLoading={isPrintingSlip}
             loadingText="Preparing"
-            isDisabled={!formik.values.name || !formik.values.batch}
+            isDisabled={!createdStudent}
             type="button"
           >
-            Print Fee Slip
+            Print Admission Slip
           </Button>
           <Button
             borderRadius="0.75rem"
@@ -1247,9 +1275,16 @@ function AddStudnet({ isOpen, onClose }) {
             type="submit"
             loadingText="Adding"
             isLoading={addStatus === "loading"}
+            isDisabled={
+              Boolean(createdStudent) ||
+              ((paymentOption === "partial" ||
+                paymentOption === "full" ||
+                resolvedPaymentOption !== "later") &&
+                !formik.values.payment_method)
+            }
             ml={{ base: 0, sm: "auto" }}
           >
-            Add Student
+            {createdStudent ? "Student Added" : "Add Student"}
           </Button>
         </ModalFooter>
       </ModalContent>

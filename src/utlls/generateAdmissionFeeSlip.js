@@ -142,6 +142,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     name,
     cnic,
     phone,
+    rollNumber = "",
     batchName,
     batchFee = 0,
     payingNow = 0,
@@ -286,7 +287,9 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6);
   doc.setTextColor(...COLORS.muted);
-  const issuedLines = doc.splitTextToSize(issuedAt, infoMaxW);
+  const rollValue = String(rollNumber || "").trim();
+  const metaLine = rollValue ? `Roll: ${rollValue} · ${issuedAt}` : issuedAt;
+  const issuedLines = doc.splitTextToSize(metaLine, infoMaxW);
   doc.text(issuedLines.slice(0, 1), infoX, identityTop + 16.5);
 
   y = identityTop + identityH + 2.5;
@@ -314,13 +317,15 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   };
 
   y = drawRow("Batch", batchName, y);
-  y = drawRow("CNIC", cnicValue, y, true);
-  y = drawRow("Class Time", classTimeLabel, y);
-  y = drawRow("Payment", paymentLabel, y, true);
+  y = drawRow("Roll No", rollValue || "N/A", y, true);
+  y = drawRow("CNIC", cnicValue, y);
+  y = drawRow("Class Time", classTimeLabel, y, true);
+  y = drawRow("Payment", paymentLabel, y);
   y = drawRow(
     "Method",
     payingNow > 0 ? paymentMethod : "N/A",
-    y
+    y,
+    true
   );
   y += 1.5;
 
@@ -368,7 +373,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.text(
     hasQr
       ? "Scan QR to confirm real vs fake."
-      : "Provisional slip · confirmed after student is added.",
+      : "Official admission slip issued after student registration.",
     innerX,
     footerStart + 7,
     { maxWidth: innerW - 2 }

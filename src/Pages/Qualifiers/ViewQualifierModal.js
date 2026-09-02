@@ -94,6 +94,7 @@ function ViewQualifierModal({ qualifier }) {
                 <DetailItem label="Email" value={qualifier?.email} />
                 <DetailItem label="CNIC" value={qualifier?.cnic} />
                 <DetailItem label="City" value={qualifier?.city} />
+                <DetailItem label="Province" value={qualifier?.province} />
                 <DetailItem label="Father Name" value={qualifier?.father_name} />
                 <DetailItem
                   label="Father Phone"

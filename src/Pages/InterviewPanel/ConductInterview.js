@@ -277,6 +277,7 @@ function ConductInterview() {
                 <InfoRow label="Email" value={qualifier?.email} />
                 <InfoRow label="CNIC" value={qualifier?.cnic} />
                 <InfoRow label="City" value={qualifier?.city} />
+                <InfoRow label="Province" value={qualifier?.province} />
                 <InfoRow label="Father Name" value={qualifier?.father_name} />
                 <InfoRow label="Father Phone" value={qualifier?.father_phone} />
                 <InfoRow

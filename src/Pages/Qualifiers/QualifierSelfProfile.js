@@ -33,6 +33,8 @@ import PageHeader, { FilterStack } from "../../Components/PageHeader";
 import CameraCapture from "../../Components/CameraCapture";
 import { getMediaUrl } from "../../utlls/useful";
 import { CSS_OPTIONAL_SUBJECTS } from "../../utlls/cssOptionalSubjects";
+import { provinceSelectOptions, citySelectOptions, getCitiesForProvince } from "../../utlls/pakistanProvinces";
+import SearchableTextSelect from "../../Components/SearchableTextSelect";
 import {
   updateQualifier,
   fetchQualifiers,
@@ -94,6 +96,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
       phone: qualifier?.phone || "",
       cnic: qualifier?.cnic || "",
       city: qualifier?.city || "",
+      province: qualifier?.province || "",
       father_name: qualifier?.father_name || "",
       father_phone: qualifier?.father_phone || "",
       description: qualifier?.description || "",
@@ -110,6 +113,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
       phone: Yup.string().trim().required("Required"),
       cnic: Yup.string().trim().required("Required"),
       city: Yup.string().trim().required("Required"),
+      province: Yup.string().trim().required("Required"),
       father_name: Yup.string().trim().required("Required"),
       father_phone: Yup.string().trim().required("Required"),
       description: Yup.string().trim().required("Required"),
@@ -173,6 +177,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
       formData.append("phone", values.phone.trim());
       formData.append("cnic", values.cnic.trim());
       formData.append("city", values.city.trim());
+      formData.append("province", values.province.trim());
       formData.append("father_name", values.father_name.trim());
       formData.append("father_phone", values.father_phone.trim());
       formData.append("description", values.description.trim());
@@ -504,16 +509,69 @@ function QualifierSelfProfile({ qualifier, loading }) {
             </FormControl>
 
             <FormControl isRequired={isEditing}>
+              <FormLabel fontSize={14}>Province</FormLabel>
+              {isEditing ? (
+                <SearchableTextSelect
+                  name="province"
+                  placeholder="Type to search province"
+                  emptyMessage="No province found"
+                  options={provinceSelectOptions(formik.values.province)}
+                  value={formik.values.province}
+                  onChange={(nextProvince) => {
+                    formik.setFieldValue("province", nextProvince);
+                    const cities = getCitiesForProvince(nextProvince);
+                    if (
+                      formik.values.city &&
+                      !cities.includes(formik.values.city)
+                    ) {
+                      formik.setFieldValue("city", "");
+                    }
+                  }}
+                  onBlur={() => formik.setFieldTouched("province", true)}
+                />
+              ) : (
+                <Input
+                  {...fieldStyles}
+                  value={formik.values.province || "—"}
+                  isReadOnly
+                  bg="gray.50"
+                />
+              )}
+              {isEditing && formik.touched.province && formik.errors.province ? (
+                <Text color="red" fontSize="sm">
+                  {formik.errors.province}
+                </Text>
+              ) : null}
+            </FormControl>
+
+            <FormControl isRequired={isEditing}>
               <FormLabel fontSize={14}>City</FormLabel>
-              <Input
-                name="city"
-                {...fieldStyles}
-                value={formik.values.city}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                isReadOnly={!isEditing}
-                bg={isEditing ? "white" : "gray.50"}
-              />
+              {isEditing ? (
+                <SearchableTextSelect
+                  name="city"
+                  placeholder={
+                    formik.values.province
+                      ? "Type to search city"
+                      : "Select province first"
+                  }
+                  emptyMessage="No city found"
+                  options={citySelectOptions(
+                    formik.values.province,
+                    formik.values.city
+                  )}
+                  value={formik.values.city}
+                  onChange={(nextCity) => formik.setFieldValue("city", nextCity)}
+                  onBlur={() => formik.setFieldTouched("city", true)}
+                  isDisabled={!formik.values.province}
+                />
+              ) : (
+                <Input
+                  {...fieldStyles}
+                  value={formik.values.city || "—"}
+                  isReadOnly
+                  bg="gray.50"
+                />
+              )}
               {isEditing && formik.touched.city && formik.errors.city ? (
                 <Text color="red" fontSize="sm">
                   {formik.errors.city}
