@@ -18,6 +18,7 @@ import {
   Text,
   HStack,
   IconButton,
+  Select,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -44,6 +45,7 @@ function AddModel({ isOpen, onClose }) {
       batch_fee: "",
       is_special_batch: false,
       is_interview_batch: false,
+      is_paid_batch: true,
       special_fee_rows: [createEmptySpecialFeeRow(0)],
       startdate: "",
       enddate: "",
@@ -59,8 +61,8 @@ function AddModel({ isOpen, onClose }) {
         )
         .typeError("Fee must be a number")
         .min(0, "Fee cannot be negative")
-        .when("is_special_batch", {
-          is: true,
+        .when(["is_special_batch", "is_paid_batch"], {
+          is: (isSpecial, isPaid) => isSpecial === true || isPaid === false,
           then: (schema) => schema.notRequired(),
           otherwise: (schema) => schema.required("Required"),
         }),
@@ -102,7 +104,9 @@ function AddModel({ isOpen, onClose }) {
       "special-fees-required",
       "Add at least one option with a fee greater than 0",
       function (values) {
-        if (!values?.is_special_batch) return true;
+        if (!values?.is_special_batch || values?.is_paid_batch === false) {
+          return true;
+        }
         const payload = formRowsToSpecialFeePayload(values.special_fee_rows);
         const hasValid = payload.some(
           (row) => row.label && Number(row.fee) > 0
@@ -117,6 +121,7 @@ function AddModel({ isOpen, onClose }) {
     ),
     onSubmit: async (values) => {
       const isSpecial = values.is_special_batch === true;
+      const isPaid = values.is_paid_batch !== false;
       try {
         await dispatch(
           addBatch({
@@ -137,10 +142,12 @@ function AddModel({ isOpen, onClose }) {
                   : values.class_end_time,
               is_special_batch: isSpecial,
               is_interview_batch: values.is_interview_batch === true,
-              batch_fee: isSpecial ? "0" : String(values.batch_fee),
-              special_fee_options: isSpecial
-                ? formRowsToSpecialFeePayload(values.special_fee_rows)
-                : [],
+              is_paid_batch: isPaid,
+              batch_fee: !isPaid || isSpecial ? "0" : String(values.batch_fee),
+              special_fee_options:
+                isSpecial && isPaid
+                  ? formRowsToSpecialFeePayload(values.special_fee_rows)
+                  : [],
             },
           })
         ).unwrap();
@@ -152,6 +159,15 @@ function AddModel({ isOpen, onClose }) {
       }
     },
   });
+
+  const handlePaidBatchChange = (e) => {
+    const paid = e.target.value === "true";
+    formik.setFieldValue("is_paid_batch", paid);
+    if (!paid) {
+      formik.setFieldValue("batch_fee", "0");
+      formik.setFieldError("batch_fee", undefined);
+    }
+  };
 
   const handleSpecialBatchChange = (e) => {
     const checked = e.target.checked;
@@ -260,6 +276,23 @@ function AddModel({ isOpen, onClose }) {
                 ) : null}
               </FormControl>
 
+              <FormControl id="is_paid_batch">
+                <FormLabel fontSize={14}>Fee type</FormLabel>
+                <Select
+                  name="is_paid_batch"
+                  borderRadius="0.5rem"
+                  value={formik.values.is_paid_batch ? "true" : "false"}
+                  onChange={handlePaidBatchChange}
+                >
+                  <option value="true">Paid</option>
+                  <option value="false">Unpaid</option>
+                </Select>
+                <Text fontSize="sm" color="gray.500" mt={1}>
+                  Unpaid batches skip fee and payment when adding a student or
+                  qualifier.
+                </Text>
+              </FormControl>
+
               <FormControl id="is_special_batch">
                 <Checkbox
                   name="is_special_batch"
@@ -270,8 +303,9 @@ function AddModel({ isOpen, onClose }) {
                 </Checkbox>
                 {formik.values.is_special_batch && (
                   <Text fontSize="sm" color="gray.500" mt={1}>
-                    Add one or more option fees. At enrollment, admins select
-                    which options apply to each student.
+                    {formik.values.is_paid_batch === false
+                      ? "Option fees are not used for unpaid batches."
+                      : "Add one or more option fees. At enrollment, admins select which options apply to each student."}
                   </Text>
                 )}
               </FormControl>
@@ -290,7 +324,8 @@ function AddModel({ isOpen, onClose }) {
                 </Text>
               </FormControl>
 
-              {!formik.values.is_special_batch && (
+              {formik.values.is_paid_batch !== false &&
+                !formik.values.is_special_batch && (
                 <FormControl id="batch_fee">
                   <FormLabel fontSize={14}>Batch Fee (Rs.)</FormLabel>
                   <Input
@@ -310,7 +345,8 @@ function AddModel({ isOpen, onClose }) {
                 </FormControl>
               )}
 
-              {formik.values.is_special_batch && (
+              {formik.values.is_paid_batch !== false &&
+                formik.values.is_special_batch && (
                 <Box
                   w="100%"
                   border="1px solid"

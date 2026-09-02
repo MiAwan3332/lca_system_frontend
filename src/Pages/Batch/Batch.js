@@ -315,13 +315,18 @@ function Batch() {
                         {batch.is_interview_batch ? (
                           <Badge colorScheme="blue">Interview</Badge>
                         ) : null}
+                        {batch.is_paid_batch === false ? (
+                          <Badge colorScheme="gray">Unpaid</Badge>
+                        ) : null}
                       </div>
                     </Td>
                     <Td>{batch.description}</Td>
                     <Td>{batch.batch_type ? batch.batch_type : "N/A"}</Td>
                     {showFeeAndDates && (
                       <Td>
-                        {batch.is_special_batch ? (
+                        {batch.is_paid_batch === false ? (
+                          <Badge colorScheme="gray">Unpaid</Badge>
+                        ) : batch.is_special_batch ? (
                           <Badge colorScheme="purple">Special</Badge>
                         ) : batch.batch_fee != null && batch.batch_fee !== "" ? (
                           `${batch.batch_fee} Rs.`

@@ -551,6 +551,13 @@ export const selectAllBatches = (state) => state.batches.batches;
 export const selectActiveBatches = (state) =>
   state.batches.batches.filter((batch) => batch.is_active !== false);
 
+/** Active class batches for students (interview batches are for qualifiers only). */
+export const selectActiveStudentBatches = (state) =>
+  state.batches.batches.filter(
+    (batch) =>
+      batch.is_active !== false && batch.is_interview_batch !== true
+  );
+
 /** Active batches marked as interview batches (for Qualifiers). */
 export const selectActiveInterviewBatches = (state) =>
   state.batches.batches.filter(

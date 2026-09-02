@@ -28,7 +28,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
-import { selectActiveBatches, fetchBatches } from "../../Features/batchSlice";
+import { selectActiveStudentBatches, fetchBatches } from "../../Features/batchSlice";
 import { addStudent, fetchStudents } from "../../Features/studentSlice";
 import { selectUser } from "../../Features/authSlice";
 import CameraCapture from "../../Components/CameraCapture";
@@ -48,7 +48,7 @@ import {
   FEE_PAYMENT_METHODS,
   requiresPaymentEvidence,
 } from "../../utlls/paymentMethods";
-import { normalizeBatchSpecialFeeOptions } from "../../utlls/specialFeeOptions";
+import { normalizeBatchSpecialFeeOptions, batchIsPaid } from "../../utlls/specialFeeOptions";
 
 const getBatchSpecialOptions = (batch) =>
   normalizeBatchSpecialFeeOptions(batch?.special_fee_options).filter(
@@ -75,7 +75,7 @@ function AddStudnet({ isOpen, onClose }) {
   const toast = useToast();
 
   const { addStatus } = useSelector((state) => state.students);
-  const batches = useSelector(selectActiveBatches);
+  const batches = useSelector(selectActiveStudentBatches);
   const currentUser = useSelector(selectUser);
   const dispatch = useDispatch();
 
@@ -158,16 +158,24 @@ function AddStudnet({ isOpen, onClose }) {
             }
           ),
         discount_description: Yup.string(),
-        payment_method: Yup.string().when([], {
-          is: () => paymentOption === "partial" || paymentOption === "full",
+        payment_method: Yup.string().when("batch", {
+          is: (batchId) => {
+            const selected = batches.find((item) => item._id === batchId);
+            if (!batchIsPaid(selected)) return false;
+            return paymentOption === "partial" || paymentOption === "full";
+          },
           then: (schema) =>
             schema
               .oneOf(FEE_PAYMENT_METHODS, "Select a payment method")
               .required("Payment method is required"),
           otherwise: (schema) => schema.notRequired(),
         }),
-        next_installment_date: Yup.string().when([], {
-          is: () => paymentOption === "partial",
+        next_installment_date: Yup.string().when("batch", {
+          is: (batchId) => {
+            const selected = batches.find((item) => item._id === batchId);
+            if (!batchIsPaid(selected)) return false;
+            return paymentOption === "partial";
+          },
           then: (schema) =>
             schema.required("Next installment date is required for partial payment"),
           otherwise: (schema) => schema.notRequired(),
@@ -178,7 +186,9 @@ function AddStudnet({ isOpen, onClose }) {
         "Select at least one special batch option",
         function (values) {
           const selected = batches.find((item) => item._id === values?.batch);
-          if (selected?.is_special_batch !== true) return true;
+          if (selected?.is_special_batch !== true || selected?.is_paid_batch === false) {
+            return true;
+          }
           const hasOption = (values.special_selected_options || []).length > 0;
           if (hasOption) return true;
           return this.createError({
@@ -208,10 +218,13 @@ function AddStudnet({ isOpen, onClose }) {
     validationSchema,
     onSubmit: async (values) => {
       const selected = batches.find((item) => item._id === values.batch);
-      const isSpecial = selected?.is_special_batch === true;
-      const grossFee = isSpecial
-        ? getSpecialTotalFromBatch(selected, values.special_selected_options)
-        : Number(selected?.batch_fee) || 0;
+      const unpaidBatch = !batchIsPaid(selected);
+      const isSpecial = !unpaidBatch && selected?.is_special_batch === true;
+      const grossFee = unpaidBatch
+        ? 0
+        : isSpecial
+          ? getSpecialTotalFromBatch(selected, values.special_selected_options)
+          : Number(selected?.batch_fee) || 0;
       const discountAmount = Math.min(
         Math.max(0, Number(values.discount_amount) || 0),
         grossFee
@@ -383,7 +396,8 @@ function AddStudnet({ isOpen, onClose }) {
   );
 
   const isSpecialBatch = selectedBatch?.is_special_batch === true;
-  const batchFee = Number(selectedBatch?.batch_fee) || 0;
+  const isPaidBatch = batchIsPaid(selectedBatch);
+  const batchFee = isPaidBatch ? Number(selectedBatch?.batch_fee) || 0 : 0;
 
   const specialTotalFee = useMemo(() => {
     if (!isSpecialBatch) return 0;
@@ -438,6 +452,7 @@ function AddStudnet({ isOpen, onClose }) {
   const todayDate = new Date().toISOString().split("T")[0];
 
   const showFeePanel =
+    isPaidBatch &&
     formik.values.batch &&
     (isSpecialBatch ? specialTotalFee > 0 : batchFee > 0);
 
@@ -1083,7 +1098,7 @@ function AddStudnet({ isOpen, onClose }) {
               </Text>
             </GridItem>
 
-            {formik.values.batch && isSpecialBatch && (
+            {formik.values.batch && isSpecialBatch && isPaidBatch && (
               <GridItem colSpan={{ base: 1, md: 2 }}>
                 <Box
                   border="1px solid"
@@ -1190,13 +1205,32 @@ function AddStudnet({ isOpen, onClose }) {
               </GridItem>
             )}
 
-            {formik.values.batch && !isSpecialBatch && batchFee > 0 && (
+            {formik.values.batch && !isPaidBatch && (
+              <GridItem colSpan={{ base: 1, md: 2 }}>
+                <Box
+                  border="1px dashed"
+                  borderColor="#E0E8EC"
+                  borderRadius="xl"
+                  p={4}
+                  bg="#FAFBFC"
+                >
+                  <Text fontWeight="600" fontSize="sm" color="#2D3748">
+                    Unpaid batch
+                  </Text>
+                  <Text fontSize="sm" color="gray.500" mt={1}>
+                    This batch is unpaid. No fee or payment is collected.
+                  </Text>
+                </Box>
+              </GridItem>
+            )}
+
+            {formik.values.batch && isPaidBatch && !isSpecialBatch && batchFee > 0 && (
               <GridItem colSpan={{ base: 1, md: 2 }}>
                 {renderPaymentPanel()}
               </GridItem>
             )}
 
-            {formik.values.batch && !isSpecialBatch && batchFee <= 0 && (
+            {formik.values.batch && isPaidBatch && !isSpecialBatch && batchFee <= 0 && (
               <GridItem colSpan={{ base: 1, md: 2 }}>
                 <Box
                   border="1px dashed"
@@ -1277,9 +1311,10 @@ function AddStudnet({ isOpen, onClose }) {
             isLoading={addStatus === "loading"}
             isDisabled={
               Boolean(createdStudent) ||
-              ((paymentOption === "partial" ||
-                paymentOption === "full" ||
-                resolvedPaymentOption !== "later") &&
+              (isPaidBatch &&
+                (paymentOption === "partial" ||
+                  paymentOption === "full" ||
+                  resolvedPaymentOption !== "later") &&
                 !formik.values.payment_method)
             }
             ml={{ base: 0, sm: "auto" }}
