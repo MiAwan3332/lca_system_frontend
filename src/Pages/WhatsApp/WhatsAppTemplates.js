@@ -95,8 +95,11 @@ function WhatsAppTemplates() {
   const selectedKeyRef = useRef("");
   selectedKeyRef.current = selectedKey;
 
-  const loadTemplates = useCallback(async () => {
-    setLoading(true);
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+
+  const loadTemplates = useCallback(async ({ preserveSelection = false } = {}) => {
+    if (!preserveSelection) setLoading(true);
     try {
       const { data } = await axios.get(`${config.BASE_URL}/whatsapp/templates`, {
         headers,
@@ -105,6 +108,10 @@ function WhatsAppTemplates() {
       setTemplates(list);
       setTags(data.tags || []);
       setProcesses(data.processes || []);
+
+      if (preserveSelection) {
+        return list;
+      }
 
       const preferred =
         list.find((t) => t.key === selectedKeyRef.current) ||
@@ -116,8 +123,9 @@ function WhatsAppTemplates() {
       } else {
         setSelectedKey("");
       }
+      return list;
     } catch (error) {
-      toast({
+      toastRef.current({
         title: "Could not load templates",
         description:
           error?.response?.data?.message || error.message || "Please try again.",
@@ -125,10 +133,11 @@ function WhatsAppTemplates() {
         duration: 4500,
         isClosable: true,
       });
+      return [];
     } finally {
-      setLoading(false);
+      if (!preserveSelection) setLoading(false);
     }
-  }, [headers, toast]);
+  }, [headers]);
 
   useEffect(() => {
     if (!canView) return;
@@ -193,7 +202,7 @@ function WhatsAppTemplates() {
     setSaving(true);
     try {
       const { data } = await axios.put(
-        `${config.BASE_URL}/whatsapp/templates/${selectedKey}`,
+        `${config.BASE_URL}/whatsapp/templates/${encodeURIComponent(selectedKey)}`,
         {
           name,
           description,
@@ -203,15 +212,14 @@ function WhatsAppTemplates() {
         },
         { headers }
       );
-      setTemplates((prev) =>
-        prev.map((t) => (t.key === selectedKey ? data.template : t))
-      );
-      // Refresh list so deactivated siblings update
-      await loadTemplates();
-      fillForm(data.template);
+      const saved = data.template;
+      const list = await loadTemplates({ preserveSelection: true });
+      const persisted =
+        list.find((t) => t.key === (saved?.key || selectedKey)) || saved;
+      if (persisted) fillForm(persisted);
       toast({
         title: "Template saved",
-        description: `Bound to process: ${processLabel(data.template.process)}`,
+        description: `Bound to process: ${processLabel(persisted?.process)}`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -242,7 +250,7 @@ function WhatsAppTemplates() {
     setDeleting(true);
     try {
       await axios.delete(
-        `${config.BASE_URL}/whatsapp/templates/${selectedKey}`,
+        `${config.BASE_URL}/whatsapp/templates/${encodeURIComponent(selectedKey)}`,
         { headers }
       );
       setSelectedKey("");
@@ -272,7 +280,7 @@ function WhatsAppTemplates() {
     setPreviewing(true);
     try {
       const { data } = await axios.post(
-        `${config.BASE_URL}/whatsapp/templates/${selectedKey}/preview`,
+        `${config.BASE_URL}/whatsapp/templates/${encodeURIComponent(selectedKey)}/preview`,
         { body },
         { headers }
       );
@@ -315,7 +323,7 @@ function WhatsAppTemplates() {
     setTesting(true);
     try {
       await axios.post(
-        `${config.BASE_URL}/whatsapp/templates/${selectedKey}/test`,
+        `${config.BASE_URL}/whatsapp/templates/${encodeURIComponent(selectedKey)}/test`,
         { phone: testPhone.trim() },
         { headers }
       );
