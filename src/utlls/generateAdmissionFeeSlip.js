@@ -2,6 +2,7 @@ import moment from "moment";
 import { formatClassTimeRange } from "./classTime";
 import {
   createFeeSlipPdf,
+  drawFeeNonRefundableNote,
   getFeeSlipContentStartY,
   getFeeSlipFrame,
 } from "./feeSlipLayout";
@@ -399,6 +400,13 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.setFontSize(5.5);
   doc.setTextColor(...COLORS.muted);
   doc.text("Authorized Signature", innerX, footerStart + 17.5);
+  drawFeeNonRefundableNote(doc, {
+    x: innerX + innerW,
+    y: footerStart + 17.5,
+    align: "right",
+    fontSize: 7.5,
+    color: COLORS.ink,
+  });
 
   // Draw QR on the right side of the student image card
   if (hasQr) {

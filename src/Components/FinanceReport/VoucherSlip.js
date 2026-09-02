@@ -101,6 +101,11 @@ function VoucherSlip({ data }) {
           ? "AUTHENTICATED EXPENSE VOUCHER"
           : "AUTHENTICATED FEE VOUCHER RECEIPT"}
       </p>
+      {!data.isExpense && (
+        <p className="voucher-slip__non-refundable">
+          Fee: Non refundable
+        </p>
+      )}
       <p className="voucher-slip__note">{data.paymentInstructions}</p>
 
       <div className="voucher-slip__sign-row">

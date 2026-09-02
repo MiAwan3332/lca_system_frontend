@@ -224,7 +224,6 @@ function Qualifiers() {
                 <Th data-searchable>Photo / Name</Th>
                 <Th data-searchable>Batch</Th>
                 <Th data-searchable>Phone</Th>
-                <Th data-searchable>Email</Th>
                 <Th data-searchable>City</Th>
                 <Th>Status</Th>
                 {showActions && <Th isNumeric>Actions</Th>}
@@ -233,12 +232,12 @@ function Qualifiers() {
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={showActions ? 7 : 6}
+                  nOfColumns={showActions ? 6 : 6}
                   actions={showActions ? ["w-10"] : []}
                 />
               ) : qualifiers.length === 0 ? (
                 <Tr>
-                  <Td colSpan={showActions ? 8 : 7}>
+                  <Td colSpan={showActions ? 7 : 6}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No qualifier records found
@@ -263,7 +262,6 @@ function Qualifiers() {
                       </Td>
                       <Td>{qualifier.batch?.name || "—"}</Td>
                       <Td>{qualifier.phone}</Td>
-                      <Td>{qualifier.email || "—"}</Td>
                       <Td>{qualifier.city || "—"}</Td>
                       <Td>
                         <Badge

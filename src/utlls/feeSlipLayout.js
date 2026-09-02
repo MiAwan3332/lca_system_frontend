@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import { ACADEMY_BRANDING } from "./academyBranding";
 
-/** Printable fee slip: 5 inches wide × 7 inches tall. */
+export const FEE_NON_REFUNDABLE_NOTE = "Fee: Non Refundable";
 export const SLIP_WIDTH_IN = 5;
 export const SLIP_HEIGHT_IN = 7;
 export const SLIP_WIDTH_MM = SLIP_WIDTH_IN * 25.4;
@@ -170,4 +170,16 @@ export const drawFeeSlipBrandingFooter = (doc, frame) => {
     footerY + 7,
     { align: "center", maxWidth: innerW }
   );
+};
+
+/** Compact notice used on student fee / admission slips. */
+export const drawFeeNonRefundableNote = (
+  doc,
+  { x, y, align = "right", fontSize = 7.5, color = [0, 0, 0] } = {}
+) => {
+  if (x == null || y == null) return;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(fontSize);
+  doc.setTextColor(...color);
+  doc.text(FEE_NON_REFUNDABLE_NOTE, x, y, { align });
 };
