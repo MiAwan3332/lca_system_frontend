@@ -29,6 +29,8 @@ import {
 } from "../../Features/qualifierSlice";
 import ActionButton from "../../Components/ActionButton";
 import { getMediaUrl } from "../../utlls/useful";
+import { provinceSelectOptions, citySelectOptions, getCitiesForProvince } from "../../utlls/pakistanProvinces";
+import SearchableTextSelect from "../../Components/SearchableTextSelect";
 import {
   fetchBatches,
   selectActiveInterviewBatches,
@@ -65,6 +67,7 @@ function UpdateQualifierModal({ qualifier }) {
       email: qualifier?.email || "",
       cnic: qualifier?.cnic || "",
       city: qualifier?.city || "",
+      province: qualifier?.province || "",
       father_name: qualifier?.father_name || "",
       father_phone: qualifier?.father_phone || "",
       description: qualifier?.description || "",
@@ -85,6 +88,7 @@ function UpdateQualifierModal({ qualifier }) {
       formData.append("email", values.email?.trim() || "");
       formData.append("cnic", values.cnic?.trim() || "");
       formData.append("city", values.city?.trim() || "");
+      formData.append("province", values.province?.trim() || "");
       formData.append("father_name", values.father_name?.trim() || "");
       formData.append("father_phone", values.father_phone?.trim() || "");
       formData.append("description", values.description?.trim() || "");
@@ -217,12 +221,45 @@ function UpdateQualifierModal({ qualifier }) {
                       onChange={formik.handleChange}
                     />
                   </FormControl>
+                  <FormControl id="province">
+                    <FormLabel fontSize={14}>Province</FormLabel>
+                    <SearchableTextSelect
+                      name="province"
+                      placeholder="Type to search province"
+                      emptyMessage="No province found"
+                      options={provinceSelectOptions(formik.values.province)}
+                      value={formik.values.province}
+                      onChange={(nextProvince) => {
+                        formik.setFieldValue("province", nextProvince);
+                        const cities = getCitiesForProvince(nextProvince);
+                        if (
+                          formik.values.city &&
+                          !cities.includes(formik.values.city)
+                        ) {
+                          formik.setFieldValue("city", "");
+                        }
+                      }}
+                    />
+                  </FormControl>
                   <FormControl id="city">
                     <FormLabel fontSize={14}>City</FormLabel>
-                    <Input
+                    <SearchableTextSelect
                       name="city"
+                      placeholder={
+                        formik.values.province
+                          ? "Type to search city"
+                          : "Select province first"
+                      }
+                      emptyMessage="No city found"
+                      options={citySelectOptions(
+                        formik.values.province,
+                        formik.values.city
+                      )}
                       value={formik.values.city}
-                      onChange={formik.handleChange}
+                      onChange={(nextCity) =>
+                        formik.setFieldValue("city", nextCity)
+                      }
+                      isDisabled={!formik.values.province}
                     />
                   </FormControl>
                   <FormControl id="is_active">

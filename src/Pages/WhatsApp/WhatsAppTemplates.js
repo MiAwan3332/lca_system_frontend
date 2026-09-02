@@ -293,6 +293,16 @@ function WhatsAppTemplates() {
 
   const handleTestSend = async () => {
     if (!selectedKey) return;
+    if (!isActive) {
+      toast({
+        title: "Template is inactive",
+        description: "Turn Active on and save before sending a message.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
     if (!testPhone.trim()) {
       toast({
         title: "Enter a phone number",
@@ -511,6 +521,8 @@ function WhatsAppTemplates() {
                   <FormHelperText>
                     Only one active template can be used per process. Saving an
                     active template for a process turns off the previous one.
+                    Inactive templates are not sent automatically and cannot be
+                    used for test sends.
                   </FormHelperText>
                 </FormControl>
 
@@ -577,11 +589,18 @@ function WhatsAppTemplates() {
                     placeholder="Test phone e.g. 0300..."
                     value={testPhone}
                     onChange={(e) => setTestPhone(e.target.value)}
+                    isDisabled={!isActive}
                   />
                   <Button
                     leftIcon={<Send size={16} />}
                     onClick={handleTestSend}
                     isLoading={testing}
+                    isDisabled={!isActive}
+                    title={
+                      isActive
+                        ? "Send a test WhatsApp message"
+                        : "Turn Active on to send messages"
+                    }
                   >
                     Send test
                   </Button>

@@ -43,15 +43,23 @@ export default function Sidebar({ onClose, isMobileDrawer = false, ...rest }) {
         gap={2}
       >
         <Flex align="center" flex="1" minW={0}>
-          <Image
-            src="/logo_dark.svg"
-            alt="LCA Logo"
-            h="40px"
-            w="auto"
-            objectFit="contain"
-            transition="transform 0.2s ease"
-            _hover={{ transform: "scale(1.03)" }}
-          />
+          <Link
+            to="/dashboard"
+            onClick={onClose}
+            style={{ display: "inline-flex", minWidth: 0 }}
+            aria-label="Go to dashboard"
+          >
+            <Image
+              src="/logo_dark.svg"
+              alt="LCA Logo"
+              h="40px"
+              w="auto"
+              objectFit="contain"
+              cursor="pointer"
+              transition="transform 0.2s ease"
+              _hover={{ transform: "scale(1.03)" }}
+            />
+          </Link>
         </Flex>
         <CloseButton
           display={{ base: "flex", md: "none" }}

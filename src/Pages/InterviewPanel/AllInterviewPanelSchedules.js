@@ -127,7 +127,9 @@ function AllInterviewPanelSchedules() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [bookingFilter, setBookingFilter] = useState("");
-  const [progressFilter, setProgressFilter] = useState("");
+  const [progressFilter, setProgressFilter] = useState(
+    isQualifier ? "available" : ""
+  );
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedScheduleRow, setSelectedScheduleRow] = useState(null);
@@ -248,7 +250,7 @@ function AllInterviewPanelSchedules() {
     setQuery("");
     setStatus("");
     setBookingFilter("");
-    setProgressFilter("");
+    setProgressFilter(isQualifier ? "available" : "");
     setStartDate("");
     setEndDate("");
     loadSchedules({
@@ -396,8 +398,15 @@ function AllInterviewPanelSchedules() {
         >
           INTERVIEW STATUS
         </Text>
-        <SimpleGrid columns={{ base: 2, sm: 3, lg: 5 }} spacing={2} w="full">
-          {INTERVIEW_PROGRESS_OPTIONS.map((option) => {
+        <SimpleGrid
+          columns={{ base: 2, sm: isQualifier ? 2 : 3, lg: isQualifier ? 4 : 5 }}
+          spacing={2}
+          w="full"
+        >
+          {(isQualifier
+            ? INTERVIEW_PROGRESS_OPTIONS.filter((option) => option.value)
+            : INTERVIEW_PROGRESS_OPTIONS
+          ).map((option) => {
             const isActive = progressFilter === option.value;
             const count = option.value
               ? progressCounts[option.value] || 0
@@ -857,7 +866,7 @@ function AllInterviewPanelSchedules() {
                     align={{ base: "stretch", sm: "center" }}
                     pt={1}
                   >
-                    {isCompleted && (
+                    {(isBooked || isCompleted) && (
                       <Button
                         size="sm"
                         leftIcon={<Eye size={14} />}

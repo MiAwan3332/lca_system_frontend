@@ -343,10 +343,14 @@ function StudentHistoryModal({ student }) {
                     <Phone size={14} />
                     <Text>{profile?.phone || "—"}</Text>
                   </HStack>
-                  {profile?.city ? (
+                  {profile?.city || profile?.province ? (
                     <HStack spacing={1}>
                       <MapPin size={14} />
-                      <Text>{profile.city}</Text>
+                      <Text>
+                        {[profile?.city, profile?.province]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </Text>
                     </HStack>
                   ) : null}
                 </HStack>
