@@ -1,3 +1,6 @@
+/** Existing batches without this field are treated as paid. */
+export const batchIsPaid = (batch) => batch?.is_paid_batch !== false;
+
 /** Legacy fixed special-fee keys used by older batches. */
 export const LEGACY_SPECIAL_FEE_LABELS = {
   test_session: "Test Session",

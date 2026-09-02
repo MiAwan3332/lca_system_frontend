@@ -32,6 +32,7 @@ import {
 import CameraCapture from "../../Components/CameraCapture";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { FEE_PAYMENT_METHODS } from "../../utlls/paymentMethods";
+import { batchIsPaid } from "../../utlls/specialFeeOptions";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -116,8 +117,12 @@ function AddQualifierModal({ isOpen, onClose }) {
           const payable = Math.max(gross - discount, 0);
           return (Number(value) || 0) <= payable;
         }),
-      payment_method: Yup.string().when([], {
-        is: () => paymentOption === "partial" || paymentOption === "full",
+      payment_method: Yup.string().when("batch", {
+        is: (batchId) => {
+          const selected = interviewBatches.find((b) => b._id === batchId);
+          if (!batchIsPaid(selected)) return false;
+          return paymentOption === "partial" || paymentOption === "full";
+        },
         then: (schema) =>
           schema
             .oneOf(FEE_PAYMENT_METHODS, "Select a payment method")
@@ -127,7 +132,8 @@ function AddQualifierModal({ isOpen, onClose }) {
     }),
     onSubmit: async (values) => {
       const selected = interviewBatches.find((b) => b._id === values.batch);
-      const grossFee = Number(selected?.batch_fee) || 0;
+      const unpaidBatch = !batchIsPaid(selected);
+      const grossFee = unpaidBatch ? 0 : Number(selected?.batch_fee) || 0;
       const discountAmount = Math.min(
         Math.max(0, Number(values.discount_amount) || 0),
         grossFee
@@ -197,7 +203,8 @@ function AddQualifierModal({ isOpen, onClose }) {
     () => interviewBatches.find((b) => b._id === formik.values.batch),
     [interviewBatches, formik.values.batch]
   );
-  const batchFee = Number(selectedBatch?.batch_fee) || 0;
+  const isPaidBatch = batchIsPaid(selectedBatch);
+  const batchFee = isPaidBatch ? Number(selectedBatch?.batch_fee) || 0 : 0;
   const discountAmount = Math.min(
     Math.max(0, Number(formik.values.discount_amount) || 0),
     batchFee
@@ -454,7 +461,28 @@ function AddQualifierModal({ isOpen, onClose }) {
                 </FormControl>
               </GridItem>
 
-              {formik.values.batch ? (
+              {formik.values.batch && !isPaidBatch ? (
+                <GridItem colSpan={{ base: 1, md: 2 }}>
+                  <Box
+                    borderWidth="1px"
+                    borderStyle="dashed"
+                    borderColor="gray.200"
+                    borderRadius="0.75rem"
+                    p={{ base: 3, sm: 4 }}
+                    bg="gray.50"
+                  >
+                    <Text fontWeight="600" fontSize="sm" color="#2D3748">
+                      Unpaid batch
+                    </Text>
+                    <Text fontSize="sm" color="gray.600" mt={1}>
+                      This interview batch is unpaid. No fee or payment is
+                      collected.
+                    </Text>
+                  </Box>
+                </GridItem>
+              ) : null}
+
+              {formik.values.batch && isPaidBatch ? (
                 <GridItem colSpan={{ base: 1, md: 2 }}>
                   <Box
                     borderWidth="1px"
