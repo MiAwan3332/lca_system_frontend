@@ -71,13 +71,18 @@ function VerifySlip() {
         <Box w="full" maxW="26rem">
           <VStack spacing={3} mb={6} textAlign="center">
             <Image
-              src={ACADEMY_BRANDING.logoSrc}
+              src={ACADEMY_BRANDING.logoLightSrc || "/logo_light.svg"}
               alt={ACADEMY_BRANDING.name}
               h={{ base: "64px", md: "80px" }}
               mx="auto"
               objectFit="contain"
             />
-            <Text fontSize="sm" fontWeight="800" letterSpacing="0.08em" color="#85652D">
+            <Text
+              fontSize="sm"
+              fontWeight="800"
+              letterSpacing="0.08em"
+              color="#1A202C"
+            >
               {ACADEMY_BRANDING.name.toUpperCase()}
             </Text>
           </VStack>
