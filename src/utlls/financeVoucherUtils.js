@@ -48,6 +48,8 @@ export const buildVoucherData = (transaction) => {
   return {
     voucherNumber,
     studentName,
+    studentImage: transaction.student_image || null,
+    rollNumber: transaction.roll_number || null,
     batchName,
     studentId: transaction.student_id || "N/A",
     program: transaction.program || transaction.batch_name || "N/A",

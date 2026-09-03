@@ -368,21 +368,23 @@ export const generatePendingFeeSlipPdf = async (data = {}) => {
   });
   y += 2.5;
 
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.charcoal);
+  doc.text("System", innerX, y - 4);
+  doc.setDrawColor(...COLORS.charcoal);
+  doc.setLineWidth(0.3);
+  doc.line(innerX, y - 2.5, innerX + 32, y - 2.5);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(4.5);
+  doc.setFontSize(5.5);
   doc.setTextColor(...COLORS.muted);
-  doc.text(
-    "Batch transfer blocked until balance is cleared.",
-    cardX + cardW / 2,
-    y,
-    { align: "center", maxWidth: innerW - 4 }
-  );
-  y += 3;
+  doc.text("Authorized Signature", innerX, y);
+
   drawFeeNonRefundableNote(doc, {
-    x: cardX + cardW / 2,
-    y,
-    align: "center",
-    fontSize: 8,
+    x: innerX + innerW,
+    y: y,
+    align: "right",
+    fontSize: 10,
     color: COLORS.black,
   });
   y += 4;

@@ -96,23 +96,26 @@ function VoucherSlip({ data }) {
         <strong className="voucher-slip__amount-value">{data.amount}</strong>
       </div>
 
-      <p className="voucher-slip__receipt-label">
-        {data.isExpense
-          ? "AUTHENTICATED EXPENSE VOUCHER"
-          : "AUTHENTICATED FEE VOUCHER RECEIPT"}
-      </p>
-      {!data.isExpense && (
-        <p className="voucher-slip__non-refundable">
-          Fee: Non refundable
-        </p>
-      )}
       <p className="voucher-slip__note">{data.paymentInstructions}</p>
 
-      <div className="voucher-slip__sign-row">
+      <div className="voucher-slip__sign-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', marginBottom: '2mm' }}>
         <div className="voucher-slip__signature">
-          <span className="voucher-slip__signer">{data.processedBy}</span>
+          <span className="voucher-slip__signer">{data.processedBy || "System"}</span>
           <div className="voucher-slip__signature-line" />
           <span>Authorized Signature</span>
+        </div>
+        
+        <div style={{ textAlign: 'right' }}>
+          <p className="voucher-slip__receipt-label" style={{ marginBottom: '2px', textAlign: 'right' }}>
+            {data.isExpense
+              ? "AUTHENTICATED EXPENSE VOUCHER"
+              : "AUTHENTICATED FEE VOUCHER RECEIPT"}
+          </p>
+          {!data.isExpense && (
+            <p className="voucher-slip__non-refundable" style={{ margin: 0, textAlign: 'right' }}>
+              Fee: Non refundable
+            </p>
+          )}
         </div>
       </div>
 

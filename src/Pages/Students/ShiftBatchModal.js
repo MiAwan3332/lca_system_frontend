@@ -123,13 +123,22 @@ function ShiftBatchModal({ student }) {
     setPendingBlock(null);
 
     try {
-      await dispatch(
+      const updatedStudent = await dispatch(
         transferStudentBatch({
           authToken,
           studentId: student._id,
           batch: destinationBatchId,
         })
       ).unwrap();
+      
+      toast({
+        title: "Batch Transferred",
+        description: `Student successfully moved to new batch. New Roll No: ${updatedStudent.roll_number || 'Generated'}`,
+        status: "success",
+        duration: 4000,
+        isClosable: true,
+      });
+
       dispatch(fetchStudents({ authToken }));
       onClose();
     } catch (error) {

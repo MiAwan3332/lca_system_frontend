@@ -552,7 +552,7 @@ function Student() {
                           {hasPermission(["Update_Student"]) && (
                             <>
                               <UpdateModal student={student} />
-                              <ShiftBatchModal student={student} />
+                              {isPlatformSuperAdminRole() && <ShiftBatchModal student={student} />}
                               <ChangePasswordModal student={student} />
                             </>
                           )}

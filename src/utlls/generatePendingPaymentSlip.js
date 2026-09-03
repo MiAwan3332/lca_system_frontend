@@ -456,6 +456,31 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   }
 
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(6);
+  doc.setTextColor(...COLORS.charcoal);
+  doc.text(isDuplicate ? "DUPLICATE RECEIPT" : "AUTHENTICATED FEE RECEIPT", innerX + innerW, footerStart + 13.5, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5);
+  doc.setTextColor(...COLORS.muted);
+  doc.text(
+    hasQr
+      ? "Scan QR to confirm real vs fake."
+      : "Official fee slip generated upon payment.",
+    innerX + innerW,
+    footerStart + 15.5,
+    { align: "right" }
+  );
+
+  if (verifyUrl) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(3.8);
+    doc.setTextColor(...COLORS.label);
+    const shortUrl = String(verifyUrl).replace(/^https?:\/\//, "");
+    doc.text(shortUrl, innerX + innerW, footerStart + 17.5, { align: "right" });
+  }
+
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.ink);
   doc.text(signerName, innerX, footerStart + 13.5);
@@ -468,9 +493,9 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   doc.text("Authorized Signature", innerX, footerStart + 17.5);
   drawFeeNonRefundableNote(doc, {
     x: innerX + innerW,
-    y: footerStart + 17.5,
+    y: footerStart + 10.5,
     align: "right",
-    fontSize: 7.5,
+    fontSize: 10,
     color: COLORS.ink,
   });
 
