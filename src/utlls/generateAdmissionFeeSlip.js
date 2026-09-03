@@ -366,7 +366,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(6);
   doc.setTextColor(...COLORS.charcoal);
-  doc.text("AUTHENTICATED ADMISSION RECEIPT", innerX, footerStart + 3.5);
+  doc.text("AUTHENTICATED ADMISSION RECEIPT", innerX + innerW, footerStart + 13.5, { align: "right" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(5);
@@ -375,9 +375,9 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     hasQr
       ? "Scan QR to confirm real vs fake."
       : "Official admission slip issued after student registration.",
-    innerX,
-    footerStart + 7,
-    { maxWidth: innerW - 2 }
+    innerX + innerW,
+    footerStart + 15.5,
+    { align: "right" }
   );
 
   if (verifyUrl) {
@@ -385,8 +385,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     doc.setFontSize(3.8);
     doc.setTextColor(...COLORS.label);
     const shortUrl = String(verifyUrl).replace(/^https?:\/\//, "");
-    const urlLines = doc.splitTextToSize(shortUrl, innerW - 4);
-    doc.text(urlLines.slice(0, 1), innerX, footerStart + 10);
+    doc.text(shortUrl, innerX + innerW, footerStart + 17.5, { align: "right" });
   }
 
   doc.setFont("helvetica", "bold");
@@ -402,9 +401,9 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.text("Authorized Signature", innerX, footerStart + 17.5);
   drawFeeNonRefundableNote(doc, {
     x: innerX + innerW,
-    y: footerStart + 17.5,
+    y: footerStart + 10.5,
     align: "right",
-    fontSize: 7.5,
+    fontSize: 10,
     color: COLORS.ink,
   });
 

@@ -25,6 +25,10 @@ export const PLATFORM_SUPER_ADMIN_ROLE_NAMES = [
   "super admin",
   "super_admin",
   "super admin development",
+  "ceo",
+  "principle",
+  "vice principle",
+  "vice-principle",
 ];
 
 const normalizeRole = (role) =>
@@ -71,6 +75,9 @@ export const isPlatformSuperAdminRoleName = (role) => {
   return (
     compact === "secrateadmin" ||
     compact === "superadmin" ||
-    compact === "superadmindevelopment"
+    compact === "superadmindevelopment" ||
+    compact === "ceo" ||
+    compact === "principle" ||
+    compact === "viceprinciple"
   );
 };

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -8,48 +8,57 @@ import {
   ModalBody,
   ModalCloseButton,
   Button,
-  ButtonGroup,
   HStack,
   Text,
   useToast,
-  IconButton,
+  Spinner,
+  Box,
 } from "@chakra-ui/react";
-import { Download, Printer, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
-import VoucherPrintSheet from "./VoucherPrintSheet";
-import { buildVoucherData } from "../../utlls/financeVoucherUtils";
+import { Download, Printer } from "lucide-react";
 import {
   downloadFinanceVoucherPdf,
   printFinanceVoucherPdf,
+  generateFinanceVoucherPdf,
 } from "../../utlls/generateFinanceVoucherPdf";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
 } from "../../utlls/responsiveModal";
 
-const ZOOM_LEVELS = [0.5, 0.65, 0.8, 1];
-const DEFAULT_ZOOM_INDEX = ZOOM_LEVELS.length - 1;
-
 function VoucherPreviewModal({ isOpen, onClose, transaction }) {
-  const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [busyAction, setBusyAction] = useState("");
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
   const toast = useToast();
 
-  const voucherData = useMemo(
-    () => (transaction ? buildVoucherData(transaction) : null),
-    [transaction]
-  );
+  useEffect(() => {
+    if (!isOpen || !transaction) {
+      setPdfBlobUrl(null);
+      return;
+    }
 
-  const zoom = ZOOM_LEVELS[zoomIndex];
+    let isMounted = true;
+    let currentUrl = null;
 
-  const handleZoomIn = () => {
-    setZoomIndex((prev) => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
-  };
+    generateFinanceVoucherPdf(transaction, { includeBranding: true })
+      .then(({ blobUrl }) => {
+        if (isMounted) {
+          setPdfBlobUrl(blobUrl);
+          currentUrl = blobUrl;
+        } else {
+          URL.revokeObjectURL(blobUrl);
+        }
+      })
+      .catch((err) => {
+        console.error("Voucher preview generation failed:", err);
+      });
 
-  const handleZoomOut = () => {
-    setZoomIndex((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleResetZoom = () => setZoomIndex(DEFAULT_ZOOM_INDEX);
+    return () => {
+      isMounted = false;
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+    };
+  }, [isOpen, transaction]);
 
   const handleDownload = async () => {
     if (!transaction) return;
@@ -59,7 +68,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
       await downloadFinanceVoucherPdf(transaction);
       toast({
         title: "PDF downloaded",
-        description: "Printed on A4 paper, same size as Admission Slip.",
+        description: "Printed on 5×7\" paper, same size as Admission Slip.",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -110,46 +119,35 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
               Voucher Preview
             </Text>
             <Text fontSize="sm" color="gray.500">
-              Print uses A4 paper — same card size as Admission Slip
+              Print uses 5×7" thermal paper — same size as Admission Slip
             </Text>
           </div>
         </ModalHeader>
         <ModalCloseButton />
 
-        <ModalBody className="voucher-preview-modal__body">
-          <HStack justify="space-between" mb={4} flexWrap="wrap" gap={2}>
-            <Text fontSize="sm" color="gray.600">
-              Preview — {Math.round(zoom * 100)}% zoom
-            </Text>
-            <ButtonGroup size="sm" variant="outline" isAttached>
-              <IconButton
-                aria-label="Zoom out"
-                icon={<ZoomOut size={16} />}
-                onClick={handleZoomOut}
-                isDisabled={zoomIndex === 0}
-              />
-              <IconButton
-                aria-label="Reset zoom"
-                icon={<RotateCcw size={16} />}
-                onClick={handleResetZoom}
-              />
-              <IconButton
-                aria-label="Zoom in"
-                icon={<ZoomIn size={16} />}
-                onClick={handleZoomIn}
-                isDisabled={zoomIndex === ZOOM_LEVELS.length - 1}
-              />
-            </ButtonGroup>
-          </HStack>
-
-          <div className="voucher-preview-stage">
-            <div
-              className="voucher-preview-canvas"
-              style={{ transform: `scale(${zoom})` }}
+        <ModalBody className="voucher-preview-modal__body" p={0}>
+          {pdfBlobUrl ? (
+            <iframe
+              src={`${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+              style={{
+                width: "100%",
+                height: "65vh",
+                border: "none",
+                backgroundColor: "#525659",
+              }}
+              title="Voucher Preview"
+            />
+          ) : (
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              height="65vh"
+              bg="gray.50"
             >
-              <VoucherPrintSheet data={voucherData} />
-            </div>
-          </div>
+              <Spinner size="xl" color="blue.500" />
+            </Box>
+          )}
         </ModalBody>
 
         <ModalFooter className="voucher-preview-modal__footer" gap={3} flexWrap="wrap">

@@ -228,13 +228,16 @@ function Batch() {
             </Select>
           </FormControl>
           <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-            <Input
+            <Select
               size="lg"
               borderRadius="xl"
-              placeholder="Batch type"
               value={filters.batch_type}
               onChange={handleBatchTypeChange}
-            />
+            >
+              <option value="">All Batch Types</option>
+              <option value="Online">Online</option>
+              <option value="On Campus">On Campus</option>
+            </Select>
           </FormControl>
           <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
             <Input

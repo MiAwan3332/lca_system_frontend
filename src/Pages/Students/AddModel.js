@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -64,6 +64,20 @@ const getSpecialTotalFromBatch = (batch, selectedKeys = []) => {
   );
 };
 
+const INITIAL_FORM_VALUES = {
+  name: "",
+  cnic: "",
+  phone: "",
+  batch: "",
+  paying_now: "",
+  payment_method: "",
+  next_installment_date: "",
+  discount_amount: "",
+  discount_description: "",
+  remarks: "",
+  special_selected_options: [],
+};
+
 function AddStudnet({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [photoFile, setPhotoFile] = useState(null);
@@ -72,30 +86,13 @@ function AddStudnet({ isOpen, onClose }) {
   const [paymentOption, setPaymentOption] = useState("later");
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
   const [createdStudent, setCreatedStudent] = useState(null);
+  const [formSessionKey, setFormSessionKey] = useState(0);
   const toast = useToast();
 
   const { addStatus } = useSelector((state) => state.students);
   const batches = useSelector(selectActiveStudentBatches);
   const currentUser = useSelector(selectUser);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (isOpen) {
-      dispatch(
-        fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
-      );
-    }
-  }, [dispatch, authToken, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setPhotoFile(null);
-      setPaymentEvidenceFiles([]);
-      setPaymentEvidenceError("");
-      setPaymentOption("later");
-      setCreatedStudent(null);
-    }
-  }, [isOpen]);
 
   const validationSchema = useMemo(
     () =>
@@ -202,19 +199,7 @@ function AddStudnet({ isOpen, onClose }) {
 
   const formik = useFormik({
     enableReinitialize: true,
-    initialValues: {
-      name: "",
-      cnic: "",
-      phone: "",
-      batch: "",
-      paying_now: "",
-      payment_method: "",
-      next_installment_date: "",
-      discount_amount: "",
-      discount_description: "",
-      remarks: "",
-      special_selected_options: [],
-    },
+    initialValues: INITIAL_FORM_VALUES,
     validationSchema,
     onSubmit: async (values) => {
       const selected = batches.find((item) => item._id === values.batch);
@@ -389,6 +374,25 @@ function AddStudnet({ isOpen, onClose }) {
       }
     },
   });
+
+  const formikRef = useRef(formik);
+  formikRef.current = formik;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    formikRef.current.resetForm({ values: INITIAL_FORM_VALUES });
+    setPhotoFile(null);
+    setPaymentEvidenceFiles([]);
+    setPaymentEvidenceError("");
+    setPaymentOption("later");
+    setCreatedStudent(null);
+    setIsPrintingSlip(false);
+    setFormSessionKey((key) => key + 1);
+    dispatch(
+      fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+    );
+  }, [isOpen, dispatch, authToken]);
 
   const selectedBatch = useMemo(
     () => batches.find((item) => item._id === formik.values.batch),
@@ -1089,6 +1093,7 @@ function AddStudnet({ isOpen, onClose }) {
 
             <GridItem colSpan={{ base: 1, md: 2 }}>
               <CameraCapture
+                key={formSessionKey}
                 onCapture={setPhotoFile}
                 label="Student Photo (included on fee slip)"
               />

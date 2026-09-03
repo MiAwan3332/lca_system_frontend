@@ -325,13 +325,16 @@ function AddModel({ batch }) {
 
               <FormControl id="batch_type" minW={0}>
                 <FormLabel fontSize={14}>Batch Type</FormLabel>
-                <Input
-                  type="text"
+                <Select
                   name="batch_type"
                   borderRadius="0.5rem"
                   value={formik.values.batch_type}
                   onChange={formik.handleChange}
-                />
+                >
+                  <option value="">Select Type</option>
+                  <option value="Online">Online</option>
+                  <option value="On Campus">On Campus</option>
+                </Select>
               </FormControl>
 
               <FormControl id="is_paid_batch" minW={0}>
