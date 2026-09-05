@@ -187,7 +187,7 @@ export const exportFinanceTransactionsPdf = async ({
 
   // --- Summary Cards (Highly Visible) ---
   const summaryCards = [
-    { label: "Rows", value: String(totals.count) },
+    { label: "No Of Entries", value: String(totals.count) },
     { label: "Fee Collection", value: `Rs. ${formatAmount(totals.fee)}` },
     { label: "Expenses", value: `Rs. ${formatAmount(totals.expense)}` },
     { label: "Net Balance", value: `Rs. ${formatAmount(totals.fee - totals.expense)}` },
@@ -224,27 +224,54 @@ export const exportFinanceTransactionsPdf = async ({
   y += cardH + 4;
   // --- End Summary Cards ---
 
-  // Compact batch-wise one-liners
+  // Batch-wise breakdown in cards
   if (batchList.length) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
+    doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.goldDark);
     doc.text("Batch collections:", margin, y);
-    y += 3;
+    y += 4;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5); // Increased font size for batch details
-    doc.setTextColor(...COLORS.text);
-    
-    // Draw each batch on a separate line
-    batchList.forEach(b => {
-      const batchStr = `${b.batch_name || "Unassigned"}: Cash Rs. ${formatAmount(b.total_cash)} | Online Rs. ${formatAmount(b.total_online)} | Total Rs. ${formatAmount(b.total)}`;
-      const batchLines = doc.splitTextToSize(batchStr, contentWidth);
-      doc.text(batchLines, margin, y);
-      y += batchLines.length * 3.5;
+    const bCardW = (contentWidth - margin) / 3;
+    const bCardH = 15;
+    let bCardX = margin;
+    let bCardY = y;
+
+    batchList.forEach((b, index) => {
+      // Move to next row if needed
+      if (index > 0 && index % 3 === 0) {
+        bCardX = margin;
+        bCardY += bCardH + 3;
+      }
+
+      doc.setFillColor(250, 250, 250);
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(bCardX, bCardY, bCardW, bCardH, 1, 1, "FD");
+
+      // Batch Name
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.text);
+      const batchNameLines = doc.splitTextToSize(b.batch_name || "Unassigned", bCardW - 2);
+      doc.text(batchNameLines.slice(0, 1), bCardX + 2, bCardY + 4.5);
+
+      // Financials
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...COLORS.gray);
+      doc.text(`Cash: Rs. ${formatAmount(b.total_cash)}`, bCardX + 2, bCardY + 9);
+      doc.text(`Online: Rs. ${formatAmount(b.total_online)}`, bCardX + bCardW / 2, bCardY + 9);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(33, 37, 41);
+      doc.text(`Total: Rs. ${formatAmount(b.total)}`, bCardX + 2, bCardY + 13.5);
+
+      bCardX += bCardW + 3;
     });
-    
-    y += 1.5;
+
+    y = bCardY + bCardH + 5;
   }
 
   // Dense transaction table

@@ -37,11 +37,7 @@ import Qualifiers from "./Pages/Qualifiers/Qualifiers.js";
 import NotificationsPage from "./Pages/Notifications/NotificationsPage.js";
 import GoogleWorkspaceRedirect from "./Pages/GoogleWorkspace/GoogleWorkspaceRedirect.js";
 import Profile from "./Pages/Profile/Profile.js";
-import {
-  StudentActivityLogs,
-  TeacherActivityLogs,
-  AdminActivityLogs,
-} from "./Pages/ActivityLogs/ActivityLogsPage.js";
+import ActivityLogsPage from "./Pages/ActivityLogs/ActivityLogsPage.js";
 import WhatsAppConnect from "./Pages/WhatsApp/WhatsAppConnect.js";
 import WhatsAppTemplates from "./Pages/WhatsApp/WhatsAppTemplates.js";
 
@@ -258,24 +254,10 @@ export const routes = [
     superAdminOnly: true,
   },
   {
-    name: "Student Logs",
+    name: "Activity Logs",
     icon: ScrollText,
-    component: <StudentActivityLogs />,
-    path: "/activity-logs/students",
-    superAdminOnly: true,
-  },
-  {
-    name: "Teacher Logs",
-    icon: ClipboardPenLine,
-    component: <TeacherActivityLogs />,
-    path: "/activity-logs/teachers",
-    superAdminOnly: true,
-  },
-  {
-    name: "Admin Logs",
-    icon: Shield,
-    component: <AdminActivityLogs />,
-    path: "/activity-logs/admins",
+    component: <ActivityLogsPage />,
+    path: "/activity-logs",
     superAdminOnly: true,
   },
 ];
