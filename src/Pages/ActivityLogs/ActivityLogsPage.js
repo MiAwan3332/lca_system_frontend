@@ -52,7 +52,7 @@ const ACTION_COLORS = {
 
 const getActionColor = (action) => ACTION_COLORS[action] || "gray";
 
-function ActivityLogsPage({ actorCategory, title, subtitle }) {
+export function ActivityLogsPage() {
   const tableSearchRef = useRef();
   const [authToken] = useState(Cookies.get("authToken"));
   const dispatch = useDispatch();
@@ -67,15 +67,16 @@ function ActivityLogsPage({ actorCategory, title, subtitle }) {
     dispatch(fetchActivityLogs({ authToken }));
   };
 
+  // Only run once on mount for the single page
   useEffect(() => {
-    dispatch(setActorCategoryFilter(actorCategory));
-  }, [actorCategory, dispatch]);
-
-  useEffect(() => {
-    if (filters.actor_category !== actorCategory) return;
-    dispatch(fetchActivityLogFilters({ authToken, actor_category: actorCategory }));
+    dispatch(fetchActivityLogFilters({ authToken }));
     dispatch(fetchActivityLogs({ authToken }));
-  }, [filters.actor_category, actorCategory, authToken, dispatch]);
+  }, [authToken, dispatch]);
+
+  const handleActorCategoryChange = (e) => {
+    dispatch(setActorCategoryFilter(e.target.value));
+    loadLogs();
+  };
 
   const handleModuleChange = (e) => {
     dispatch(setModuleFilter(e.target.value));
@@ -111,7 +112,10 @@ function ActivityLogsPage({ actorCategory, title, subtitle }) {
 
   return (
     <>
-      <PageHeader title={title} subtitle={subtitle} />
+      <PageHeader 
+        title="Activity Logs" 
+        subtitle="Complete activity history for all system users across all roles." 
+      />
 
       <FilterStack className="filter-stack--panel filter-stack--table mt-3">
         <div className="w-full sm:max-w-xs">
@@ -119,9 +123,22 @@ function ActivityLogsPage({ actorCategory, title, subtitle }) {
             ref={tableSearchRef}
             setQueryFilter={setQueryFilter}
             method={fetchActivityLogs}
-            placeholder="Search logs..."
+            placeholder="Search users or logs..."
           />
         </div>
+        <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
+          <Select
+            placeholder="All Roles"
+            size="lg"
+            borderRadius="xl"
+            value={filters.actor_category || ""}
+            onChange={handleActorCategoryChange}
+          >
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </Select>
+        </FormControl>
         <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
           <Select
             placeholder="All modules"
@@ -256,36 +273,6 @@ function ActivityLogsPage({ actorCategory, title, subtitle }) {
         />
       )}
     </>
-  );
-}
-
-export function StudentActivityLogs() {
-  return (
-    <ActivityLogsPage
-      actorCategory="student"
-      title="Student Activity Logs"
-      subtitle="Complete activity history for all student accounts."
-    />
-  );
-}
-
-export function TeacherActivityLogs() {
-  return (
-    <ActivityLogsPage
-      actorCategory="teacher"
-      title="Teacher Activity Logs"
-      subtitle="Complete activity history for all teacher accounts."
-    />
-  );
-}
-
-export function AdminActivityLogs() {
-  return (
-    <ActivityLogsPage
-      actorCategory="admin"
-      title="Admin Activity Logs"
-      subtitle="Complete activity history for admin and staff accounts."
-    />
   );
 }
 

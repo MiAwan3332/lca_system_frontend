@@ -83,10 +83,9 @@ const activityLogSlice = createSlice({
       state.filters.end_date = action.payload;
     },
     clearActivityLogFilters(state) {
-      const actorCategory = state.filters.actor_category;
       state.filters = {
         ...TABLE_FILTERS,
-        actor_category: actorCategory,
+        actor_category: "",
         module: "",
         action: "",
         start_date: "",
