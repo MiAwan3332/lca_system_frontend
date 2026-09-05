@@ -185,20 +185,44 @@ export const exportFinanceTransactionsPdf = async ({
   drawHeader();
   let y = 16;
 
-  // Compact summary line (no card gaps)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(...COLORS.text);
-  const summaryBits = [
-    `Rows: ${totals.count}`,
-    `Fee: Rs. ${formatAmount(totals.fee)}`,
-    `Expense: Rs. ${formatAmount(totals.expense)}`,
-    `Net: Rs. ${formatAmount(totals.fee - totals.expense)}`,
-    `Cash: Rs. ${formatAmount(cashTotal)}`,
-    `Online: Rs. ${formatAmount(onlineTotal)}`,
+  // --- Summary Cards (Highly Visible) ---
+  const summaryCards = [
+    { label: "Rows", value: String(totals.count) },
+    { label: "Fee Collection", value: `Rs. ${formatAmount(totals.fee)}` },
+    { label: "Expenses", value: `Rs. ${formatAmount(totals.expense)}` },
+    { label: "Net Balance", value: `Rs. ${formatAmount(totals.fee - totals.expense)}` },
+    { label: "Cash", value: `Rs. ${formatAmount(cashTotal)}` },
+    { label: "Online", value: `Rs. ${formatAmount(onlineTotal)}` },
   ];
-  doc.text(summaryBits.join("   ·   "), margin, y);
-  y += 3.5;
+
+  const cardY = y;
+  const cardW = contentWidth / summaryCards.length - 1.5;
+  const cardH = 12.5; // Increased card height
+  
+  summaryCards.forEach((card, index) => {
+    const cardX = margin + index * (cardW + 1.5);
+    
+    // Card background & border
+    doc.setFillColor(250, 250, 250);
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(cardX, cardY, cardW, cardH, 1, 1, "FD");
+
+    // Label
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5); // Increased font size
+    doc.setTextColor(...COLORS.gray);
+    doc.text(card.label, cardX + cardW / 2, cardY + 5, { align: "center" });
+
+    // Value
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10.5); // Increased font size
+    doc.setTextColor(33, 37, 41);
+    doc.text(card.value, cardX + cardW / 2, cardY + 10, { align: "center" });
+  });
+
+  y += cardH + 4;
+  // --- End Summary Cards ---
 
   // Compact batch-wise one-liners
   if (batchList.length) {
@@ -209,17 +233,18 @@ export const exportFinanceTransactionsPdf = async ({
     y += 3;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
+    doc.setFontSize(7.5); // Increased font size for batch details
     doc.setTextColor(...COLORS.text);
-    const batchLine = batchList
-      .map(
-        (b) =>
-          `${b.batch_name || "Unassigned"} C${formatAmount(b.total_cash)}/O${formatAmount(b.total_online)}=${formatAmount(b.total)}`
-      )
-      .join("  |  ");
-    const batchLines = doc.splitTextToSize(batchLine, contentWidth);
-    doc.text(batchLines.slice(0, 3), margin, y);
-    y += Math.min(batchLines.length, 3) * 2.8 + 1.5;
+    
+    // Draw each batch on a separate line
+    batchList.forEach(b => {
+      const batchStr = `${b.batch_name || "Unassigned"}: Cash Rs. ${formatAmount(b.total_cash)} | Online Rs. ${formatAmount(b.total_online)} | Total Rs. ${formatAmount(b.total)}`;
+      const batchLines = doc.splitTextToSize(batchStr, contentWidth);
+      doc.text(batchLines, margin, y);
+      y += batchLines.length * 3.5;
+    });
+    
+    y += 1.5;
   }
 
   // Dense transaction table
