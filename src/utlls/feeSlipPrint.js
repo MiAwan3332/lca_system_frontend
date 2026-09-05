@@ -22,18 +22,20 @@ const buildPrintHtml = (imageDataUrl) => `<!DOCTYPE html>
 <style>
   @page {
     size: ${SLIP_PAGE_SIZE_CSS};
-    margin: 0;
+    margin: 0 !important;
   }
   * {
     box-sizing: border-box;
   }
   html, body {
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
     width: ${SLIP_WIDTH_MM}mm;
     height: ${SLIP_HEIGHT_MM}mm;
     overflow: hidden;
     background: #fff;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   img {
     width: ${SLIP_WIDTH_MM}mm;
