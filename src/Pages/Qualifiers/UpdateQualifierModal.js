@@ -66,6 +66,8 @@ function UpdateQualifierModal({ qualifier }) {
       phone: qualifier?.phone || "",
       email: qualifier?.email || "",
       cnic: qualifier?.cnic || "",
+      css_pms_roll_no: qualifier?.css_pms_roll_no || "",
+      class_type: qualifier?.class_type || "",
       city: qualifier?.city || "",
       province: qualifier?.province || "",
       father_name: qualifier?.father_name || "",
@@ -87,6 +89,8 @@ function UpdateQualifierModal({ qualifier }) {
       formData.append("phone", values.phone.trim());
       formData.append("email", values.email?.trim() || "");
       formData.append("cnic", values.cnic?.trim() || "");
+      formData.append("css_pms_roll_no", values.css_pms_roll_no?.trim() || "");
+      formData.append("class_type", values.class_type || "");
       formData.append("city", values.city?.trim() || "");
       formData.append("province", values.province?.trim() || "");
       formData.append("father_name", values.father_name?.trim() || "");
@@ -220,6 +224,27 @@ function UpdateQualifierModal({ qualifier }) {
                       value={formik.values.cnic}
                       onChange={formik.handleChange}
                     />
+                  </FormControl>
+                  <FormControl id="css_pms_roll_no">
+                    <FormLabel fontSize={14}>CSS/PMS Roll No</FormLabel>
+                    <Input
+                      name="css_pms_roll_no"
+                      placeholder="Optional"
+                      value={formik.values.css_pms_roll_no}
+                      onChange={formik.handleChange}
+                    />
+                  </FormControl>
+                  <FormControl id="class_type">
+                    <FormLabel fontSize={14}>Online / On Campus</FormLabel>
+                    <Select
+                      name="class_type"
+                      value={formik.values.class_type}
+                      onChange={formik.handleChange}
+                    >
+                      <option value="">Select</option>
+                      <option value="Online">Online</option>
+                      <option value="On Campus">On Campus</option>
+                    </Select>
                   </FormControl>
                   <FormControl id="province">
                     <FormLabel fontSize={14}>Province</FormLabel>

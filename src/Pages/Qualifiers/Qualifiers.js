@@ -14,7 +14,7 @@ import {
   Badge,
   Input,
 } from "@chakra-ui/react";
-import { FileX, FilterX, Plus } from "lucide-react";
+import { FileX, FilterX, FileUp, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchQualifiers,
@@ -25,6 +25,7 @@ import {
   setSearchFieldFilter,
   setIsActiveFilter,
   setCityFilter,
+  setClassTypeFilter,
   clearQualifierFilters,
 } from "../../Features/qualifierSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
@@ -39,6 +40,7 @@ import { getMediaUrl } from "../../utlls/useful";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isQualifierRole } from "../../utlls/qualifierAccess";
 import AddQualifierModal from "./AddQualifierModal";
+import QualifierImportModal from "./QualifierImportModal";
 import UpdateQualifierModal from "./UpdateQualifierModal";
 import DeleteQualifierModal from "./DeleteQualifierModal";
 import ViewQualifierModal from "./ViewQualifierModal";
@@ -54,6 +56,7 @@ function Qualifiers() {
   const showActions = canManage;
   const tableSearchRef = useRef();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [authToken] = useState(Cookies.get("authToken"));
 
   const qualifiers = useSelector(selectAllQualifiers);
@@ -95,6 +98,11 @@ function Qualifiers() {
     dispatch(setCityFilter(e.target.value));
   };
 
+  const handleClassTypeFilterChange = (e) => {
+    dispatch(setClassTypeFilter(e.target.value));
+    loadQualifiers();
+  };
+
   const handleCityFilterBlur = () => {
     loadQualifiers();
   };
@@ -120,22 +128,33 @@ function Qualifiers() {
           ? "Search by email..."
           : filters.search_field === "cnic"
             ? "Search by CNIC..."
-            : filters.search_field === "city"
-              ? "Search by city..."
-              : "Search by name, phone, email, CNIC, or city...";
+            : filters.search_field === "css_pms_roll_no"
+              ? "Search by CSS/PMS roll no..."
+              : filters.search_field === "city"
+                ? "Search by city..."
+                : "Search by name, phone, email, CNIC, roll no, or city...";
 
   const hasFilters =
     filters.query ||
     filters.search_field !== "all" ||
     filters.is_active === "true" ||
     filters.is_active === "false" ||
-    Boolean(filters.city);
+    Boolean(filters.city) ||
+    Boolean(filters.class_type);
 
   return (
     <>
       <PageHeader title="Qualifiers">
         {canManage && (
           <FilterStack className="filter-stack--actions">
+            <button
+              type="button"
+              className="table-action-btn"
+              onClick={() => setIsImportOpen(true)}
+            >
+              <FileUp size={18} />
+              Import Excel
+            </button>
             <button
               className="table-action-btn"
               onClick={() => setIsAddOpen(true)}
@@ -163,6 +182,7 @@ function Qualifiers() {
             <option value="phone">Phone</option>
             <option value="email">Email</option>
             <option value="cnic">CNIC</option>
+            <option value="css_pms_roll_no">CSS/PMS Roll No</option>
             <option value="city">City</option>
           </Select>
         </FormControl>
@@ -203,6 +223,21 @@ function Qualifiers() {
             <option value="false">Inactive</option>
           </Select>
         </FormControl>
+        <FormControl
+          className="responsive-input"
+          w={{ base: "full", sm: "11rem" }}
+        >
+          <Select
+            size="lg"
+            borderRadius="xl"
+            value={filters.class_type || ""}
+            onChange={handleClassTypeFilterChange}
+          >
+            <option value="">All Modes</option>
+            <option value="Online">Online</option>
+            <option value="On Campus">On Campus</option>
+          </Select>
+        </FormControl>
         {hasFilters && (
           <Button
             size="icon"
@@ -223,6 +258,8 @@ function Qualifiers() {
                 <Th>No</Th>
                 <Th data-searchable>Photo / Name</Th>
                 <Th data-searchable>Batch</Th>
+                <Th data-searchable>CSS/PMS Roll No</Th>
+                <Th data-searchable>Mode</Th>
                 <Th data-searchable>Phone</Th>
                 <Th data-searchable>City</Th>
                 <Th>Status</Th>
@@ -232,12 +269,12 @@ function Qualifiers() {
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={showActions ? 6 : 6}
+                  nOfColumns={showActions ? 8 : 8}
                   actions={showActions ? ["w-10"] : []}
                 />
               ) : qualifiers.length === 0 ? (
                 <Tr>
-                  <Td colSpan={showActions ? 7 : 6}>
+                  <Td colSpan={showActions ? 9 : 8}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No qualifier records found
@@ -261,6 +298,8 @@ function Qualifiers() {
                         </div>
                       </Td>
                       <Td>{qualifier.batch?.name || "—"}</Td>
+                      <Td>{qualifier.css_pms_roll_no || "—"}</Td>
+                      <Td>{qualifier.class_type || "—"}</Td>
                       <Td>{qualifier.phone}</Td>
                       <Td>{qualifier.city || "—"}</Td>
                       <Td>
@@ -308,10 +347,16 @@ function Qualifiers() {
       )}
 
       {canManage && (
-        <AddQualifierModal
-          isOpen={isAddOpen}
-          onClose={() => setIsAddOpen(false)}
-        />
+        <>
+          <AddQualifierModal
+            isOpen={isAddOpen}
+            onClose={() => setIsAddOpen(false)}
+          />
+          <QualifierImportModal
+            isOpen={isImportOpen}
+            onClose={() => setIsImportOpen(false)}
+          />
+        </>
       )}
     </>
   );

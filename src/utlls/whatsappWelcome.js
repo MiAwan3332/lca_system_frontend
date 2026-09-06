@@ -1,5 +1,8 @@
 export const whatsappWelcomeDescription = (wa) => {
   if (!wa) return undefined;
+  if (wa.queued) {
+    return "Welcome WhatsApp added to queue (sends one every 10 seconds). Check WA Queue.";
+  }
   if (wa.sent) return "Welcome WhatsApp sent.";
   const reason = wa.reason || wa.error;
   if (reason) return `WhatsApp not sent: ${reason}`;

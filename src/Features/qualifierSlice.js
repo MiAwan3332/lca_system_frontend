@@ -17,6 +17,7 @@ const initialState = {
     search_field: "all",
     is_active: "",
     city: "",
+    class_type: "",
   },
   pagination: TABLE_PAGINATION,
   fetchStatus: "idle",
@@ -24,6 +25,7 @@ const initialState = {
   updateStatus: "idle",
   deleteStatus: "idle",
   changePasswordStatus: "idle",
+  importStatus: "idle",
   error: null,
 };
 
@@ -121,6 +123,30 @@ const changeQualifierPassword = createAsyncThunk(
   }
 );
 
+const bulkImportQualifiers = createAsyncThunk(
+  "qualifiers/bulkImportQualifiers",
+  async ({ authToken, batch_id, qualifiers }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/qualifiers/bulk-import`,
+        { batch_id, qualifiers },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to import qualifiers"
+      );
+    }
+  }
+);
+
 const qualifierSlice = createSlice({
   name: "qualifiers",
   initialState,
@@ -147,12 +173,17 @@ const qualifierSlice = createSlice({
       state.filters.page = 1;
       state.filters.city = action.payload;
     },
+    setClassTypeFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.class_type = action.payload;
+    },
     clearQualifierFilters(state) {
       state.filters.page = 1;
       state.filters.query = "";
       state.filters.search_field = "all";
       state.filters.is_active = "";
       state.filters.city = "";
+      state.filters.class_type = "";
     },
   },
   extraReducers: (builder) => {
@@ -188,9 +219,12 @@ const qualifierSlice = createSlice({
         toast({
           title: "Qualifier added successfully",
           description: whatsappWelcomeDescription(wa),
-          status: wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
-            ? "warning"
-            : "success",
+          status:
+            wa?.queued || wa?.sent
+              ? "success"
+              : wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
+                ? "warning"
+                : "success",
           duration: 7000,
           isClosable: true,
         });
@@ -277,6 +311,36 @@ const qualifierSlice = createSlice({
           duration: 5000,
           isClosable: true,
         });
+      })
+      .addCase(bulkImportQualifiers.pending, (state) => {
+        state.importStatus = "loading";
+      })
+      .addCase(bulkImportQualifiers.fulfilled, (state, action) => {
+        state.importStatus = "success";
+        toast({
+          title: "Qualifier import completed",
+          description: [
+            action.payload?.message || "Import finished",
+            action.payload?.whatsapp_queued
+              ? `WhatsApp Qualifier Welcome: ${action.payload.whatsapp_queued} queued (see WA Queue)`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(". "),
+          status: action.payload?.failed?.length ? "warning" : "success",
+          duration: 7000,
+          isClosable: true,
+        });
+      })
+      .addCase(bulkImportQualifiers.rejected, (state, action) => {
+        state.importStatus = "failure";
+        toast({
+          title: "Qualifier import failed",
+          description: action.payload || action.error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       });
   },
 });
@@ -289,6 +353,7 @@ export const {
   setSearchFieldFilter,
   setIsActiveFilter,
   setCityFilter,
+  setClassTypeFilter,
   clearQualifierFilters,
 } = qualifierSlice.actions;
 
@@ -298,6 +363,7 @@ export {
   updateQualifier,
   deleteQualifier,
   changeQualifierPassword,
+  bulkImportQualifiers,
 };
 
 export default qualifierSlice.reducer;
