@@ -42,6 +42,7 @@ import {
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
 import ActionButton from "../../Components/ActionButton";
+import { canShiftStudentBatch } from "../../utlls/useful";
 
 const formatPendingAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -49,6 +50,9 @@ const formatPendingAmount = (amount) =>
   })}`;
 
 function ShiftBatchModal({ student }) {
+  if (!canShiftStudentBatch()) {
+    return null;
+  }
   const [isOpen, setIsOpen] = useState(false);
   const [authToken] = useState(Cookies.get("authToken"));
   const [destinationBatchId, setDestinationBatchId] = useState("");

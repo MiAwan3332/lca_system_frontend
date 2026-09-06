@@ -1,6 +1,10 @@
 import { markSessionStarted } from "./authSession.js";
 import { config } from "./config.js";
-import { isFullAccessRoleName, isPlatformSuperAdminRoleName } from "./fullAccessRoles.js";
+import {
+  isFullAccessRoleName,
+  isPlatformSuperAdminRoleName,
+  canDeleteStudentRoleName,
+} from "./fullAccessRoles.js";
 
 const PERMISSION_ALIASES = {
   Pay_Fee: ["Pay_Fee", "pay_fee", "Pay_fee"],
@@ -115,6 +119,12 @@ const isFullAccessRole = () => hasFullAccess();
 
 const isPlatformSuperAdminRole = () =>
   isPlatformSuperAdminRoleName(getCurrentRoleName());
+
+/** Delete student — only vice-principle, principle, ceo, superadmin, secratesuperadmin. */
+const canDeleteStudent = () => canDeleteStudentRoleName(getCurrentRoleName());
+
+/** Shift batch — same restricted roles as delete student. */
+const canShiftStudentBatch = () => canDeleteStudentRoleName(getCurrentRoleName());
 
 /** Full action rights (add/update/view/delete) without opening Roles/Permissions/Logs. */
 const hasUnrestrictedActionAccess = () => {
@@ -234,6 +244,8 @@ export {
   hasFullAccess,
   isFullAccessRole,
   isPlatformSuperAdminRole,
+  canDeleteStudent,
+  canShiftStudentBatch,
   storeAuthSession,
   getMediaUrl,
 };

@@ -195,95 +195,120 @@ export const exportFinanceTransactionsPdf = async ({
     { label: "Online", value: `Rs. ${formatAmount(onlineTotal)}` },
   ];
 
+  const cardGap = 1.5;
   const cardY = y;
-  const cardW = contentWidth / summaryCards.length - 1.5;
-  const cardH = 12.5; // Increased card height
-  
+  const cardW = contentWidth / summaryCards.length - cardGap;
+  const cardH = 15;
+
   summaryCards.forEach((card, index) => {
-    const cardX = margin + index * (cardW + 1.5);
-    
-    // Card background & border
+    const cardX = margin + index * (cardW + cardGap);
+
     doc.setFillColor(250, 250, 250);
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.2);
     doc.roundedRect(cardX, cardY, cardW, cardH, 1, 1, "FD");
 
-    // Label
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5); // Increased font size
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.gray);
-    doc.text(card.label, cardX + cardW / 2, cardY + 5, { align: "center" });
+    doc.text(card.label, cardX + cardW / 2, cardY + 5.5, { align: "center" });
 
-    // Value
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10.5); // Increased font size
+    doc.setFontSize(12);
     doc.setTextColor(33, 37, 41);
-    doc.text(card.value, cardX + cardW / 2, cardY + 10, { align: "center" });
+    doc.text(card.value, cardX + cardW / 2, cardY + 11.5, { align: "center" });
   });
 
-  y += cardH + 4;
-  // --- End Summary Cards ---
+  y += cardH + 5;
 
-  // Batch-wise breakdown in cards
+  // Batch-wise Cash / Online / Pending / Total cards
   if (batchList.length) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(11);
     doc.setTextColor(...COLORS.goldDark);
     doc.text("Batch collections:", margin, y);
     y += 4;
 
-    const bCardW = (contentWidth - margin) / 3;
-    const bCardH = 15;
+    const colsPerRow = Math.min(2, batchList.length);
+    const bGap = 2;
+    const bCardW = (contentWidth - bGap * (colsPerRow - 1)) / colsPerRow;
+    const bCardH = 28;
     let bCardX = margin;
     let bCardY = y;
+    let colIndex = 0;
 
-    batchList.forEach((b, index) => {
-      // Move to next row if needed
-      if (index > 0 && index % 3 === 0) {
+    batchList.forEach((b) => {
+      if (colIndex >= colsPerRow) {
+        colIndex = 0;
         bCardX = margin;
         bCardY += bCardH + 3;
       }
 
-      doc.setFillColor(250, 250, 250);
-      doc.setDrawColor(220, 220, 220);
-      doc.setLineWidth(0.2);
-      doc.roundedRect(bCardX, bCardY, bCardW, bCardH, 1, 1, "FD");
+      doc.setFillColor(255, 252, 245);
+      doc.setDrawColor(...COLORS.goldDark);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(bCardX, bCardY, bCardW, bCardH, 1.2, 1.2, "FD");
 
-      // Batch Name
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.text);
-      const batchNameLines = doc.splitTextToSize(b.batch_name || "Unassigned", bCardW - 2);
-      doc.text(batchNameLines.slice(0, 1), bCardX + 2, bCardY + 4.5);
+      doc.setFontSize(10);
+      doc.setTextColor(...COLORS.goldDark);
+      const batchNameLines = doc.splitTextToSize(
+        b.batch_name || "Unassigned",
+        bCardW - 4
+      );
+      doc.text(batchNameLines.slice(0, 1), bCardX + bCardW / 2, bCardY + 5.5, {
+        align: "center",
+      });
 
-      // Financials
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
-      doc.setTextColor(...COLORS.gray);
-      doc.text(`Cash: Rs. ${formatAmount(b.total_cash)}`, bCardX + 2, bCardY + 9);
-      doc.text(`Online: Rs. ${formatAmount(b.total_online)}`, bCardX + bCardW / 2, bCardY + 9);
-      
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(33, 37, 41);
-      doc.text(`Total: Rs. ${formatAmount(b.total)}`, bCardX + 2, bCardY + 13.5);
+      const metrics = [
+        { label: "Cash", value: `Rs. ${formatAmount(b.total_cash)}` },
+        { label: "Online", value: `Rs. ${formatAmount(b.total_online)}` },
+        { label: "Pending", value: `Rs. ${formatAmount(b.total_pending)}` },
+        { label: "Total", value: `Rs. ${formatAmount(b.total)}` },
+      ];
+      const innerGap = 1.2;
+      const innerPad = 2;
+      const innerW = (bCardW - innerPad * 2 - innerGap * 3) / 4;
+      const innerH = 16;
+      const innerY = bCardY + 9;
 
-      bCardX += bCardW + 3;
+      metrics.forEach((m, mi) => {
+        const innerX = bCardX + innerPad + mi * (innerW + innerGap);
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(innerX, innerY, innerW, innerH, 0.8, 0.8, "FD");
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.gray);
+        doc.text(m.label, innerX + innerW / 2, innerY + 5, { align: "center" });
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(33, 37, 41);
+        doc.text(m.value, innerX + innerW / 2, innerY + 11.5, {
+          align: "center",
+        });
+      });
+
+      bCardX += bCardW + bGap;
+      colIndex += 1;
     });
 
-    y = bCardY + bCardH + 5;
+    y = bCardY + bCardH + 6;
   }
 
-  // Dense transaction table
+  // Larger fonts → controlled entries per page
+  const ENTRIES_PER_PAGE = 18;
   const col = {
-    no: 7,
-    date: 26,
-    type: 12,
-    student: 42,
-    batch: 38,
-    action: 16,
-    payment: 22,
-    amount: 22,
+    no: 10,
+    date: 30,
+    type: 16,
+    student: 48,
+    action: 20,
+    payment: 26,
+    amount: 26,
     by: 28,
   };
   const tableW =
@@ -291,14 +316,27 @@ export const exportFinanceTransactionsPdf = async ({
     col.date +
     col.type +
     col.student +
-    col.batch +
     col.action +
     col.payment +
     col.amount +
     col.by;
   const x0 = margin + Math.max(0, (contentWidth - tableW) / 2);
-  const headerH = 5.5;
-  const rowH = 4.8;
+  const headerH = 8.5;
+  const rowH = 8.5;
+  const batchTitleH = 9;
+
+  // Group transactions by batch name (expenses without batch go last)
+  const batchGroups = [];
+  const batchMap = new Map();
+  txns.forEach((t) => {
+    const key = String(t.batch_name || "Unassigned / Expenses").trim() || "Unassigned / Expenses";
+    if (!batchMap.has(key)) {
+      const group = { name: key, items: [] };
+      batchMap.set(key, group);
+      batchGroups.push(group);
+    }
+    batchMap.get(key).items.push(t);
+  });
 
   const drawTableHeader = () => {
     doc.setFillColor(...COLORS.grayLight);
@@ -306,13 +344,13 @@ export const exportFinanceTransactionsPdf = async ({
     doc.setLineWidth(0.2);
     doc.rect(x0, y, tableW, headerH, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.text);
 
     let x = x0;
     const put = (txt, w, align = "left") => {
-      const tx = align === "right" ? x + w - 1.2 : x + 1.2;
-      doc.text(String(txt), tx, y + 3.7, { align });
+      const tx = align === "right" ? x + w - 1.5 : x + 1.5;
+      doc.text(String(txt), tx, y + 5.5, { align });
       x += w;
     };
 
@@ -320,7 +358,6 @@ export const exportFinanceTransactionsPdf = async ({
     put("Date", col.date);
     put("Type", col.type);
     put("Student", col.student);
-    put("Batch", col.batch);
     put("Action", col.action);
     put("Payment", col.payment);
     put("Amount", col.amount, "right");
@@ -328,73 +365,134 @@ export const exportFinanceTransactionsPdf = async ({
     y += headerH;
   };
 
-  const ensureSpace = (needed) => {
-    if (y + needed > pageHeight - margin - 5) {
-      drawFooter();
-      doc.addPage();
-      drawHeader();
-      y = 16;
-      drawTableHeader();
-    }
+  const drawBatchTitle = (batchName, entryCount) => {
+    doc.setFillColor(255, 243, 224);
+    doc.setDrawColor(...COLORS.goldDark);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(x0, y, tableW, batchTitleH, 0.8, 0.8, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...COLORS.goldDark);
+    doc.text(
+      clip(doc, `Batch: ${batchName}  (${entryCount} entries)`, tableW - 4),
+      x0 + 2.5,
+      y + 6
+    );
+    y += batchTitleH;
   };
 
-  drawTableHeader();
+  const startNewPage = ({ withTableHeader = true } = {}) => {
+    drawFooter();
+    doc.addPage();
+    drawHeader();
+    y = 16;
+    if (withTableHeader) drawTableHeader();
+  };
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6);
+  let globalIndex = 0;
+  let pageEntryCount = 0;
+  let tableStarted = false;
 
-  txns.forEach((t, index) => {
-    ensureSpace(rowH);
-    const isExpense = t.type === "expense";
-    const amount =
-      (isExpense ? -1 : 1) * toNumber(t.action_amount ?? t.amount);
-    const amountLabel = amount.toLocaleString("en-PK", { maximumFractionDigits: 0 });
-    const typeLabel = isExpense ? "Exp" : "Fee";
-    const dateLabel = t.action_date
-      ? moment(t.action_date).format("DD/MM/YY HH:mm")
-      : "";
-    const paymentLabel =
-      t.payment_method ||
-      (t.action_type === "Paid" ? "Cash" : "—");
-    const studentLabel = isExpense
-      ? t.title || t.student_name || "—"
-      : t.student_name || "—";
-
-    if (index % 2 === 1) {
-      doc.setFillColor(...COLORS.rowAlt);
-      doc.rect(x0, y, tableW, rowH, "F");
+  const ensureEntrySpace = (needed) => {
+    if (pageEntryCount >= ENTRIES_PER_PAGE || y + needed > pageHeight - margin - 5) {
+      startNewPage({ withTableHeader: true });
+      pageEntryCount = 0;
+      return true;
     }
+    return false;
+  };
 
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.15);
-    doc.line(x0, y + rowH, x0 + tableW, y + rowH);
+  batchGroups.forEach((group) => {
+    group.items.forEach((t, itemIndex) => {
+      const needsBatchTitle = itemIndex === 0 || pageEntryCount === 0;
+      const spaceNeeded = (needsBatchTitle ? batchTitleH : 0) + rowH;
 
-    let x = x0;
-    const textY = y + 3.3;
-    const cell = (txt, w, align = "left", color = COLORS.text) => {
-      doc.setTextColor(...color);
-      const tx = align === "right" ? x + w - 1.2 : x + 1.2;
-      doc.text(clip(doc, txt, w - 2.4), tx, textY, { align });
-      x += w;
-    };
+      if (!tableStarted) {
+        if (y + spaceNeeded + headerH > pageHeight - margin - 5) {
+          startNewPage({ withTableHeader: false });
+          pageEntryCount = 0;
+        }
+        drawTableHeader();
+        tableStarted = true;
+      } else {
+        ensureEntrySpace(spaceNeeded);
+      }
 
-    cell(index + 1, col.no);
-    cell(dateLabel, col.date, "left", COLORS.gray);
-    cell(typeLabel, col.type, "left", isExpense ? COLORS.expense : COLORS.fee);
-    cell(studentLabel, col.student);
-    cell(t.batch_name || "—", col.batch);
-    cell(t.action_type || "—", col.action);
-    cell(paymentLabel, col.payment);
-    cell(
-      `Rs. ${amountLabel}`,
-      col.amount,
-      "right",
-      isExpense ? COLORS.expense : COLORS.text
-    );
-    cell(t.action_by || "—", col.by);
+      // Re-draw batch title when starting a new batch or continuing a batch on a new page
+      const showBatchTitle = itemIndex === 0 || pageEntryCount === 0;
+      if (showBatchTitle) {
+        if (y + batchTitleH + rowH > pageHeight - margin - 5) {
+          startNewPage({ withTableHeader: true });
+          pageEntryCount = 0;
+        }
+        drawBatchTitle(group.name, group.items.length);
+      }
 
-    y += rowH;
+      const isExpense = t.type === "expense";
+      const amount =
+        (isExpense ? -1 : 1) * toNumber(t.action_amount ?? t.amount);
+      const amountLabel = amount.toLocaleString("en-PK", {
+        maximumFractionDigits: 0,
+      });
+      const typeLabel = isExpense ? "Exp" : "Fee";
+      const dateLabel = t.action_date
+        ? moment(t.action_date).format("DD/MM/YY HH:mm")
+        : "";
+      const paymentLabel =
+        t.payment_method || (t.action_type === "Paid" ? "Cash" : "—");
+      const studentLabel = isExpense
+        ? t.title || t.student_name || "—"
+        : t.student_name || "—";
+
+      globalIndex += 1;
+      pageEntryCount += 1;
+
+      if (pageEntryCount % 2 === 0) {
+        doc.setFillColor(...COLORS.rowAlt);
+        doc.rect(x0, y, tableW, rowH, "F");
+      }
+
+      doc.setDrawColor(...COLORS.border);
+      doc.setLineWidth(0.15);
+      doc.line(x0, y + rowH, x0 + tableW, y + rowH);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+
+      let x = x0;
+      const textY = y + 5.5;
+      const cell = (txt, w, align = "left", color = COLORS.text) => {
+        doc.setTextColor(...color);
+        const tx = align === "right" ? x + w - 1.5 : x + 1.5;
+        doc.text(clip(doc, txt, w - 3), tx, textY, { align });
+        x += w;
+      };
+
+      cell(globalIndex, col.no);
+      cell(dateLabel, col.date, "left", COLORS.gray);
+      cell(typeLabel, col.type, "left", isExpense ? COLORS.expense : COLORS.fee);
+      cell(studentLabel, col.student);
+      cell(t.action_type || "—", col.action);
+      cell(paymentLabel, col.payment);
+      cell(
+        `Rs. ${amountLabel}`,
+        col.amount,
+        "right",
+        isExpense ? COLORS.expense : COLORS.text
+      );
+      cell(t.action_by || "—", col.by);
+
+      y += rowH;
+    });
   });
+
+  if (!tableStarted) {
+    drawTableHeader();
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.gray);
+    doc.text("No transactions found for this period.", x0 + 2, y + 6);
+  }
 
   drawFooter();
 

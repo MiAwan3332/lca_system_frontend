@@ -741,6 +741,7 @@ function FinanceReport() {
                         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-gray-500">
                           <span>Cash: {formatRs(batch.total_cash)}</span>
                           <span>Online: {formatRs(batch.total_online)}</span>
+                          <span>Pending: {formatRs(batch.total_pending)}</span>
                         </div>
                       </div>
                     ))}
