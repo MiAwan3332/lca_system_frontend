@@ -181,9 +181,12 @@ const panelistSlice = createSlice({
         toast({
           title: "Panelist added successfully",
           description: whatsappWelcomeDescription(wa),
-          status: wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
-            ? "warning"
-            : "success",
+          status:
+            wa?.queued || wa?.sent
+              ? "success"
+              : wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
+                ? "warning"
+                : "success",
           duration: 7000,
           isClosable: true,
         });

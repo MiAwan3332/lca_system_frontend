@@ -93,6 +93,14 @@ function ViewQualifierModal({ qualifier }) {
                 <DetailItem label="Phone No" value={qualifier?.phone} />
                 <DetailItem label="Email" value={qualifier?.email} />
                 <DetailItem label="CNIC" value={qualifier?.cnic} />
+                <DetailItem
+                  label="CSS/PMS Roll No"
+                  value={qualifier?.css_pms_roll_no}
+                />
+                <DetailItem
+                  label="Online / On Campus"
+                  value={qualifier?.class_type}
+                />
                 <DetailItem label="City" value={qualifier?.city} />
                 <DetailItem label="Province" value={qualifier?.province} />
                 <DetailItem label="Father Name" value={qualifier?.father_name} />

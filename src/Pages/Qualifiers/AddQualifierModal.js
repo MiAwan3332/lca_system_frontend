@@ -11,6 +11,7 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Select,
   Textarea,
   Box,
   Text,
@@ -68,6 +69,8 @@ function AddQualifierModal({ isOpen, onClose }) {
     initialValues: {
       name: "",
       cnic: "",
+      css_pms_roll_no: "",
+      class_type: "",
       phone: "",
       batch: "",
       remarks: "",
@@ -167,6 +170,8 @@ function AddQualifierModal({ isOpen, onClose }) {
       formData.append("name", values.name.trim());
       formData.append("phone", values.phone.trim());
       formData.append("cnic", values.cnic?.trim() || "");
+      formData.append("css_pms_roll_no", values.css_pms_roll_no?.trim() || "");
+      formData.append("class_type", values.class_type || "");
       formData.append("batch", values.batch);
       formData.append("description", values.remarks?.trim() || "");
       formData.append("is_active", "true");
@@ -391,6 +396,36 @@ function AddQualifierModal({ isOpen, onClose }) {
                     value={formik.values.cnic}
                     onChange={formik.handleChange}
                   />
+                </FormControl>
+              </GridItem>
+
+              <GridItem>
+                <FormControl id="css_pms_roll_no">
+                  <FormLabel fontSize={14}>CSS/PMS Roll No</FormLabel>
+                  <Input
+                    type="text"
+                    name="css_pms_roll_no"
+                    borderRadius="0.5rem"
+                    placeholder="Optional"
+                    value={formik.values.css_pms_roll_no}
+                    onChange={formik.handleChange}
+                  />
+                </FormControl>
+              </GridItem>
+
+              <GridItem>
+                <FormControl id="class_type">
+                  <FormLabel fontSize={14}>Online / On Campus</FormLabel>
+                  <Select
+                    name="class_type"
+                    borderRadius="0.5rem"
+                    value={formik.values.class_type}
+                    onChange={formik.handleChange}
+                  >
+                    <option value="">Select</option>
+                    <option value="Online">Online</option>
+                    <option value="On Campus">On Campus</option>
+                  </Select>
                 </FormControl>
               </GridItem>
 

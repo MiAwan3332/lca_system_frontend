@@ -77,6 +77,7 @@ export const SUPER_ADMIN_ONLY_ROUTE_PATHS = [
   "/announcements",
   "/whatsapp",
   "/whatsapp-templates",
+  "/whatsapp-queue",
   "/expenses",
   "/role",
   "/permission",
@@ -126,6 +127,7 @@ export const canAccessSuperAdminOnlyRoute = (path) => {
     "/announcements",
     "/whatsapp",
     "/whatsapp-templates",
+    "/whatsapp-queue",
     "/expenses",
     "/role",
     "/permission",
@@ -221,6 +223,7 @@ const isWhatsAppRoute = (path) => {
   return (
     normalized === "/whatsapp" ||
     normalized === "/whatsapp-templates" ||
+    normalized === "/whatsapp-queue" ||
     normalized.startsWith("/whatsapp/")
   );
 };

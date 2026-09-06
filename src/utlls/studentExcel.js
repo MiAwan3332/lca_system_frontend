@@ -47,6 +47,22 @@ const mapHeaderToField = (header) => {
 const isRowEmpty = (row = []) =>
   row.every((cell) => String(cell ?? "").trim() === "");
 
+/** Excel often drops leading 0 from phones (03088811771 → 3088811771). */
+const normalizeImportPhone = (value) => {
+  let raw = value;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    raw = String(Math.trunc(raw));
+  } else {
+    raw = String(raw ?? "").trim();
+  }
+  if (!raw) return "";
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length === 10 && digits.startsWith("3")) {
+    digits = `0${digits}`;
+  }
+  return digits;
+};
+
 const toNumber = (value) => {
   if (value === null || value === undefined || value === "") {
     return 0;
@@ -208,7 +224,7 @@ export const parseStudentExcelFile = async (file) => {
 
     students.push({
       name: String(row[fieldIndexes.name] ?? "").trim(),
-      phone: String(row[fieldIndexes.phone] ?? "").trim(),
+      phone: normalizeImportPhone(row[fieldIndexes.phone]),
       total_fee: totalFee,
       paid_fee: paidFee,
       pending_fee: pendingFee,

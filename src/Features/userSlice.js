@@ -137,9 +137,12 @@ const userSlice = createSlice({
                 toast({
                     title: 'User added successfully',
                     description: waNote,
-                    status: wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
-                        ? "warning"
-                        : "success",
+                    status:
+                        wa?.queued || wa?.sent
+                            ? "success"
+                            : wa?.sent === false && (wa?.skipped || wa?.error || wa?.reason)
+                                ? "warning"
+                                : "success",
                     duration: 7000,
                     isClosable: true,
                 });

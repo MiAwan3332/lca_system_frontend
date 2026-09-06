@@ -95,6 +95,8 @@ function QualifierSelfProfile({ qualifier, loading }) {
       name: qualifier?.name || "",
       phone: qualifier?.phone || "",
       cnic: qualifier?.cnic || "",
+      css_pms_roll_no: qualifier?.css_pms_roll_no || "",
+      class_type: qualifier?.class_type || "",
       city: qualifier?.city || "",
       province: qualifier?.province || "",
       father_name: qualifier?.father_name || "",
@@ -176,6 +178,8 @@ function QualifierSelfProfile({ qualifier, loading }) {
       formData.append("name", values.name.trim());
       formData.append("phone", values.phone.trim());
       formData.append("cnic", values.cnic.trim());
+      formData.append("css_pms_roll_no", values.css_pms_roll_no?.trim() || "");
+      formData.append("class_type", values.class_type || "");
       formData.append("city", values.city.trim());
       formData.append("province", values.province.trim());
       formData.append("father_name", values.father_name.trim());
@@ -506,6 +510,45 @@ function QualifierSelfProfile({ qualifier, loading }) {
                   {formik.errors.cnic}
                 </Text>
               ) : null}
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize={14}>CSS/PMS Roll No</FormLabel>
+              <Input
+                name="css_pms_roll_no"
+                {...fieldStyles}
+                value={formik.values.css_pms_roll_no}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                isReadOnly={!isEditing}
+                bg={isEditing ? "white" : "gray.50"}
+                placeholder="Optional"
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize={14}>Online / On Campus</FormLabel>
+              {isEditing ? (
+                <Select
+                  name="class_type"
+                  {...fieldStyles}
+                  value={formik.values.class_type}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  bg="white"
+                >
+                  <option value="">Select</option>
+                  <option value="Online">Online</option>
+                  <option value="On Campus">On Campus</option>
+                </Select>
+              ) : (
+                <Input
+                  {...fieldStyles}
+                  value={formik.values.class_type || "—"}
+                  isReadOnly
+                  bg="gray.50"
+                />
+              )}
             </FormControl>
 
             <FormControl isRequired={isEditing}>

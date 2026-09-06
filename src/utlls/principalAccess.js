@@ -21,6 +21,7 @@ export const PRINCIPAL_BLOCKED_ROUTE_PATHS = [
   "/announcements",
   "/whatsapp",
   "/whatsapp-templates",
+  "/whatsapp-queue",
   "/expenses",
   "/complaints",
   "/role",
