@@ -65,7 +65,7 @@ import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import DeleteModal from "./DeleteModal";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
-import { hasPermission, isPlatformSuperAdminRole } from "../../utlls/useful";
+import { hasPermission, canDeleteStudent, canShiftStudentBatch } from "../../utlls/useful";
 import { useNavigate } from "react-router-dom";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
@@ -76,7 +76,8 @@ function Student() {
   const [authToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const canDeleteStudent = isPlatformSuperAdminRole();
+  const showDeleteStudent = canDeleteStudent();
+  const showShiftBatch = canShiftStudentBatch();
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
   const onImportOpen = () => setIsImportOpen(true);
@@ -552,11 +553,11 @@ function Student() {
                           {hasPermission(["Update_Student"]) && (
                             <>
                               <UpdateModal student={student} />
-                              {isPlatformSuperAdminRole() && <ShiftBatchModal student={student} />}
+                              {showShiftBatch && <ShiftBatchModal student={student} />}
                               <ChangePasswordModal student={student} />
                             </>
                           )}
-                          {canDeleteStudent && (
+                          {showDeleteStudent && (
                             <DeleteModal studentId={student._id} />
                           )}
                           <RefundRequestAction student={student} />

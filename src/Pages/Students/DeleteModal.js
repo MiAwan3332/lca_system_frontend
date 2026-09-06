@@ -16,7 +16,7 @@ import { Trash } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteStudent, fetchStudents } from "../../Features/studentSlice";
 import ActionButton from "../../Components/ActionButton";
-import { isPlatformSuperAdminRole } from "../../utlls/useful";
+import { canDeleteStudent } from "../../utlls/useful";
 
 const DeleteModal = ({ studentId }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -28,7 +28,7 @@ const DeleteModal = ({ studentId }) => {
   const { deleteStatus } = useSelector((state) => state.students);
   const dispatch = useDispatch();
 
-  if (!isPlatformSuperAdminRole()) {
+  if (!canDeleteStudent()) {
     return null;
   }
 
