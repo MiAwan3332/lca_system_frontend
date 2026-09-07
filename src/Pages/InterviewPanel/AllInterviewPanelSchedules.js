@@ -357,9 +357,9 @@ function AllInterviewPanelSchedules() {
         }
       >
         {!isReadOnlyRole && (
-          <FilterStack className="filter-stack--actions">
+          <FilterStack className="filter-stack--actions w-full sm:w-auto">
             <button
-              className="table-action-btn table-action-btn--primary"
+              className="table-action-btn table-action-btn--primary w-full sm:w-auto justify-center"
               type="button"
               onClick={onAddOpen}
             >
@@ -367,7 +367,7 @@ function AllInterviewPanelSchedules() {
               <span>Add Schedule</span>
             </button>
             <button
-              className="table-action-btn"
+              className="table-action-btn w-full sm:w-auto justify-center"
               type="button"
               onClick={() => navigate("/interview-panel")}
             >
@@ -417,10 +417,13 @@ function AllInterviewPanelSchedules() {
                 type="button"
                 size="sm"
                 w="full"
-                minH="44px"
-                px={{ base: 2, sm: 3 }}
+                minW={0}
+                minH={{ base: "52px", sm: "44px" }}
+                h="auto"
+                py={2}
+                px={{ base: 1.5, sm: 3 }}
                 whiteSpace="normal"
-                lineHeight="1.2"
+                lineHeight="1.25"
                 fontSize={{ base: "xs", sm: "sm" }}
                 borderRadius="xl"
                 border="1px solid"
@@ -430,10 +433,20 @@ function AllInterviewPanelSchedules() {
                 _hover={{ bg: isActive ? "#E3B574" : "#FFFBF5" }}
                 onClick={() => setProgressFilter(option.value)}
               >
-                {option.label}
-                <Text as="span" fontWeight="700" ml={1}>
-                  ({count})
-                </Text>
+                <VStack spacing={0} w="full" minW={0}>
+                  <Text
+                    as="span"
+                    fontWeight="600"
+                    noOfLines={2}
+                    wordBreak="break-word"
+                    textAlign="center"
+                  >
+                    {option.label}
+                  </Text>
+                  <Text as="span" fontWeight="700" fontSize="xs" opacity={0.9}>
+                    ({count})
+                  </Text>
+                </VStack>
               </Button>
             );
           })}
@@ -523,13 +536,21 @@ function AllInterviewPanelSchedules() {
           borderColor="orange.200"
           borderRadius="xl"
           bg="orange.50"
-          px={4}
+          px={{ base: 3, sm: 4 }}
           py={3}
+          minW={0}
+          overflow="hidden"
         >
           <Text fontWeight="600" fontSize="sm" color="orange.800">
             Complete your profile to book an interview
           </Text>
-          <Text fontSize="sm" color="orange.700" mt={1}>
+          <Text
+            fontSize="sm"
+            color="orange.700"
+            mt={1}
+            wordBreak="break-word"
+            overflowWrap="anywhere"
+          >
             {QUALIFIER_PROFILE_INCOMPLETE_MESSAGE}
             {missingProfileFields.length
               ? ` Missing: ${missingProfileFields.join(", ")}.`
@@ -538,6 +559,7 @@ function AllInterviewPanelSchedules() {
           <Button
             mt={3}
             size="sm"
+            w={{ base: "full", sm: "auto" }}
             borderRadius="lg"
             backgroundColor="#FFCB82"
             color="#85652D"
@@ -608,9 +630,10 @@ function AllInterviewPanelSchedules() {
           </Center>
         ) : (
           <SimpleGrid
-            columns={{ base: 1, md: 2, xl: 3 }}
+            columns={{ base: 1, lg: 2, xl: 3 }}
             spacing={{ base: 3, md: 4 }}
             w="full"
+            minW={0}
           >
             {filteredSchedules.map((row) => {
               const statusMeta = getInterviewPanelStatusMeta(row.panel_status);
@@ -649,7 +672,13 @@ function AllInterviewPanelSchedules() {
                     boxShadow: "0 8px 24px rgba(133, 101, 45, 0.08)",
                   }}
                 >
-                  <Flex justify="space-between" align="flex-start" gap={3}>
+                  <Flex
+                    direction={{ base: "column", sm: "row" }}
+                    justify="space-between"
+                    align={{ base: "stretch", sm: "flex-start" }}
+                    gap={2}
+                    minW={0}
+                  >
                     <Box flex={1} minW={0}>
                       <Text
                         fontWeight="700"
@@ -657,6 +686,7 @@ function AllInterviewPanelSchedules() {
                         color="#2D3748"
                         noOfLines={2}
                         wordBreak="break-word"
+                        overflowWrap="anywhere"
                       >
                         {row.panel_title}
                       </Text>
@@ -666,16 +696,18 @@ function AllInterviewPanelSchedules() {
                     </Box>
                     <Flex
                       wrap="wrap"
-                      justify="flex-end"
+                      justify={{ base: "flex-start", sm: "flex-end" }}
                       gap={1}
-                      flexShrink={0}
-                      maxW={{ base: "48%", sm: "none" }}
+                      maxW="100%"
+                      minW={0}
                     >
                       <Badge
                         colorScheme={statusMeta.colorScheme}
                         borderRadius="md"
                         px={2}
                         py={1}
+                        fontSize="10px"
+                        whiteSpace="nowrap"
                       >
                         {statusMeta.label}
                       </Badge>
@@ -684,6 +716,8 @@ function AllInterviewPanelSchedules() {
                         borderRadius="md"
                         px={2}
                         py={1}
+                        fontSize="10px"
+                        whiteSpace="nowrap"
                       >
                         {isBooked ? "Booked" : "Available"}
                       </Badge>
@@ -693,6 +727,8 @@ function AllInterviewPanelSchedules() {
                           borderRadius="md"
                           px={2}
                           py={1}
+                          fontSize="10px"
+                          whiteSpace="nowrap"
                         >
                           {progressMeta.label}
                         </Badge>
@@ -721,7 +757,12 @@ function AllInterviewPanelSchedules() {
                       <Box color="#85652D" mt="2px" flexShrink={0}>
                         <MapPin size={15} />
                       </Box>
-                      <Text fontSize="sm" noOfLines={2} wordBreak="break-word">
+                      <Text
+                        fontSize="sm"
+                        noOfLines={2}
+                        wordBreak="break-word"
+                        overflowWrap="anywhere"
+                      >
                         {row.venue || "No venue"}
                       </Text>
                     </HStack>
@@ -820,13 +861,17 @@ function AllInterviewPanelSchedules() {
                               justify="space-between"
                               align="flex-start"
                               gap={2}
+                              minW={0}
+                              wrap="wrap"
                             >
                               <Text
                                 fontWeight="600"
                                 fontSize="sm"
                                 color="#2D3748"
-                                noOfLines={1}
+                                noOfLines={2}
                                 minW={0}
+                                flex="1 1 8rem"
+                                wordBreak="break-word"
                               >
                                 {member.name}
                               </Text>
@@ -837,6 +882,9 @@ function AllInterviewPanelSchedules() {
                                   borderRadius="md"
                                   fontSize="10px"
                                   flexShrink={0}
+                                  maxW="100%"
+                                  whiteSpace="normal"
+                                  textAlign="right"
                                 >
                                   {member.role}
                                 </Badge>
@@ -860,11 +908,11 @@ function AllInterviewPanelSchedules() {
 
                   <Flex
                     mt="auto"
-                    direction={{ base: "column", sm: "row" }}
+                    direction="column"
                     gap={2}
-                    justify="flex-end"
-                    align={{ base: "stretch", sm: "center" }}
                     pt={1}
+                    minW={0}
+                    w="full"
                   >
                     {(isBooked || isCompleted) && (
                       <Button
@@ -874,9 +922,9 @@ function AllInterviewPanelSchedules() {
                         backgroundColor="#1A202C"
                         color="#FFCB82"
                         _hover={{ bg: "#2D3748" }}
-                        w={{ base: "full", sm: "auto" }}
-                        minW={{ sm: "10rem" }}
-                        px={4}
+                        w="full"
+                        px={3}
+                        whiteSpace="normal"
                         onClick={() => openDetailsModal(row)}
                       >
                         View Detail
@@ -890,9 +938,9 @@ function AllInterviewPanelSchedules() {
                         backgroundColor="#1A202C"
                         color="#FFCB82"
                         _hover={{ bg: "#2D3748" }}
-                        w={{ base: "full", sm: "auto" }}
-                        minW={{ sm: "10rem" }}
-                        px={4}
+                        w="full"
+                        px={3}
+                        whiteSpace="normal"
                         isLoading={
                           startInterviewStatus === "loading" &&
                           pendingStartRow?.id === row.id
@@ -914,9 +962,13 @@ function AllInterviewPanelSchedules() {
                         border="1px solid"
                         borderColor="#E3B574"
                         _hover={{ bg: "#FFF8EE" }}
-                        w={{ base: "full", sm: "auto" }}
-                        minW={{ sm: "11rem" }}
-                        px={4}
+                        w="full"
+                        px={3}
+                        h="auto"
+                        minH="2.25rem"
+                        py={2}
+                        whiteSpace="normal"
+                        lineHeight="1.25"
                         onClick={() => openBookModal(row)}
                       >
                         {isQualifier
@@ -937,14 +989,16 @@ function AllInterviewPanelSchedules() {
                         borderColor="#E3B574"
                         color="#85652D"
                         _hover={{ bg: "#FFF8EE" }}
-                        w={{ base: "full", sm: "auto" }}
+                        w="full"
+                        px={3}
+                        whiteSpace="normal"
                         onClick={() =>
                           navigate(
                             `/interview-panel/${row.panel_id}/schedules`
                           )
                         }
                       >
-                        Schedules
+                        Open Panel Schedules
                       </Button>
                     )}
                   </Flex>

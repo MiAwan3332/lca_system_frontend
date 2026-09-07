@@ -18,6 +18,7 @@ const initialState = {
     is_active: "",
     city: "",
     class_type: "",
+    profile_updated: "",
   },
   pagination: TABLE_PAGINATION,
   fetchStatus: "idle",
@@ -147,6 +148,30 @@ const bulkImportQualifiers = createAsyncThunk(
   }
 );
 
+const toggleQualifierStatus = createAsyncThunk(
+  "qualifiers/toggleQualifierStatus",
+  async ({ authToken, id, is_active }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/qualifiers/toggle-status/${id}`,
+        { is_active },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update qualifier status"
+      );
+    }
+  }
+);
+
 const qualifierSlice = createSlice({
   name: "qualifiers",
   initialState,
@@ -177,6 +202,10 @@ const qualifierSlice = createSlice({
       state.filters.page = 1;
       state.filters.class_type = action.payload;
     },
+    setProfileUpdatedFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.profile_updated = action.payload;
+    },
     clearQualifierFilters(state) {
       state.filters.page = 1;
       state.filters.query = "";
@@ -184,6 +213,7 @@ const qualifierSlice = createSlice({
       state.filters.is_active = "";
       state.filters.city = "";
       state.filters.class_type = "";
+      state.filters.profile_updated = "";
     },
   },
   extraReducers: (builder) => {
@@ -341,6 +371,36 @@ const qualifierSlice = createSlice({
           duration: 5000,
           isClosable: true,
         });
+      })
+      .addCase(toggleQualifierStatus.fulfilled, (state, action) => {
+        const idx = state.qualifiers.findIndex(
+          (q) => q._id === action.payload._id
+        );
+        if (idx !== -1) {
+          state.qualifiers[idx] = action.payload;
+        }
+        toast({
+          title:
+            action.payload.is_active !== false
+              ? "Qualifier activated"
+              : "Qualifier deactivated",
+          description:
+            action.payload.is_active === false
+              ? "Inactive qualifiers cannot log in."
+              : undefined,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      })
+      .addCase(toggleQualifierStatus.rejected, (state, action) => {
+        toast({
+          title: "Failed to update qualifier status",
+          description: action.payload || action.error.message,
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
       });
   },
 });
@@ -354,6 +414,7 @@ export const {
   setIsActiveFilter,
   setCityFilter,
   setClassTypeFilter,
+  setProfileUpdatedFilter,
   clearQualifierFilters,
 } = qualifierSlice.actions;
 
@@ -364,6 +425,7 @@ export {
   deleteQualifier,
   changeQualifierPassword,
   bulkImportQualifiers,
+  toggleQualifierStatus,
 };
 
 export default qualifierSlice.reducer;
