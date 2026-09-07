@@ -35,6 +35,7 @@ import {
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
+  responsiveModalProps,
 } from "../../utlls/responsiveModal";
 
 function QualifierImportModal({ isOpen, onClose }) {
@@ -164,15 +165,35 @@ function QualifierImportModal({ isOpen, onClose }) {
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
+      {...responsiveModalProps}
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
-        <ModalHeader className="text-xl font-semibold">
+      <ModalContent
+        {...responsiveModalContentProps}
+        display="flex"
+        flexDirection="column"
+        overflow="hidden"
+        maxH={{ base: "100dvh", sm: "92vh" }}
+        w={{ base: "100%", sm: "auto" }}
+      >
+        <ModalHeader
+          className="text-xl font-semibold"
+          flexShrink={0}
+          pr={12}
+          fontSize={{ base: "lg", sm: "xl" }}
+        >
           Import Qualifiers from Excel
         </ModalHeader>
         <ModalCloseButton />
-        <ModalBody>
+        <ModalBody
+          flex="1"
+          minH={0}
+          overflowY="auto"
+          overflowX="hidden"
+          px={{ base: 4, sm: 6 }}
+          py={{ base: 3, sm: 4 }}
+        >
           <Text fontSize="sm" color="gray.600" mb={4}>
             Select an interview batch, download the template, fill in qualifier
             details (Name and Phone required), then upload the Excel file. Each
@@ -196,7 +217,7 @@ function QualifierImportModal({ isOpen, onClose }) {
 
           <Box
             mb={4}
-            p={4}
+            p={{ base: 3, sm: 4 }}
             borderRadius="xl"
             border="1px solid"
             borderColor="#E0E8EC"
@@ -214,6 +235,7 @@ function QualifierImportModal({ isOpen, onClose }) {
               leftIcon={<Download size={18} />}
               variant="outline"
               borderRadius="xl"
+              w={{ base: "100%", sm: "auto" }}
               onClick={handleDownloadTemplate}
             >
               Download Excel Template
@@ -234,13 +256,14 @@ function QualifierImportModal({ isOpen, onClose }) {
             backgroundColor="#FFCB82"
             color="#85652D"
             _hover={{ backgroundColor: "#E3B574", color: "#654E26" }}
+            w={{ base: "100%", sm: "auto" }}
             onClick={() => fileInputRef.current?.click()}
           >
             Choose Excel File
           </Button>
 
           {selectedFile && (
-            <Text mt={3} fontSize="sm" color="gray.700">
+            <Text mt={3} fontSize="sm" color="gray.700" wordBreak="break-word">
               Selected file: <strong>{selectedFile.name}</strong> (
               {parsedRows.length} qualifier
               {parsedRows.length === 1 ? "" : "s"} ready to import)
@@ -255,6 +278,7 @@ function QualifierImportModal({ isOpen, onClose }) {
               bg="red.50"
               color="red.700"
               fontSize="sm"
+              wordBreak="break-word"
             >
               {parseError}
             </Box>
@@ -263,7 +287,7 @@ function QualifierImportModal({ isOpen, onClose }) {
           {importResult && (
             <Box
               mt={4}
-              p={4}
+              p={{ base: 3, sm: 4 }}
               borderRadius="xl"
               border="1px solid"
               borderColor="#E0E8EC"
@@ -295,6 +319,7 @@ function QualifierImportModal({ isOpen, onClose }) {
                       key={`${item.row}-${item.phone || item.name}`}
                       fontSize="sm"
                       color="gray.700"
+                      wordBreak="break-word"
                     >
                       Row {item.row}: {item.name}
                       {item.phone ? ` (${item.phone})` : ""}
@@ -314,6 +339,7 @@ function QualifierImportModal({ isOpen, onClose }) {
                         key={`${item.row}-${item.message}`}
                         fontSize="sm"
                         color="red.600"
+                        wordBreak="break-word"
                       >
                         Row {item.row}
                         {item.phone ? ` (${item.phone})` : ""}: {item.message}
@@ -325,12 +351,21 @@ function QualifierImportModal({ isOpen, onClose }) {
             </Box>
           )}
         </ModalBody>
-        <ModalFooter>
+        <ModalFooter
+          flexShrink={0}
+          flexWrap="wrap"
+          gap={2}
+          px={{ base: 4, sm: 6 }}
+          py={{ base: 3, sm: 4 }}
+          borderTop="1px solid"
+          borderColor="#E0E8EC"
+        >
           <Button
             variant="ghost"
-            mr={3}
             borderRadius="0.75rem"
             onClick={handleClose}
+            w={{ base: "100%", sm: "auto" }}
+            order={{ base: 2, sm: 1 }}
           >
             Close
           </Button>
@@ -344,6 +379,9 @@ function QualifierImportModal({ isOpen, onClose }) {
             isDisabled={!batchId || !parsedRows.length}
             isLoading={importStatus === "loading"}
             loadingText="Importing..."
+            w={{ base: "100%", sm: "auto" }}
+            ml={{ base: 0, sm: "auto" }}
+            order={{ base: 1, sm: 2 }}
           >
             Import Qualifiers
           </Button>
