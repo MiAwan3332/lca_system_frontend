@@ -13,8 +13,11 @@ import {
   Button,
   Badge,
   Input,
+  Tooltip,
+  HStack,
+  Switch,
 } from "@chakra-ui/react";
-import { FileX, FilterX, FileUp, Plus } from "lucide-react";
+import { FileX, FilterX, FileUp, Plus, Download } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchQualifiers,
@@ -26,7 +29,9 @@ import {
   setIsActiveFilter,
   setCityFilter,
   setClassTypeFilter,
+  setProfileUpdatedFilter,
   clearQualifierFilters,
+  toggleQualifierStatus,
 } from "../../Features/qualifierSlice";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TableSearch from "../../Components/TableSearch";
@@ -39,8 +44,13 @@ import ActionMenu from "../../Components/ActionMenu";
 import { getMediaUrl } from "../../utlls/useful";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isQualifierRole } from "../../utlls/qualifierAccess";
+import {
+  getQualifierProfileIncompleteFields,
+  isQualifierProfileComplete,
+} from "../../utlls/qualifierProfile";
 import AddQualifierModal from "./AddQualifierModal";
 import QualifierImportModal from "./QualifierImportModal";
+import QualifierExportModal from "./QualifierExportModal";
 import UpdateQualifierModal from "./UpdateQualifierModal";
 import DeleteQualifierModal from "./DeleteQualifierModal";
 import ViewQualifierModal from "./ViewQualifierModal";
@@ -57,6 +67,7 @@ function Qualifiers() {
   const tableSearchRef = useRef();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [authToken] = useState(Cookies.get("authToken"));
 
   const qualifiers = useSelector(selectAllQualifiers);
@@ -103,6 +114,23 @@ function Qualifiers() {
     loadQualifiers();
   };
 
+  const handleProfileUpdatedFilterChange = (e) => {
+    dispatch(setProfileUpdatedFilter(e.target.value));
+    loadQualifiers();
+  };
+
+  const handleToggleQualifierStatus = (qualifier) => {
+    if (!canManage) return;
+    const nextStatus = qualifier.is_active === false;
+    dispatch(
+      toggleQualifierStatus({
+        authToken,
+        id: qualifier._id,
+        is_active: nextStatus,
+      })
+    );
+  };
+
   const handleCityFilterBlur = () => {
     loadQualifiers();
   };
@@ -140,13 +168,22 @@ function Qualifiers() {
     filters.is_active === "true" ||
     filters.is_active === "false" ||
     Boolean(filters.city) ||
-    Boolean(filters.class_type);
+    Boolean(filters.class_type) ||
+    Boolean(filters.profile_updated);
 
   return (
     <>
       <PageHeader title="Qualifiers">
         {canManage && (
           <FilterStack className="filter-stack--actions">
+            <button
+              type="button"
+              className="table-action-btn"
+              onClick={() => setIsExportOpen(true)}
+            >
+              <Download size={18} />
+              Export
+            </button>
             <button
               type="button"
               className="table-action-btn"
@@ -238,6 +275,21 @@ function Qualifiers() {
             <option value="On Campus">On Campus</option>
           </Select>
         </FormControl>
+        <FormControl
+          className="responsive-input"
+          w={{ base: "full", sm: "12rem" }}
+        >
+          <Select
+            size="lg"
+            borderRadius="xl"
+            value={filters.profile_updated || ""}
+            onChange={handleProfileUpdatedFilterChange}
+          >
+            <option value="">All Profiles</option>
+            <option value="true">Profile Updated</option>
+            <option value="false">Profile Not Updated</option>
+          </Select>
+        </FormControl>
         {hasFilters && (
           <Button
             size="icon"
@@ -262,6 +314,7 @@ function Qualifiers() {
                 <Th data-searchable>Mode</Th>
                 <Th data-searchable>Phone</Th>
                 <Th data-searchable>City</Th>
+                <Th>Profile</Th>
                 <Th>Status</Th>
                 {showActions && <Th isNumeric>Actions</Th>}
               </Tr>
@@ -269,12 +322,12 @@ function Qualifiers() {
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={showActions ? 8 : 8}
+                  nOfColumns={showActions ? 9 : 9}
                   actions={showActions ? ["w-10"] : []}
                 />
               ) : qualifiers.length === 0 ? (
                 <Tr>
-                  <Td colSpan={showActions ? 9 : 8}>
+                  <Td colSpan={showActions ? 10 : 9}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No qualifier records found
@@ -284,8 +337,18 @@ function Qualifiers() {
               ) : (
                 qualifiers.map((qualifier, index) => {
                   const isActive = qualifier.is_active !== false;
+                  const profileUpdated =
+                    typeof qualifier.profile_updated === "boolean"
+                      ? qualifier.profile_updated
+                      : isQualifierProfileComplete(qualifier);
+                  const missingFields = profileUpdated
+                    ? []
+                    : getQualifierProfileIncompleteFields(qualifier);
                   return (
-                    <Tr key={qualifier._id}>
+                    <Tr
+                      key={qualifier._id}
+                      className={!isActive ? "opacity-70" : ""}
+                    >
                       <Td>{(pagination?.pagingCounter || 1) + index}</Td>
                       <Td>
                         <div className="flex items-center gap-3">
@@ -303,14 +366,52 @@ function Qualifiers() {
                       <Td>{qualifier.phone}</Td>
                       <Td>{qualifier.city || "—"}</Td>
                       <Td>
-                        <Badge
-                          colorScheme={isActive ? "green" : "gray"}
-                          borderRadius="md"
-                          px={2}
-                          py={0.5}
+                        <Tooltip
+                          label={
+                            profileUpdated
+                              ? "All required profile fields are filled"
+                              : `Missing: ${missingFields.join(", ")}`
+                          }
+                          hasArrow
+                          placement="top"
                         >
-                          {isActive ? "Active" : "Inactive"}
-                        </Badge>
+                          <Badge
+                            colorScheme={profileUpdated ? "green" : "orange"}
+                            borderRadius="md"
+                            px={2}
+                            py={0.5}
+                            cursor="help"
+                          >
+                            {profileUpdated ? "Updated" : "Not Updated"}
+                          </Badge>
+                        </Tooltip>
+                      </Td>
+                      <Td>
+                        <HStack spacing={2}>
+                          <Badge
+                            colorScheme={isActive ? "green" : "gray"}
+                            borderRadius="md"
+                            px={2}
+                            py={0.5}
+                          >
+                            {isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          {canManage && (
+                            <Switch
+                              size="sm"
+                              isChecked={isActive}
+                              onChange={() =>
+                                handleToggleQualifierStatus(qualifier)
+                              }
+                              colorScheme="green"
+                              title={
+                                isActive
+                                  ? "Deactivate (blocks login)"
+                                  : "Activate (allows login)"
+                              }
+                            />
+                          )}
+                        </HStack>
                       </Td>
                       {showActions && (
                         <Td isNumeric>
@@ -355,6 +456,10 @@ function Qualifiers() {
           <QualifierImportModal
             isOpen={isImportOpen}
             onClose={() => setIsImportOpen(false)}
+          />
+          <QualifierExportModal
+            isOpen={isExportOpen}
+            onClose={() => setIsExportOpen(false)}
           />
         </>
       )}
