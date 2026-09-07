@@ -7,9 +7,9 @@ export const SLIP_HEIGHT_IN = 7;
 export const SLIP_WIDTH_MM = SLIP_WIDTH_IN * 25.4;
 export const SLIP_HEIGHT_MM = SLIP_HEIGHT_IN * 25.4;
 
-/** Print margins on 5×7 paper (applied when printing fee slips). */
-export const SLIP_PRINT_MARGIN_TOP_IN = 0;
-export const SLIP_PRINT_MARGIN_BOTTOM_IN = 1.9;
+/** Print margins on 5×7 paper (applied when printing fee / admission slips). */
+export const SLIP_PRINT_MARGIN_TOP_IN = 1.5;
+export const SLIP_PRINT_MARGIN_BOTTOM_IN = 1;
 export const SLIP_PRINT_MARGIN_TOP_MM = SLIP_PRINT_MARGIN_TOP_IN * 25.4;
 export const SLIP_PRINT_MARGIN_BOTTOM_MM = SLIP_PRINT_MARGIN_BOTTOM_IN * 25.4;
 export const SLIP_PRINT_CONTENT_HEIGHT_MM =
