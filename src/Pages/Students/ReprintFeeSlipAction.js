@@ -52,6 +52,7 @@ function ReprintFeeSlipAction({ student }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [paidLogs, setPaidLogs] = useState([]);
+  const [pendingFees, setPendingFees] = useState([]);
   const [selectedLogId, setSelectedLogId] = useState("");
   const [loadError, setLoadError] = useState("");
 
@@ -72,6 +73,7 @@ function ReprintFeeSlipAction({ student }) {
     setSelectedLogId("");
     setLoadError("");
     setPaidLogs([]);
+    setPendingFees([]);
   };
 
   const loadPaidTransactions = async () => {
@@ -97,6 +99,14 @@ function ReprintFeeSlipAction({ student }) {
             new Date(a.action_date || 0).getTime()
         );
       setPaidLogs(paidOnly);
+      const fees = Array.isArray(response.data?.fees) ? response.data.fees : [];
+      setPendingFees(
+        fees.filter(
+          (fee) =>
+            String(fee.status || "").toLowerCase() === "pending" &&
+            Number(fee.amount) > 0
+        )
+      );
       if (!paidOnly.length) {
         setLoadError("No paid transactions found for this student.");
       }
@@ -119,13 +129,19 @@ function ReprintFeeSlipAction({ student }) {
   const buildSlipFromLog = (log) => {
     const payingNow = Math.round(Number(log.action_amount) || 0);
     const feeBefore = Math.round(Number(log.amount) || 0);
-    const remainingAfter = Math.max(feeBefore - payingNow, 0);
+    const remainingAfterPayment = Math.max(feeBefore - payingNow, 0);
+    const currentPending = Math.round(Math.max(Number(student.pending_fee) || 0, 0));
+    const remainingAfter = Math.max(remainingAfterPayment, currentPending);
     const batchName =
       log.fee?.batch?.name || student.batch?.name || "N/A";
     const batchFee =
       Number(log.fee?.batch?.batch_fee) ||
       Number(student.batch?.batch_fee) ||
       0;
+    const nextFromPending = [...pendingFees]
+      .map((fee) => fee.due_date)
+      .filter(Boolean)
+      .sort()[0];
 
     return {
       name: student.name,
@@ -142,7 +158,10 @@ function ReprintFeeSlipAction({ student }) {
       discountAmount: 0,
       paymentOption: remainingAfter > 0 ? "partial" : "full",
       paymentMethod: log.payment_method || "Cash",
-      nextInstallmentDate: "",
+      nextInstallmentDate:
+        remainingAfter > 0
+          ? log.fee?.due_date || nextFromPending || ""
+          : "",
       photoUrl: student.image || "",
       authorizedBy: currentUser?.name || log.action_by?.name || "",
       classStartTime: student.batch?.class_start_time || "",

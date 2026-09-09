@@ -186,11 +186,11 @@ const collectPendingFee = createAsyncThunk(
         if (payment_method) {
             formData.append("payment_method", payment_method);
         }
-        if (payment_option === "partial") {
+        if (amount !== undefined && amount !== null && amount !== "") {
             formData.append("amount", String(amount));
-            if (next_installment_date) {
-                formData.append("next_installment_date", next_installment_date);
-            }
+        }
+        if (payment_option === "partial" && next_installment_date) {
+            formData.append("next_installment_date", next_installment_date);
         }
         if (Number(discount_amount) > 0) {
             formData.append("discount_amount", String(discount_amount));

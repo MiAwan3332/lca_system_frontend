@@ -630,6 +630,10 @@ function AddStudnet({ isOpen, onClose }) {
           paymentStatus,
           paymentOption: resolvedPaymentOption,
           paymentMethod: paymentMethodLabel,
+          nextInstallmentDate:
+            remainingFee > 0
+              ? formik.values.next_installment_date || ""
+              : "",
           photoFile,
           authorizedBy: currentUser?.name || "",
           classStartTime: selectedBatch?.class_start_time || "",

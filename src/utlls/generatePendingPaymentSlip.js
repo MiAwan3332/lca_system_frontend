@@ -4,6 +4,7 @@ import { getMediaUrl } from "./useful.js";
 import {
   createFeeSlipPdf,
   drawFeeNonRefundableNote,
+  drawPendingDuesNotice,
   getFeeSlipContentStartY,
   getFeeSlipFrame,
 } from "./feeSlipLayout";
@@ -196,8 +197,11 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     );
   }
 
+  const remainingAmount = Number(remainingAfter) || 0;
   const paymentLabel =
-    paymentOption === "partial" ? "Partial Payment" : "Full Payment";
+    remainingAmount > 0 || paymentOption === "partial"
+      ? "Partial Payment"
+      : "Full Payment";
   const classTimeLabel =
     formatClassTimeRange(classStartTime, classEndTime) || "N/A";
   const issuedAt = moment().format("DD MMM YYYY · hh:mm A");
@@ -375,10 +379,13 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   y = drawRow("Class Time", classTimeLabel, y);
   y = drawRow("Payment", paymentLabel, y, true);
   y = drawRow("Method", paymentMethod || "N/A", y);
-  if (paymentOption === "partial" && nextInstallmentDate) {
+  const hasPendingDues = Number(remainingAfter) > 0;
+  if (hasPendingDues) {
     y = drawRow(
-      "Next Due",
-      moment(nextInstallmentDate).format("DD MMM YYYY"),
+      "Next Installment",
+      nextInstallmentDate
+        ? moment(nextInstallmentDate).format("DD MMM YYYY")
+        : "To be scheduled",
       y,
       true
     );
@@ -388,12 +395,29 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   }
   y += 1.5;
 
-  // ── Fee chips (Total + Remaining) — same as Admission Slip ──
+  if (hasPendingDues) {
+    y = drawPendingDuesNotice(doc, {
+      x: innerX,
+      y,
+      width: innerW,
+      remaining: remainingAfter,
+      nextInstallmentDate,
+      title: "DUES PENDING (PARTIAL PAYMENT)",
+      formatCurrency,
+      formatDate: (value) => moment(value).format("DD MMM YYYY"),
+      colors: COLORS,
+    });
+  }
+
+  // ── Fee chips (Total + Remaining / Dues Pending) — same as Admission Slip ──
   const chipH = 10;
   const halfW = (innerW - gap) / 2;
   const chips = [
     { label: "Total", value: formatCurrency(totalBatchFee) },
-    { label: "Remaining", value: formatCurrency(remainingAfter) },
+    {
+      label: hasPendingDues ? "Dues Pending" : "Remaining",
+      value: formatCurrency(remainingAfter),
+    },
   ];
 
   chips.forEach((chip, i) => {

@@ -172,6 +172,66 @@ export const drawFeeSlipBrandingFooter = (doc, frame) => {
   );
 };
 
+/**
+ * Highlight remaining dues and next installment on admission / fee / duplicate slips.
+ * Returns the y position after the block (unchanged if there are no pending dues).
+ */
+export const drawPendingDuesNotice = (
+  doc,
+  {
+    x,
+    y,
+    width,
+    remaining = 0,
+    nextInstallmentDate = "",
+    title = "DUES PENDING (PARTIAL PAYMENT)",
+    formatCurrency,
+    formatDate,
+    colors = {},
+  } = {}
+) => {
+  const amount = Number(remaining) || 0;
+  if (!(amount > 0) || x == null || y == null) return y;
+
+  const ink = colors.ink || [26, 32, 44];
+  const charcoal = colors.charcoal || [33, 37, 41];
+  const gold = colors.gold || [180, 130, 55];
+  const goldSoft = colors.goldSoft || [245, 236, 220];
+  const dateLabel =
+    typeof formatDate === "function" && nextInstallmentDate
+      ? formatDate(nextInstallmentDate)
+      : String(nextInstallmentDate || "").trim();
+  const amountLabel =
+    typeof formatCurrency === "function"
+      ? formatCurrency(amount)
+      : `Rs. ${amount}`;
+
+  const noticeH = dateLabel ? 11.5 : 8;
+  doc.setFillColor(...goldSoft);
+  doc.setDrawColor(...gold);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(x, y, width, noticeH, 1, 1, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.setTextColor(...charcoal);
+  doc.text(title, x + 2, y + 3.6);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...ink);
+  doc.text(amountLabel, x + width - 2, y + 3.8, { align: "right" });
+
+  if (dateLabel) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.2);
+    doc.setTextColor(...ink);
+    doc.text(`Next installment: ${dateLabel}`, x + 2, y + 8.6);
+  }
+
+  return y + noticeH + 1.6;
+};
+
 /** Compact notice used on student fee / admission slips. */
 export const drawFeeNonRefundableNote = (
   doc,
