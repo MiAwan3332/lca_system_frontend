@@ -48,8 +48,15 @@ const formatAmount = (amount) =>
     maximumFractionDigits: 0,
   })}`;
 
+const parseRupees = (value) => {
+  if (value === "" || value == null) return 0;
+  const numeric = Number(String(value).replace(/,/g, "").trim());
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.round(numeric);
+};
+
 /**
- * Collect outstanding student fees, optional discount, and print a slip first.
+ * Collect outstanding student fees, then allow printing the fee slip.
  * Can be opened from the row action menu or controlled by a parent wizard.
  */
 function GeneratePendingFeeSlipAction({
@@ -69,10 +76,10 @@ function GeneratePendingFeeSlipAction({
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = isControlled ? controlledIsOpen : internalOpen;
 
-  const [paymentOption, setPaymentOption] = useState("full");
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [evidenceError, setEvidenceError] = useState("");
-  const [hasPrintedSlip, setHasPrintedSlip] = useState(false);
+  const [hasPaid, setHasPaid] = useState(false);
+  const [paidSlipPayload, setPaidSlipPayload] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
   const outstanding = Math.round(
@@ -96,32 +103,22 @@ function GeneratePendingFeeSlipAction({
           .max(outstanding, `Discount cannot exceed ${outstanding}`)
           .nullable(),
         discount_description: Yup.string().trim(),
-        amount: Yup.number()
-          .transform((value, originalValue) =>
-            originalValue === "" ||
-            originalValue === null ||
-            originalValue === undefined
-              ? undefined
-              : value
-          )
-          .nullable()
-          .when([], {
-            is: () => paymentOption === "partial",
-            then: (schema) =>
-              schema
-                .typeError("Enter a valid amount")
-                .required("Required")
-                .min(0, "Amount cannot be negative"),
-            otherwise: (schema) => schema.notRequired(),
-          }),
-        payment_method: Yup.string().when([], {
-          is: () => true,
-          then: (schema) => schema.oneOf(FEE_PAYMENT_METHODS).required("Required"),
+        amount: Yup.mixed().when("payment_option", {
+          is: "partial",
+          then: (schema) =>
+            schema.test(
+              "partial-amount",
+              "Enter a valid amount",
+              (value) => parseRupees(value) > 0
+            ),
+          otherwise: (schema) => schema.notRequired(),
         }),
+        payment_option: Yup.string().oneOf(["full", "partial"]).required(),
+        payment_method: Yup.string().oneOf(FEE_PAYMENT_METHODS).required("Required"),
         next_installment_date: Yup.string()
           .transform((value) => (value === "" ? undefined : value))
-          .when([], {
-            is: () => paymentOption === "partial",
+          .when("payment_option", {
+            is: "partial",
             then: (schema) =>
               schema
                 .required("Next installment due date is required")
@@ -134,7 +131,7 @@ function GeneratePendingFeeSlipAction({
           }),
         remarks: Yup.string().trim().required("Remarks are required"),
       }),
-    [paymentOption, outstanding]
+    [outstanding]
   );
 
   const formik = useFormik({
@@ -144,30 +141,23 @@ function GeneratePendingFeeSlipAction({
       discount_amount: "",
       discount_description: "",
       payment_method: "Cash",
+      payment_option: "full",
       next_installment_date: "",
       remarks: "",
     },
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
-      if (!hasPrintedSlip) {
-        toast({
-          title: "Print fee slip first",
-          description:
-            "Please print or preview the fee slip before submitting the payment.",
-          status: "warning",
-          duration: 4000,
-          isClosable: true,
-        });
+      if (hasPaid) {
         setSubmitting(false);
         return;
       }
 
-      const discount = Math.round(Number(values.discount_amount) || 0);
+      const option =
+        values.payment_option === "partial" ? "partial" : "full";
+      const discount = parseRupees(values.discount_amount);
       const payable = Math.max(outstanding - discount, 0);
       const payingNow =
-        paymentOption === "full"
-          ? payable
-          : Math.round(Number(values.amount) || 0);
+        option === "full" ? payable : parseRupees(values.amount);
 
       if (discount > 0 && !String(values.discount_description || "").trim() && !String(values.remarks || "").trim()) {
         toast({
@@ -192,12 +182,24 @@ function GeneratePendingFeeSlipAction({
         return;
       }
 
-      if (payingNow > payable) {
+      if (option === "partial" && payingNow > payable) {
         toast({
           title: "Amount too high",
-          description: `Cannot exceed payable balance (${payable}).`,
+          description: `Cannot exceed payable balance (${formatAmount(payable)}).`,
           status: "warning",
           duration: 3500,
+          isClosable: true,
+        });
+        setSubmitting(false);
+        return;
+      }
+
+      if (option === "partial" && payingNow >= payable && payable > 0) {
+        toast({
+          title: "Invalid partial amount",
+          description: "Use Pay Full Remaining Balance when paying the entire remaining balance.",
+          status: "warning",
+          duration: 4000,
           isClosable: true,
         });
         setSubmitting(false);
@@ -220,13 +222,11 @@ function GeneratePendingFeeSlipAction({
             authToken,
             studentId: student._id,
             amount: payingNow,
-            payment_option: paymentOption,
+            payment_option: option,
             payment_method: payingNow > 0 ? values.payment_method : undefined,
             remarks: values.remarks.trim(),
             next_installment_date:
-              paymentOption === "partial"
-                ? values.next_installment_date
-                : undefined,
+              option === "partial" ? values.next_installment_date : undefined,
             payment_evidence: evidenceFiles,
             discount_amount: discount,
             discount_description:
@@ -235,19 +235,45 @@ function GeneratePendingFeeSlipAction({
           })
         ).unwrap();
 
+        const slipPayload = {
+          name: student.name,
+          phone: student.phone,
+          cnic: student.cnic || "",
+          rollNumber: student.roll_number,
+          batchName: student.batch?.name || "N/A",
+          batchFee: Number(student.batch?.batch_fee) || 0,
+          totalFee:
+            Number(student.total_fee) || Number(student.batch?.batch_fee) || 0,
+          paidFee: Number(student.paid_fee) || 0,
+          outstandingBalance: outstanding,
+          payingNow,
+          remainingAfter: Math.max(
+            Math.max(outstanding - discount, 0) - payingNow,
+            0
+          ),
+          discountAmount: discount,
+          paymentOption: option,
+          paymentMethod: values.payment_method,
+          nextInstallmentDate: values.next_installment_date,
+          photoUrl: student.image || "",
+          authorizedBy: currentUser?.name || "",
+          classStartTime: student.batch?.class_start_time || "",
+          classEndTime: student.batch?.class_end_time || "",
+        };
+        setPaidSlipPayload(slipPayload);
+        setHasPaid(true);
+        saveLastFeeSlipPayload(student._id, slipPayload);
+
         toast({
           title: "Payment recorded",
           description:
             discount > 0
-              ? `${formatAmount(payingNow)} collected, ${formatAmount(discount)} discount applied.`
-              : `${formatAmount(payingNow)} collected. Student balance updated.`,
+              ? `${formatAmount(payingNow)} collected, ${formatAmount(discount)} discount applied. You can print the slip now.`
+              : `${formatAmount(payingNow)} collected. You can print the slip now.`,
           status: "success",
           duration: 4500,
           isClosable: true,
         });
-
-        dispatch(fetchStudents({ authToken }));
-        handleClose();
       } catch (error) {
         toast({
           title: "Could not record payment",
@@ -264,31 +290,36 @@ function GeneratePendingFeeSlipAction({
 
   useEffect(() => {
     if (!isOpen) return;
-    setHasPrintedSlip(false);
-    setPaymentOption("full");
+    setHasPaid(false);
+    setPaidSlipPayload(null);
     setEvidenceFiles([]);
     setEvidenceError("");
     formik.resetForm();
   }, [isOpen, student?._id]);
 
-  const discount = Math.round(Number(formik.values.discount_amount) || 0);
+  const paymentOption =
+    formik.values.payment_option === "partial" ? "partial" : "full";
+  const discount = parseRupees(formik.values.discount_amount);
   const payable = Math.max(outstanding - discount, 0);
   const payingNow =
     paymentOption === "full"
       ? payable
-      : Math.round(Number(formik.values.amount) || 0);
+      : parseRupees(formik.values.amount);
   const remainingAfter = Math.max(payable - payingNow, 0);
 
   const handleClose = () => {
+    if (hasPaid) {
+      dispatch(fetchStudents({ authToken }));
+    }
     if (isControlled) {
       controlledOnClose?.();
     } else {
       setInternalOpen(false);
     }
-    setPaymentOption("full");
     setEvidenceFiles([]);
     setEvidenceError("");
-    setHasPrintedSlip(false);
+    setHasPaid(false);
+    setPaidSlipPayload(null);
     formik.resetForm();
   };
 
@@ -298,122 +329,34 @@ function GeneratePendingFeeSlipAction({
     } else {
       setInternalOpen(true);
     }
-    setHasPrintedSlip(false);
+    setHasPaid(false);
+    setPaidSlipPayload(null);
   };
 
   const selectPaymentOption = (option) => {
-    setPaymentOption(option);
-    setHasPrintedSlip(false);
+    if (hasPaid) return;
+    formik.setFieldValue("payment_option", option);
     if (option === "full") {
       formik.setFieldValue("amount", "");
       formik.setFieldValue("next_installment_date", "");
     }
   };
 
-  const buildSlipPayload = () => ({
-    name: student.name,
-    phone: student.phone,
-    cnic: student.cnic || "",
-    rollNumber: student.roll_number,
-    batchName: student.batch?.name || "N/A",
-    batchFee: Number(student.batch?.batch_fee) || 0,
-    totalFee: Number(student.total_fee) || Number(student.batch?.batch_fee) || 0,
-    paidFee: Number(student.paid_fee) || 0,
-    outstandingBalance: outstanding,
-    payingNow,
-    remainingAfter,
-    discountAmount: discount,
-    paymentOption,
-    paymentMethod: formik.values.payment_method,
-    nextInstallmentDate: formik.values.next_installment_date,
-    photoUrl: student.image || "",
-    authorizedBy: currentUser?.name || "",
-    classStartTime: student.batch?.class_start_time || "",
-    classEndTime: student.batch?.class_end_time || "",
-  });
-
   const handlePrintSlip = async ({ duplicate = false } = {}) => {
-    const errors = await formik.validateForm();
-    const relevantKeys =
-      paymentOption === "partial"
-        ? Object.keys(errors)
-        : ["payment_method", "remarks", "discount_amount"];
-
-    const relevantErrors = relevantKeys.filter((k) => errors[k]);
-    if (relevantErrors.length) {
-      formik.setTouched({
-        amount: true,
-        discount_amount: true,
-        discount_description: true,
-        payment_method: true,
-        next_installment_date: true,
-        remarks: true,
-      });
+    if (!hasPaid || !paidSlipPayload) {
       toast({
-        title: "Complete required fields",
-        description: "Fill payment details before printing the fee slip.",
+        title: "Record payment first",
+        description: "Submit the payment, then print the fee slip.",
         status: "warning",
         duration: 4000,
         isClosable: true,
       });
-      return;
-    }
-
-    if (discount > outstanding) {
-      toast({
-        title: "Invalid discount",
-        description: "Discount cannot exceed outstanding balance.",
-        status: "warning",
-        duration: 4000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (paymentOption === "partial" && payingNow > payable) {
-      toast({
-        title: "Invalid partial amount",
-        description: "Partial payment cannot exceed payable balance after discount.",
-        status: "warning",
-        duration: 4000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (paymentOption === "partial" && payingNow >= payable && payable > 0) {
-      toast({
-        title: "Invalid partial amount",
-        description: "Use full payment when paying the entire remaining balance.",
-        status: "warning",
-        duration: 4000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (!(payingNow > 0) && !(discount > 0)) {
-      toast({
-        title: "Enter payment or discount",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (
-      payingNow > 0 &&
-      requiresPaymentEvidence(formik.values.payment_method) &&
-      evidenceFiles.length === 0
-    ) {
-      setEvidenceError("Online payment receipt/slip is required");
       return;
     }
 
     setIsPrinting(true);
     try {
-      const payload = { ...buildSlipPayload(), isDuplicate: duplicate };
+      const payload = { ...paidSlipPayload, isDuplicate: duplicate };
       const { qrDataUrl, verifyUrl } = await issueSlipVerificationQr({
         authToken,
         student_name: payload.name,
@@ -436,13 +379,11 @@ function GeneratePendingFeeSlipAction({
         { ...payload, qrDataUrl, verifyUrl },
         "print"
       );
-      saveLastFeeSlipPayload(student._id, payload);
-      setHasPrintedSlip(true);
       toast({
         title: duplicate ? "Duplicate slip ready" : "Fee slip ready",
         description: duplicate
           ? "Duplicate slip opened for printing."
-          : "You can now submit the payment.",
+          : "Fee slip opened for printing.",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -485,7 +426,7 @@ function GeneratePendingFeeSlipAction({
     formik.handleSubmit();
   };
 
-  if (!student || outstanding <= 0) {
+  if (!student || (outstanding <= 0 && !hasPaid)) {
     if (showTrigger) return null;
     return null;
   }
@@ -551,11 +492,9 @@ function GeneratePendingFeeSlipAction({
                   name="discount_amount"
                   borderRadius="0.5rem"
                   placeholder="0"
+                  isDisabled={hasPaid}
                   value={formik.values.discount_amount}
-                  onChange={(e) => {
-                    setHasPrintedSlip(false);
-                    formik.handleChange(e);
-                  }}
+                  onChange={formik.handleChange}
                 />
                 {formik.touched.discount_amount && formik.errors.discount_amount ? (
                   <Text color="red.500" fontSize="sm" mt={1}>
@@ -571,11 +510,9 @@ function GeneratePendingFeeSlipAction({
                     name="discount_description"
                     borderRadius="0.5rem"
                     placeholder="Reason for discount"
+                    isDisabled={hasPaid}
                     value={formik.values.discount_description}
-                    onChange={(e) => {
-                      setHasPrintedSlip(false);
-                      formik.handleChange(e);
-                    }}
+                    onChange={formik.handleChange}
                   />
                 </FormControl>
               ) : null}
@@ -604,6 +541,7 @@ function GeneratePendingFeeSlipAction({
                     variant={paymentOption === "full" ? "solid" : "outline"}
                     colorScheme="yellow"
                     onClick={() => selectPaymentOption("full")}
+                    isDisabled={hasPaid}
                   >
                     Pay Full Remaining Balance
                   </Button>
@@ -613,7 +551,7 @@ function GeneratePendingFeeSlipAction({
                     variant={paymentOption === "partial" ? "solid" : "outline"}
                     colorScheme="orange"
                     onClick={() => selectPaymentOption("partial")}
-                    isDisabled={payable <= 0}
+                    isDisabled={hasPaid || payable <= 0}
                   >
                     Pay Partial Amount
                   </Button>
@@ -629,11 +567,9 @@ function GeneratePendingFeeSlipAction({
                       name="amount"
                       borderRadius="0.5rem"
                       placeholder="Enter amount"
+                      isDisabled={hasPaid}
                       value={formik.values.amount}
-                      onChange={(e) => {
-                        setHasPrintedSlip(false);
-                        formik.handleChange(e);
-                      }}
+                      onChange={formik.handleChange}
                     />
                     {formik.touched.amount && formik.errors.amount ? (
                       <Text color="red.500" fontSize="sm" mt={1}>
@@ -649,11 +585,9 @@ function GeneratePendingFeeSlipAction({
                       name="next_installment_date"
                       borderRadius="0.5rem"
                       min={today}
+                      isDisabled={hasPaid}
                       value={formik.values.next_installment_date}
-                      onChange={(e) => {
-                        setHasPrintedSlip(false);
-                        formik.handleChange(e);
-                      }}
+                      onChange={formik.handleChange}
                     />
                     {formik.touched.next_installment_date &&
                     formik.errors.next_installment_date ? (
@@ -702,13 +636,14 @@ function GeneratePendingFeeSlipAction({
                           method === "Online Payment" ? "blue" : "yellow"
                         }
                         onClick={() => {
-                          setHasPrintedSlip(false);
+                          if (hasPaid) return;
                           formik.setFieldValue("payment_method", method);
                           if (!requiresPaymentEvidence(method)) {
                             setEvidenceFiles([]);
                             setEvidenceError("");
                           }
                         }}
+                        isDisabled={hasPaid}
                       >
                         {method}
                       </Button>
@@ -723,13 +658,13 @@ function GeneratePendingFeeSlipAction({
                   <PaymentEvidenceUploader
                     files={evidenceFiles}
                     onChange={(next) => {
+                      if (hasPaid) return;
                       setEvidenceFiles(next);
                       setEvidenceError(
                         next.length
                           ? ""
                           : "Online payment receipt/slip is required"
                       );
-                      setHasPrintedSlip(false);
                     }}
                     error={evidenceError}
                     label="Online payment receipt / slip"
@@ -743,11 +678,9 @@ function GeneratePendingFeeSlipAction({
                   name="remarks"
                   borderRadius="0.5rem"
                   placeholder="Required for all payment types"
+                  isDisabled={hasPaid}
                   value={formik.values.remarks}
-                  onChange={(e) => {
-                    setHasPrintedSlip(false);
-                    formik.handleChange(e);
-                  }}
+                  onChange={formik.handleChange}
                 />
                 {formik.touched.remarks && formik.errors.remarks ? (
                   <Text color="red.500" fontSize="sm" mt={1}>
@@ -760,12 +693,13 @@ function GeneratePendingFeeSlipAction({
                 p={3}
                 borderRadius="lg"
                 border="1px dashed"
-                borderColor={hasPrintedSlip ? "green.300" : "gray.300"}
-                bg={hasPrintedSlip ? "green.50" : "white"}
+                borderColor={hasPaid ? "green.300" : "gray.300"}
+                bg={hasPaid ? "green.50" : "white"}
               >
                 <Text fontSize="sm" color="gray.600" mb={2}>
-                  Print the fee slip before submitting. Use Print Duplicate if the
-                  printer failed.
+                  {hasPaid
+                    ? "Payment recorded. Print the fee slip now. Use Print Duplicate if the printer failed."
+                    : "Submit the payment first. Printing is enabled after the payment is recorded."}
                 </Text>
                 <HStack spacing={2} flexWrap="wrap">
                   <Button
@@ -776,6 +710,7 @@ function GeneratePendingFeeSlipAction({
                     onClick={() => handlePrintSlip({ duplicate: false })}
                     isLoading={isPrinting}
                     loadingText="Preparing"
+                    isDisabled={!hasPaid}
                   >
                     Print Fee Slip
                   </Button>
@@ -786,14 +721,14 @@ function GeneratePendingFeeSlipAction({
                     leftIcon={<Printer size={16} />}
                     onClick={() => handlePrintSlip({ duplicate: true })}
                     isLoading={isPrinting}
-                    isDisabled={!hasPrintedSlip && !(payingNow > 0 || discount > 0)}
+                    isDisabled={!hasPaid}
                   >
                     Print Duplicate
                   </Button>
                 </HStack>
-                {hasPrintedSlip ? (
+                {hasPaid ? (
                   <Text fontSize="sm" color="green.700" mt={2}>
-                    Slip printed / previewed — ready to submit.
+                    Payment submitted — you can print the slip.
                   </Text>
                 ) : null}
               </Box>
@@ -802,7 +737,7 @@ function GeneratePendingFeeSlipAction({
 
           <ModalFooter flexShrink={0} gap={2}>
             <Button variant="ghost" onClick={handleClose}>
-              Cancel
+              {hasPaid ? "Close" : "Cancel"}
             </Button>
             <Button
               type="button"
@@ -811,10 +746,10 @@ function GeneratePendingFeeSlipAction({
               _hover={{ backgroundColor: "#74A0E3", color: "#223163" }}
               isLoading={updateStatus === "loading" || formik.isSubmitting}
               loadingText="Submitting"
-              isDisabled={!hasPrintedSlip}
+              isDisabled={hasPaid}
               onClick={handleSubmitClick}
             >
-              Submit Payment
+              {hasPaid ? "Payment Recorded" : "Submit Payment"}
             </Button>
           </ModalFooter>
         </ModalContent>

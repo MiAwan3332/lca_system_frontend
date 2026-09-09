@@ -3,6 +3,7 @@ import { formatClassTimeRange } from "./classTime";
 import {
   createFeeSlipPdf,
   drawFeeNonRefundableNote,
+  drawPendingDuesNotice,
   getFeeSlipContentStartY,
   getFeeSlipFrame,
 } from "./feeSlipLayout";
@@ -150,6 +151,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     remainingFee = 0,
     paymentOption = "later",
     paymentMethod = "N/A",
+    nextInstallmentDate = "",
     photoFile = null,
     authorizedBy = "",
     classStartTime = "",
@@ -328,14 +330,44 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     y,
     true
   );
+  const hasPendingDues = Number(remainingFee) > 0;
+  if (hasPendingDues) {
+    y = drawRow(
+      "Next Installment",
+      nextInstallmentDate
+        ? moment(nextInstallmentDate).format("DD MMM YYYY")
+        : "To be scheduled",
+      y
+    );
+  }
   y += 1.5;
 
-  // ── Fee chips (Total + Remaining) ──
+  if (hasPendingDues) {
+    y = drawPendingDuesNotice(doc, {
+      x: innerX,
+      y,
+      width: innerW,
+      remaining: remainingFee,
+      nextInstallmentDate,
+      title:
+        paymentOption === "later"
+          ? "DUES PENDING (NOT PAID)"
+          : "DUES PENDING (PARTIAL PAYMENT)",
+      formatCurrency,
+      formatDate: (value) => moment(value).format("DD MMM YYYY"),
+      colors: COLORS,
+    });
+  }
+
+  // ── Fee chips (Total + Remaining / Dues Pending) ──
   const chipH = 10;
   const halfW = (innerW - gap) / 2;
   const chips = [
     { label: "Total", value: formatCurrency(batchFee) },
-    { label: "Remaining", value: formatCurrency(remainingFee) },
+    {
+      label: hasPendingDues ? "Dues Pending" : "Remaining",
+      value: formatCurrency(remainingFee),
+    },
   ];
 
   chips.forEach((chip, i) => {
