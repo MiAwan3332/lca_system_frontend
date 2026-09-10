@@ -3,17 +3,24 @@ import { ACADEMY_BRANDING } from "./academyBranding";
 
 export const FEE_NON_REFUNDABLE_NOTE = "Fee: Non Refundable";
 export const SLIP_WIDTH_IN = 5;
-export const SLIP_HEIGHT_IN = 7;
+export const SLIP_HEIGHT_IN = 7.5;
 export const SLIP_WIDTH_MM = SLIP_WIDTH_IN * 25.4;
 export const SLIP_HEIGHT_MM = SLIP_HEIGHT_IN * 25.4;
 
-/** Print margins on 5×7 paper (applied when printing fee / admission slips). */
+/** Print margins on 5×7.5 paper (applied when printing fee / admission slips). */
 export const SLIP_PRINT_MARGIN_TOP_IN = 1;
 export const SLIP_PRINT_MARGIN_BOTTOM_IN = 1;
 export const SLIP_PRINT_MARGIN_TOP_MM = SLIP_PRINT_MARGIN_TOP_IN * 25.4;
 export const SLIP_PRINT_MARGIN_BOTTOM_MM = SLIP_PRINT_MARGIN_BOTTOM_IN * 25.4;
+/** Extra space under slip text (3px). */
+export const SLIP_TEXT_MARGIN_BOTTOM_PX = 3;
+export const SLIP_TEXT_MARGIN_BOTTOM_MM =
+  (SLIP_TEXT_MARGIN_BOTTOM_PX * 25.4) / 96;
 export const SLIP_PRINT_CONTENT_HEIGHT_MM =
-  SLIP_HEIGHT_MM - SLIP_PRINT_MARGIN_TOP_MM - SLIP_PRINT_MARGIN_BOTTOM_MM;
+  SLIP_HEIGHT_MM -
+  SLIP_PRINT_MARGIN_TOP_MM -
+  SLIP_PRINT_MARGIN_BOTTOM_MM -
+  SLIP_TEXT_MARGIN_BOTTOM_MM;
 
 /** Target print resolution for thermal / photo printers. */
 export const SLIP_PRINT_DPI = 203;
@@ -31,14 +38,14 @@ const BRANDING_COLORS = {
   muted: [110, 110, 110],
 };
 
-/** jsPDF document sized exactly for 5×7 inch paper (width × height). */
+/** jsPDF document sized for 5×7.5 inch paper (width × height). */
 export const createFeeSlipPdf = () =>
   new jsPDF({
     unit: "mm",
     format: [SLIP_WIDTH_MM, SLIP_HEIGHT_MM],
   });
 
-/** Shared layout tuned for compact 5×7 slips. */
+/** Shared layout tuned for compact 5×7.5 slips. */
 export const getFeeSlipFrame = (doc, options = {}) => {
   const includeBranding = options.includeBranding !== false;
   const usePrintMargins =
@@ -65,6 +72,7 @@ export const getFeeSlipFrame = (doc, options = {}) => {
     usePrintMargins,
     marginTop,
     marginBottom,
+    textMarginBottom: SLIP_TEXT_MARGIN_BOTTOM_MM,
     headerH: includeBranding ? 14 : 0,
     footerH: includeBranding ? 9 : 0,
     logoBox: 8,

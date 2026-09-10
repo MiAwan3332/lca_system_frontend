@@ -151,7 +151,7 @@ const printImageDataUrl = (imageDataUrl) =>
     };
   });
 
-/** Print a jsPDF fee slip at exactly 5×7 inches without browser header/footer chrome. */
+/** Print a jsPDF fee slip at 5×7.5 inches without browser header/footer chrome. */
 export const printFeeSlipPdf = async (doc) => {
   const pdfBytes = new Uint8Array(doc.output("arraybuffer"));
   const imageDataUrl = await pdfBytesToImageDataUrl(pdfBytes);
@@ -174,7 +174,7 @@ export const printFeeSlipFromUrl = async (slipUrl) => {
   await printImageDataUrl(imageDataUrl);
 };
 
-/** Print a fee slip PDF blob at exactly 5×7 inches. */
+/** Print a fee slip PDF blob at 5×7.5 inches. */
 export const printFeeSlipBlob = async (blob) => {
   const pdfBytes = new Uint8Array(await blob.arrayBuffer());
   const imageDataUrl = await pdfBytesToImageDataUrl(pdfBytes);
