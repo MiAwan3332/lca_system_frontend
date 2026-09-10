@@ -3,6 +3,7 @@ import { formatClassTimeRange } from "./classTime";
 import {
   createFeeSlipPdf,
   drawFeeNonRefundableNote,
+  drawFeeSummaryChips,
   drawPendingDuesNotice,
   getFeeSlipContentStartY,
   getFeeSlipFrame,
@@ -330,18 +331,20 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     y,
     true
   );
-  const hasPendingDues = Number(remainingFee) > 0;
-  if (hasPendingDues) {
-    y = drawRow(
-      "Next Installment",
-      nextInstallmentDate
+  y = drawRow("Paid Amount", formatCurrency(payingNow), y);
+  y = drawRow(
+    "Next Installment",
+    Number(remainingFee) > 0
+      ? nextInstallmentDate
         ? moment(nextInstallmentDate).format("DD MMM YYYY")
-        : "To be scheduled",
-      y
-    );
-  }
+        : "To be scheduled"
+      : "N/A",
+    y,
+    true
+  );
   y += 1.5;
 
+  const hasPendingDues = Number(remainingFee) > 0;
   if (hasPendingDues) {
     y = drawPendingDuesNotice(doc, {
       x: innerX,
@@ -359,34 +362,17 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     });
   }
 
-  // ── Fee chips (Total + Remaining / Dues Pending) ──
-  const chipH = 10;
-  const halfW = (innerW - gap) / 2;
-  const chips = [
-    { label: "Total", value: formatCurrency(batchFee) },
-    {
-      label: hasPendingDues ? "Dues Pending" : "Remaining",
-      value: formatCurrency(remainingFee),
-    },
-  ];
-
-  chips.forEach((chip, i) => {
-    const cx = innerX + i * (halfW + gap);
-    doc.setFillColor(...COLORS.soft);
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.25);
-    doc.roundedRect(cx, y, halfW, chipH, 1, 1, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(5);
-    doc.setTextColor(...COLORS.label);
-    doc.text(chip.label.toUpperCase(), cx + 1.5, y + 3.5);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...COLORS.charcoal);
-    const vLines = doc.splitTextToSize(chip.value, halfW - 3);
-    doc.text(vLines[0], cx + 1.5, y + 8);
+  y = drawFeeSummaryChips(doc, {
+    innerX,
+    y,
+    innerW,
+    gap,
+    total: batchFee,
+    paid: payingNow,
+    pending: remainingFee,
+    formatCurrency,
+    colors: COLORS,
   });
-  y += chipH + 2;
 
   // ── Footer: signature ──
   const footerStart = Math.max(y, contentBottom - 18);
