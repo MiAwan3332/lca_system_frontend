@@ -173,6 +173,67 @@ export const drawFeeSlipBrandingFooter = (doc, frame) => {
 };
 
 /**
+ * Three-up money summary used on admission / fee / duplicate slips:
+ * Total, Paid, Pending Dues.
+ */
+export const drawFeeSummaryChips = (
+  doc,
+  {
+    innerX,
+    y,
+    innerW,
+    gap = 1.2,
+    total = 0,
+    paid = 0,
+    pending = 0,
+    formatCurrency,
+    colors = {},
+  } = {}
+) => {
+  const chipH = 10;
+  const colW = (innerW - gap * 2) / 3;
+  const charcoal = colors.charcoal || [33, 37, 41];
+  const label = colors.label || [90, 95, 105];
+  const border = colors.border || [210, 215, 220];
+  const soft = colors.soft || [248, 249, 251];
+  const goldSoft = colors.goldSoft || [245, 236, 220];
+  const gold = colors.gold || [180, 130, 55];
+  const money = (value) =>
+    typeof formatCurrency === "function"
+      ? formatCurrency(value)
+      : `Rs. ${Number(value || 0).toLocaleString("en-PK")}`;
+
+  const chips = [
+    { label: "Total", value: money(total), highlight: false },
+    { label: "Paid Amount", value: money(paid), highlight: false },
+    {
+      label: "Pending Dues",
+      value: money(pending),
+      highlight: Number(pending) > 0,
+    },
+  ];
+
+  chips.forEach((chip, i) => {
+    const cx = innerX + i * (colW + gap);
+    doc.setFillColor(...(chip.highlight ? goldSoft : soft));
+    doc.setDrawColor(...(chip.highlight ? gold : border));
+    doc.setLineWidth(0.25);
+    doc.roundedRect(cx, y, colW, chipH, 1, 1, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(4.4);
+    doc.setTextColor(...label);
+    doc.text(chip.label.toUpperCase(), cx + 1.2, y + 3.2);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.4);
+    doc.setTextColor(...(chip.highlight ? gold : charcoal));
+    const vLines = doc.splitTextToSize(chip.value, colW - 2.4);
+    doc.text(vLines[0], cx + 1.2, y + 7.8);
+  });
+
+  return y + chipH + 1.6;
+};
+
+/**
  * Highlight remaining dues and next installment on admission / fee / duplicate slips.
  * Returns the y position after the block (unchanged if there are no pending dues).
  */
