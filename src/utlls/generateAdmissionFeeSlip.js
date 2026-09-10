@@ -191,6 +191,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     photoW,
     photoH,
     gap,
+    textMarginBottom = 0,
   } = frame;
 
   const paymentLabel = getPaymentLabel(paymentOption);
@@ -198,7 +199,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const issuedAt = moment().format("DD MMM YYYY · hh:mm A");
   const signerName =
     String(authorizedBy || "").trim() || "Administration Office";
-  const contentBottom = cardY + cardH - pad * 0.5;
+  const contentBottom = cardY + cardH - pad * 0.5 - textMarginBottom;
 
   doc.setFillColor(...COLORS.white);
   doc.rect(cardX, cardY, cardW, cardH, "F");
