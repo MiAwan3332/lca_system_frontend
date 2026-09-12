@@ -20,6 +20,7 @@ function SearchableUserSelect({
   placeholder = "Search or select user",
   width = "12rem",
   isMulti = false,
+  emptyOptionLabel = "",
 }) {
   const containerRef = useRef(null);
   const [search, setSearch] = useState("");
@@ -49,7 +50,8 @@ function SearchableUserSelect({
     return sortedUsers.filter(
       (user) =>
         user.name?.toLowerCase().includes(query) ||
-        user.email?.toLowerCase().includes(query)
+        user.email?.toLowerCase().includes(query) ||
+        user.role?.toLowerCase().includes(query)
     );
   }, [sortedUsers, search]);
 
@@ -176,7 +178,8 @@ function SearchableUserSelect({
         size="lg"
         borderRadius="xl"
       />
-      {isOpen && filteredUsers.length > 0 && (
+      {isOpen &&
+        (filteredUsers.length > 0 || (emptyOptionLabel && !isMulti && !search.trim())) && (
         <List
           position="absolute"
           top="100%"
@@ -189,9 +192,24 @@ function SearchableUserSelect({
           borderRadius="xl"
           maxH="240px"
           overflowY="auto"
-          zIndex={10}
+          zIndex={20}
           boxShadow="md"
         >
+          {emptyOptionLabel && !isMulti && !search.trim() && (
+            <ListItem
+              px={4}
+              py={2}
+              cursor="pointer"
+              color="#718096"
+              fontSize="sm"
+              bg={!value ? "#FFCB82" : "white"}
+              _hover={{ bg: "#FFCB82" }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleClearSelection}
+            >
+              {emptyOptionLabel}
+            </ListItem>
+          )}
           {isMulti && (
             <ListItem
               px={4}
@@ -228,9 +246,21 @@ function SearchableUserSelect({
                       colorScheme="yellow"
                     />
                     <Text fontSize="sm">{user.name}</Text>
+                    {user.role ? (
+                      <Text fontSize="xs" color="gray.500">
+                        {user.role}
+                      </Text>
+                    ) : null}
                   </Flex>
                 ) : (
-                  user.name
+                  <>
+                    {user.name}
+                    {user.role ? (
+                      <Text as="span" fontSize="xs" color="gray.500" ml={1}>
+                        ({user.role})
+                      </Text>
+                    ) : null}
+                  </>
                 )}
               </ListItem>
             );
