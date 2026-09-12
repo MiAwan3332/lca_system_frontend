@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import {
@@ -23,6 +23,8 @@ import {
   useToast,
   VStack,
   Spinner,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
 import {
   Ban,
@@ -31,6 +33,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ListOrdered,
+  MessageSquareText,
   RefreshCw,
   Send,
 } from "lucide-react";
@@ -56,6 +59,52 @@ const STATUS_META = {
   failed: { label: "Failed", color: "red" },
   cancelled: { label: "Cancelled", color: "gray" },
 };
+
+const STUDENT_TAG_KEYS = new Set([
+  "name",
+  "phone",
+  "cnic",
+  "roll_number",
+  "batch",
+  "class_time",
+  "admission_date",
+  "total_fee",
+  "paid_fee",
+  "pending_fee",
+  "amount_received",
+  "payment_method",
+  "password",
+  "portal_url",
+  "academy_name",
+]);
+
+const QUALIFIER_TAG_KEYS = new Set([
+  "name",
+  "phone",
+  "cnic",
+  "css_pms_roll_no",
+  "roll_number",
+  "class_type",
+  "email",
+  "description",
+  "batch",
+  "status",
+  "role",
+  "discount",
+  "total_fee",
+  "paid_fee",
+  "pending_fee",
+  "amount_received",
+  "payment_method",
+  "password",
+  "portal_url",
+  "academy_name",
+]);
+
+const tagKey = (tag) =>
+  String(tag || "")
+    .replace(/^\{\{|\}\}$/g, "")
+    .trim();
 
 function formatDate(value) {
   if (!value) return "—";
@@ -106,8 +155,11 @@ function WhatsAppQueue() {
   const [audience, setAudience] = useState("qualifiers");
   const [batchId, setBatchId] = useState("");
   const [templates, setTemplates] = useState([]);
+  const [tags, setTags] = useState([]);
   const [templateKey, setTemplateKey] = useState("");
   const [customBody, setCustomBody] = useState("");
+  const [showTags, setShowTags] = useState(false);
+  const textareaRef = useRef(null);
 
   const headers = useMemo(
     () => ({ Authorization: `Bearer ${authToken}` }),
@@ -116,6 +168,31 @@ function WhatsAppQueue() {
 
   const batchOptions =
     audience === "qualifiers" ? interviewBatches : activeBatches;
+
+  const visibleTags = useMemo(() => {
+    const allowed =
+      audience === "qualifiers" ? QUALIFIER_TAG_KEYS : STUDENT_TAG_KEYS;
+    return tags.filter((item) => allowed.has(tagKey(item.tag)));
+  }, [audience, tags]);
+
+  const insertTag = (tag) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setCustomBody((prev) => `${prev}${tag}`);
+      setShowTags(true);
+      return;
+    }
+    const start = el.selectionStart ?? customBody.length;
+    const end = el.selectionEnd ?? customBody.length;
+    const next = `${customBody.slice(0, start)}${tag}${customBody.slice(end)}`;
+    setCustomBody(next);
+    setShowTags(true);
+    window.requestAnimationFrame(() => {
+      el.focus();
+      const cursor = start + tag.length;
+      el.setSelectionRange(cursor, cursor);
+    });
+  };
 
   const loadQueue = useCallback(async () => {
     try {
@@ -161,6 +238,7 @@ function WhatsAppQueue() {
       });
       const list = Array.isArray(data.templates) ? data.templates : [];
       setTemplates(list.filter((t) => t.is_active !== false));
+      setTags(Array.isArray(data.tags) ? data.tags : []);
       if (!templateKey && list.length) {
         const preferred =
           list.find((t) => t.process === "qualifier_welcome") ||
@@ -523,12 +601,43 @@ function WhatsAppQueue() {
               Custom message (optional — overrides template)
             </FormLabel>
             <Textarea
+              ref={textareaRef}
               value={customBody}
               onChange={(e) => setCustomBody(e.target.value)}
+              onFocus={() => setShowTags(true)}
               placeholder="Assalam o Alaikum {{name}}! ..."
               rows={4}
+              fontFamily="mono"
+              fontSize="sm"
             />
           </FormControl>
+
+          {(showTags || Boolean(customBody.trim())) && visibleTags.length > 0 && (
+            <Box>
+              <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                Insert tags
+              </Text>
+              <Text fontSize="xs" color="gray.500" mb={2}>
+                Click a tag to insert recipient info into your custom message.
+              </Text>
+              <Wrap spacing={2}>
+                {visibleTags.map((item) => (
+                  <WrapItem key={item.tag}>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      leftIcon={<MessageSquareText size={12} />}
+                      onClick={() => insertTag(item.tag)}
+                      title={item.label}
+                      borderRadius="md"
+                    >
+                      {item.tag}
+                    </Button>
+                  </WrapItem>
+                ))}
+              </Wrap>
+            </Box>
+          )}
 
           <Button
             alignSelf="flex-start"
