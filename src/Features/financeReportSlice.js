@@ -12,10 +12,19 @@ const initialState = {
 
 const buildReportParams = (payload = {}) => {
   const params = new URLSearchParams();
-  const { period = "daily", date, batch_id, changed_by } = payload;
+  const {
+    period = "daily",
+    date,
+    start_date,
+    end_date,
+    batch_id,
+    changed_by,
+  } = payload;
 
   params.append("period", period);
   if (date) params.append("date", date);
+  if (start_date) params.append("start_date", start_date);
+  if (end_date) params.append("end_date", end_date);
 
   const toList = (value) => {
     if (Array.isArray(value)) {

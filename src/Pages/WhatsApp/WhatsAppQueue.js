@@ -670,7 +670,7 @@ function WhatsAppQueue() {
         </FormControl>
         <FormControl maxW="260px">
           <Input
-            placeholder="Search name or phone..."
+            placeholder="Search name, phone, or sender..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onBlur={applySearch}
@@ -694,6 +694,7 @@ function WhatsAppQueue() {
                   <Th>Recipient</Th>
                   <Th>Phone</Th>
                   <Th>Template / Source</Th>
+                  <Th>Sent by</Th>
                   <Th>Status</Th>
                   <Th>Queued</Th>
                   <Th>Sent / Cancelled</Th>
@@ -703,7 +704,7 @@ function WhatsAppQueue() {
               <Tbody>
                 {docs.length === 0 ? (
                   <Tr>
-                    <Td colSpan={7}>
+                    <Td colSpan={8}>
                       <Text py={6} textAlign="center" color="gray.500">
                         No messages in the queue yet.
                       </Text>
@@ -715,6 +716,11 @@ function WhatsAppQueue() {
                       label: item.status,
                       color: "gray",
                     };
+                    const sentBy =
+                      item.created_by_name ||
+                      item.created_by?.name ||
+                      item.created_by?.email ||
+                      "—";
                     return (
                       <Tr key={item._id}>
                         <Td>
@@ -735,6 +741,9 @@ function WhatsAppQueue() {
                           <Text fontSize="xs" color="gray.500">
                             {item.source || ""}
                           </Text>
+                        </Td>
+                        <Td>
+                          <Text fontSize="sm">{sentBy}</Text>
                         </Td>
                         <Td>
                           <Badge colorScheme={meta.color} borderRadius="md">
