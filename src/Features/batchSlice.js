@@ -113,7 +113,10 @@ const deleteBatch = createAsyncThunk("batches/deleteBatch", async (payload) => {
       Authorization: `Bearer ${authToken}`,
     },
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to delete batch");
+  }
   return data;
 });
 
@@ -417,8 +420,16 @@ const batchSlice = createSlice({
       })
       .addCase(deleteBatch.fulfilled, (state, action) => {
         state.deleteStatus = "success";
+        const studentsDeleted = action.payload?.summary?.students_deleted;
         toast({
-          title: "Batch Deleted Successfully",
+          title: "Batch deleted",
+          description:
+            studentsDeleted > 0
+              ? `Removed batch plus ${studentsDeleted} enrolled student${
+                  studentsDeleted === 1 ? "" : "s"
+                } and related finance records.`
+              : action.payload?.message ||
+                "Batch and related records deleted successfully.",
           status: "success",
           duration: 9000,
           isClosable: true,
@@ -428,7 +439,8 @@ const batchSlice = createSlice({
         state.deleteStatus = "failure";
         state.error.push(action.error.message);
         toast({
-          title: "Batch Deletion Failed",
+          title: "Batch deletion failed",
+          description: action.error.message || "Please try again.",
           status: "error",
           duration: 9000,
           isClosable: true,

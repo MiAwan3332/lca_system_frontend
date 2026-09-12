@@ -413,7 +413,11 @@ function Batch() {
                           <UpdateModal batch={batch} />
                         )}
                         {canManageInstitution && hasPermission(["Delete_Batch"]) && (
-                          <DeleteModal batchId={batch._id} />
+                          <DeleteModal
+                            batchId={batch._id}
+                            batchName={batch.name}
+                            enrolledCount={batch.enrolled_student_count || 0}
+                          />
                         )}
                         {canManageInstitution && hasPermission(["Update_Batch"]) && (
                           <AssignCoursesModal batchId={batch._id} />

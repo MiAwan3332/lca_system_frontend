@@ -110,6 +110,33 @@ const PERIOD_OPTIONS = [
   { value: "yearly", label: "Yearly" },
 ];
 
+const getPeriodDateRange = (period, date) => {
+  const refDate = date ? moment(date) : moment();
+  switch (period) {
+    case "weekly":
+      return {
+        start: refDate.clone().startOf("isoWeek").format("YYYY-MM-DD"),
+        end: refDate.clone().endOf("isoWeek").format("YYYY-MM-DD"),
+      };
+    case "monthly":
+      return {
+        start: refDate.clone().startOf("month").format("YYYY-MM-DD"),
+        end: refDate.clone().endOf("month").format("YYYY-MM-DD"),
+      };
+    case "yearly":
+      return {
+        start: refDate.clone().startOf("year").format("YYYY-MM-DD"),
+        end: refDate.clone().endOf("year").format("YYYY-MM-DD"),
+      };
+    case "daily":
+    default:
+      return {
+        start: refDate.clone().format("YYYY-MM-DD"),
+        end: refDate.clone().format("YYYY-MM-DD"),
+      };
+  }
+};
+
 const formatRs = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-PK", {
     maximumFractionDigits: 0,
@@ -182,7 +209,9 @@ function FinanceReport() {
   const toast = useToast();
   const [authToken] = useState(Cookies.get("authToken"));
   const [period, setPeriod] = useState("daily");
-  const [reportDate, setReportDate] = useState(moment().format("YYYY-MM-DD"));
+  const today = moment().format("YYYY-MM-DD");
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
   const [formBatch, setFormBatch] = useState([]);
   const [formChangedBy, setFormChangedBy] = useState(ALL_ADMIN_USERS_VALUE);
   const [txnTypeFilter, setTxnTypeFilter] = useState([]);
@@ -221,11 +250,14 @@ function FinanceReport() {
   const collectedByLabel = selectedAdminUser?.name || "All admin users";
 
   const loadReport = (filters = {}) => {
+    const nextFrom = filters.start_date ?? fromDate;
+    const nextTo = filters.end_date ?? toDate;
     dispatch(
       fetchFinanceReport({
         authToken,
         period: filters.period ?? period,
-        date: filters.date ?? reportDate,
+        start_date: nextFrom,
+        end_date: nextTo,
         batch_id: filters.batch_id ?? formBatch,
         changed_by: filters.changed_by ?? formChangedBy,
       })
@@ -233,14 +265,47 @@ function FinanceReport() {
   };
 
   const handlePeriodChange = (nextPeriod) => {
+    const range = getPeriodDateRange(nextPeriod, fromDate || today);
     setPeriod(nextPeriod);
-    loadReport({ period: nextPeriod });
+    setFromDate(range.start);
+    setToDate(range.end);
+    loadReport({
+      period: nextPeriod,
+      start_date: range.start,
+      end_date: range.end,
+    });
   };
 
-  const handleDateChange = (e) => {
-    const nextDate = e.target.value;
-    setReportDate(nextDate);
-    loadReport({ date: nextDate });
+  const handleFromDateChange = (e) => {
+    const nextFrom = e.target.value;
+    let nextTo = toDate;
+    if (nextFrom && nextTo && moment(nextFrom).isAfter(moment(nextTo))) {
+      nextTo = nextFrom;
+      setToDate(nextTo);
+    }
+    setFromDate(nextFrom);
+    setPeriod("custom");
+    loadReport({
+      period: "custom",
+      start_date: nextFrom,
+      end_date: nextTo,
+    });
+  };
+
+  const handleToDateChange = (e) => {
+    const nextTo = e.target.value;
+    let nextFrom = fromDate;
+    if (nextFrom && nextTo && moment(nextTo).isBefore(moment(nextFrom))) {
+      nextFrom = nextTo;
+      setFromDate(nextFrom);
+    }
+    setToDate(nextTo);
+    setPeriod("custom");
+    loadReport({
+      period: "custom",
+      start_date: nextFrom,
+      end_date: nextTo,
+    });
   };
 
   const handleBatchChange = (batch_id) => {
@@ -256,9 +321,10 @@ function FinanceReport() {
   };
 
   const handleClearFilters = () => {
-    const today = moment().format("YYYY-MM-DD");
+    const resetDay = moment().format("YYYY-MM-DD");
     setPeriod("daily");
-    setReportDate(today);
+    setFromDate(resetDay);
+    setToDate(resetDay);
     setFormBatch([]);
     setFormChangedBy(ALL_ADMIN_USERS_VALUE);
     setTxnTypeFilter([]);
@@ -268,7 +334,8 @@ function FinanceReport() {
     setTxnSearch("");
     loadReport({
       period: "daily",
-      date: today,
+      start_date: resetDay,
+      end_date: resetDay,
       batch_id: [],
       changed_by: ALL_ADMIN_USERS_VALUE,
     });
@@ -294,7 +361,9 @@ function FinanceReport() {
   const getExportPayload = () => ({
     transactions: filteredTransactions,
     period,
-    date: reportDate,
+    date: fromDate,
+    startDate: fromDate,
+    endDate: toDate,
     batchName: selectedBatchNames.join(", ") || undefined,
     collectedBy: collectedByLabel,
     totalCash: summary.total_cash,
@@ -364,7 +433,8 @@ function FinanceReport() {
     dispatch(fetchUsers({ authToken }));
     loadReport({
       period: "daily",
-      date: moment().format("YYYY-MM-DD"),
+      start_date: moment().format("YYYY-MM-DD"),
+      end_date: moment().format("YYYY-MM-DD"),
       batch_id: [],
       changed_by: ALL_ADMIN_USERS_VALUE,
     });
@@ -372,7 +442,9 @@ function FinanceReport() {
 
   const summary = report?.summary || {};
   const batchWiseCollections = summary.batch_wise || [];
-  const periodLabel = PERIOD_OPTIONS.find((item) => item.value === period)?.label;
+  const periodLabel =
+    PERIOD_OPTIONS.find((item) => item.value === period)?.label ||
+    (period === "custom" ? "Custom" : "Report");
   const reportSubtitle =
     report && `${periodLabel} report: ${report.start_date} to ${report.end_date}`;
 
@@ -476,12 +548,29 @@ function FinanceReport() {
           </ButtonGroup>
         </div>
         <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+          <FormLabel fontSize="xs" mb={1} color="gray.500">
+            From date
+          </FormLabel>
           <Input
             type="date"
             size="lg"
             borderRadius="xl"
-            value={reportDate}
-            onChange={handleDateChange}
+            value={fromDate}
+            max={toDate || undefined}
+            onChange={handleFromDateChange}
+          />
+        </FormControl>
+        <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+          <FormLabel fontSize="xs" mb={1} color="gray.500">
+            To date
+          </FormLabel>
+          <Input
+            type="date"
+            size="lg"
+            borderRadius="xl"
+            value={toDate}
+            min={fromDate || undefined}
+            onChange={handleToDateChange}
           />
         </FormControl>
         <FormControl className="responsive-input" w={{ base: "full", md: "14rem" }}>
