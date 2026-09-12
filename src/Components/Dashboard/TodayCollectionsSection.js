@@ -1,5 +1,5 @@
 import React from "react";
-import { FormControl, FormLabel, Select } from "@chakra-ui/react";
+import { FormControl, FormLabel } from "@chakra-ui/react";
 import {
   CircleDollarSign,
   HandCoins,
@@ -7,6 +7,7 @@ import {
   Wallet,
 } from "lucide-react";
 import KpiCard from "./KpiCard";
+import SearchableUserSelect from "../SearchableUserSelect";
 
 const formatRs = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-PK", {
@@ -44,21 +45,14 @@ function TodayCollectionsSection({
           <FormLabel fontSize="xs" mb={1} color="gray.500">
             Filter by user
           </FormLabel>
-          <Select
-            size="md"
-            borderRadius="xl"
+          <SearchableUserSelect
+            users={adminUsers}
             value={selectedUserId}
-            onChange={(e) => onUserChange?.(e.target.value)}
-            bg="white"
-          >
-            <option value="">All users</option>
-            {adminUsers.map((admin) => (
-              <option key={admin._id} value={admin._id}>
-                {admin.name}
-                {admin.role ? ` (${admin.role})` : ""}
-              </option>
-            ))}
-          </Select>
+            onChange={(next) => onUserChange?.(next || "")}
+            placeholder="Search user..."
+            emptyOptionLabel="All users"
+            width="100%"
+          />
         </FormControl>
       </div>
 
