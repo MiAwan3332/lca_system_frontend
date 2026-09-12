@@ -42,11 +42,12 @@ import TableRowLoading from "../../Components/TableRowLoading";
 import AssignCoursesModal from "./AssignCoursesModal";
 import AssignTeachersModal from "./AssignTeachersModal";
 import BatchDeactivateConfirmModal from "./BatchDeactivateConfirmModal";
+import SendBatchWhatsAppModal from "./SendBatchWhatsAppModal";
 import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isInstitutionAdmin, isTeacherRole } from "../../utlls/teacherAccess";
-import { hasPermission } from "../../utlls/useful";
+import { hasPermission, isPlatformSuperAdminRole } from "../../utlls/useful";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 import { config } from "../../utlls/config";
@@ -180,8 +181,10 @@ function Batch() {
   };
 
   const canUseGoogleSync = !viewOnly && (canManageInstitution || isTeacher);
+  const canSendWhatsApp = !viewOnly && isPlatformSuperAdminRole();
   const statusColumnCount = !viewOnly && canManageInstitution ? 1 : 0;
-  const actionColumnCount = !viewOnly && (canManageInstitution || canUseGoogleSync) ? 1 : 0;
+  const actionColumnCount =
+    !viewOnly && (canManageInstitution || canUseGoogleSync || canSendWhatsApp) ? 1 : 0;
   const googleColumnCount = canUseGoogleSync ? 1 : 0;
   const feeDateColumnCount = showFeeAndDates ? 4 : 0;
   const baseColumnCount = 4 + feeDateColumnCount; // No, Name, Description, Batch Type (+ fee/dates/class time)
@@ -279,7 +282,7 @@ function Batch() {
                 {showFeeAndDates && <Th>Class Time</Th>}
                 {canUseGoogleSync && <Th>Google Classroom</Th>}
                 {!viewOnly && canManageInstitution && <Th>Status</Th>}
-                {!viewOnly && (canManageInstitution || canUseGoogleSync) && <Th isNumeric>Action</Th>}
+                {!viewOnly && (canManageInstitution || canUseGoogleSync || canSendWhatsApp) && <Th isNumeric>Action</Th>}
               </Tr>
             </Thead>
             <Tbody>
@@ -389,9 +392,12 @@ function Batch() {
                         </HStack>
                       </Td>
                     )}
-                    {!viewOnly && (canManageInstitution || canUseGoogleSync) && (
+                    {!viewOnly && (canManageInstitution || canUseGoogleSync || canSendWhatsApp) && (
                     <Td className="space-x-3 flex justify-end" isNumeric>
                       <ActionMenu>
+                        {canSendWhatsApp && (
+                          <SendBatchWhatsAppModal batch={batch} />
+                        )}
                         {canUseGoogleSync && (
                           <Button
                             leftIcon={<Cloud size={14} />}
