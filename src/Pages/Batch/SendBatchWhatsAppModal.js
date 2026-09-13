@@ -36,10 +36,27 @@ const STUDENT_TAG_KEYS = new Set([
   "total_fee",
   "paid_fee",
   "pending_fee",
+  "pending_dues",
+  "next_installment_date",
+  "nextInstallmentDate",
   "amount_received",
   "payment_method",
   "password",
   "portal_url",
+  "academy_name",
+]);
+
+const PENDING_DUES_TAG_KEYS = new Set([
+  "name",
+  "phone",
+  "roll_number",
+  "batch",
+  "total_fee",
+  "paid_fee",
+  "pending_fee",
+  "pending_dues",
+  "next_installment_date",
+  "nextInstallmentDate",
   "academy_name",
 ]);
 
@@ -66,6 +83,19 @@ const QUALIFIER_TAG_KEYS = new Set([
   "academy_name",
 ]);
 
+const PENDING_DUES_DEFAULT_BODY = `Assalam o Alaikum {{name}}!
+
+This is a reminder from {{academy_name}} Accounts regarding your pending dues.
+
+• Total Fee: Rs. {{total_fee}}
+• Paid Fee: Rs. {{paid_fee}}
+• Pending Dues: Rs. {{pending_dues}}
+• Next Installment Date: {{nextInstallmentDate}}
+
+Clear your pending dues immediately. Late payment may result in your LCA account being stuck/blocked from all academy activities until dues are cleared.
+
+— {{academy_name}} Accounts`;
+
 const tagKey = (tag) =>
   String(tag || "")
     .replace(/^\{\{|\}\}$/g, "")
@@ -77,7 +107,9 @@ const SendBatchWhatsAppModal = ({ batch }) => {
   const toast = useToast();
   const textareaRef = useRef(null);
 
-  const defaultAudience = batch?.is_interview_batch ? "qualifiers" : "students";
+  const defaultAudience = batch?.is_interview_batch
+    ? "qualifiers"
+    : "students";
 
   const [audience, setAudience] = useState(defaultAudience);
   const [templates, setTemplates] = useState([]);
@@ -93,11 +125,16 @@ const SendBatchWhatsAppModal = ({ batch }) => {
     [authToken]
   );
 
+  const isPendingDuesAudience = audience === "pending_dues_students";
+
   const visibleTags = useMemo(() => {
-    const allowed =
-      audience === "qualifiers" ? QUALIFIER_TAG_KEYS : STUDENT_TAG_KEYS;
+    const allowed = isPendingDuesAudience
+      ? PENDING_DUES_TAG_KEYS
+      : audience === "qualifiers"
+        ? QUALIFIER_TAG_KEYS
+        : STUDENT_TAG_KEYS;
     return tags.filter((item) => allowed.has(tagKey(item.tag)));
-  }, [audience, tags]);
+  }, [audience, isPendingDuesAudience, tags]);
 
   const onOpen = () => {
     setAudience(batch?.is_interview_batch ? "qualifiers" : "students");
@@ -108,6 +145,16 @@ const SendBatchWhatsAppModal = ({ batch }) => {
   const onClose = () => {
     if (queueing) return;
     setIsOpen(false);
+  };
+
+  const handleAudienceChange = (nextAudience) => {
+    setAudience(nextAudience);
+    if (nextAudience === "pending_dues_students") {
+      setCustomBody((prev) => prev.trim() || PENDING_DUES_DEFAULT_BODY);
+      setShowTags(true);
+      const feeReminder = templates.find((t) => t.process === "fee_reminder");
+      if (feeReminder?.key) setTemplateKey(feeReminder.key);
+    }
   };
 
   const loadTemplates = useCallback(async () => {
@@ -125,6 +172,7 @@ const SendBatchWhatsAppModal = ({ batch }) => {
         if (prev && list.some((t) => t.key === prev)) return prev;
         const preferred =
           list.find((t) => t.process === "custom") ||
+          list.find((t) => t.process === "fee_reminder") ||
           list.find((t) => t.process === "qualifier_welcome") ||
           list[0];
         return preferred?.key || "";
@@ -184,7 +232,7 @@ const SendBatchWhatsAppModal = ({ batch }) => {
       const payload = {
         audience,
         batch_id: batch._id,
-        source: "batch_page",
+        source: isPendingDuesAudience ? "batch_pending_dues" : "batch_page",
       };
       if (customBody.trim()) {
         payload.body = customBody.trim();
@@ -222,7 +270,7 @@ const SendBatchWhatsAppModal = ({ batch }) => {
     }
   };
 
-  const tagsVisible = showTags || Boolean(customBody.trim());
+  const tagsVisible = showTags || Boolean(customBody.trim()) || isPendingDuesAudience;
 
   return (
     <>
@@ -245,7 +293,10 @@ const SendBatchWhatsAppModal = ({ batch }) => {
           <ModalBody>
             <VStack align="stretch" spacing={4}>
               <Text fontSize="sm" color="gray.600">
-                Queue WhatsApp messages for everyone in{" "}
+                Queue WhatsApp messages for{" "}
+                {isPendingDuesAudience
+                  ? "students with pending dues in"
+                  : "everyone in"}{" "}
                 <Text as="span" fontWeight="semibold" color="gray.800">
                   {batch?.name || "this batch"}
                 </Text>
@@ -256,13 +307,24 @@ const SendBatchWhatsAppModal = ({ batch }) => {
                 <FormLabel fontSize="sm">Audience</FormLabel>
                 <Select
                   value={audience}
-                  onChange={(e) => setAudience(e.target.value)}
+                  onChange={(e) => handleAudienceChange(e.target.value)}
                   borderRadius="xl"
                 >
-                  <option value="students">Students</option>
+                  <option value="students">All students</option>
+                  <option value="pending_dues_students">
+                    Pending dues holders (students)
+                  </option>
                   <option value="qualifiers">Qualifiers</option>
                 </Select>
               </FormControl>
+
+              {isPendingDuesAudience ? (
+                <Text fontSize="xs" color="orange.700">
+                  Only active students with pending dues &gt; 0 will be queued.
+                  Use tags for total fee, paid fee, pending dues, and next
+                  installment date.
+                </Text>
+              ) : null}
 
               <FormControl>
                 <FormLabel fontSize="sm">Template</FormLabel>
@@ -293,7 +355,7 @@ const SendBatchWhatsAppModal = ({ batch }) => {
                   onChange={(e) => setCustomBody(e.target.value)}
                   onFocus={() => setShowTags(true)}
                   placeholder="Assalam o Alaikum {{name}}! ..."
-                  rows={4}
+                  rows={isPendingDuesAudience ? 10 : 4}
                   borderRadius="xl"
                   fontFamily="mono"
                   fontSize="sm"

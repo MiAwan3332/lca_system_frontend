@@ -14,6 +14,7 @@ const initialState = {
   pendingCount: 0,
   approvedCount: 0,
   rejectedCount: 0,
+  refundedCount: 0,
   filters: {
     ...TABLE_FILTERS,
     status: "",
@@ -159,6 +160,7 @@ const refundRequestSlice = createSlice({
         state.pendingCount = action.payload.pendingCount || 0;
         state.approvedCount = action.payload.approvedCount || 0;
         state.rejectedCount = action.payload.rejectedCount || 0;
+        state.refundedCount = action.payload.refundedCount || 0;
       })
       .addCase(fetchRefundRequests.rejected, (state, action) => {
         state.fetchStatus = "failed";
