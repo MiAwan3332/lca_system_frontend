@@ -71,10 +71,27 @@ const STUDENT_TAG_KEYS = new Set([
   "total_fee",
   "paid_fee",
   "pending_fee",
+  "pending_dues",
+  "next_installment_date",
+  "nextInstallmentDate",
   "amount_received",
   "payment_method",
   "password",
   "portal_url",
+  "academy_name",
+]);
+
+const PENDING_DUES_TAG_KEYS = new Set([
+  "name",
+  "phone",
+  "roll_number",
+  "batch",
+  "total_fee",
+  "paid_fee",
+  "pending_fee",
+  "pending_dues",
+  "next_installment_date",
+  "nextInstallmentDate",
   "academy_name",
 ]);
 
@@ -100,6 +117,19 @@ const QUALIFIER_TAG_KEYS = new Set([
   "portal_url",
   "academy_name",
 ]);
+
+const PENDING_DUES_DEFAULT_BODY = `Assalam o Alaikum {{name}}!
+
+This is a reminder from {{academy_name}} Accounts regarding your pending dues.
+
+• Total Fee: Rs. {{total_fee}}
+• Paid Fee: Rs. {{paid_fee}}
+• Pending Dues: Rs. {{pending_dues}}
+• Next Installment Date: {{nextInstallmentDate}}
+
+Clear your pending dues immediately. Late payment may result in your LCA account being stuck/blocked from all academy activities until dues are cleared.
+
+— {{academy_name}} Accounts`;
 
 const tagKey = (tag) =>
   String(tag || "")
@@ -171,7 +201,11 @@ function WhatsAppQueue() {
 
   const visibleTags = useMemo(() => {
     const allowed =
-      audience === "qualifiers" ? QUALIFIER_TAG_KEYS : STUDENT_TAG_KEYS;
+      audience === "qualifiers"
+        ? QUALIFIER_TAG_KEYS
+        : audience === "pending_dues_students"
+          ? PENDING_DUES_TAG_KEYS
+          : STUDENT_TAG_KEYS;
     return tags.filter((item) => allowed.has(tagKey(item.tag)));
   }, [audience, tags]);
 
@@ -399,7 +433,10 @@ function WhatsAppQueue() {
       const payload = {
         audience,
         batch_id: batchId,
-        source: "bulk_page",
+        source:
+          audience === "pending_dues_students"
+            ? "bulk_pending_dues"
+            : "bulk_page",
       };
       if (customBody.trim()) {
         payload.body = customBody.trim();
@@ -549,20 +586,31 @@ function WhatsAppQueue() {
             Queue bulk messages
           </Text>
           <Text fontSize="sm" color="gray.600">
-            Choose students or qualifiers in a batch, pick a template (or custom
-            text), then queue. Messages appear below as In-Queue and send every{" "}
-            {delaySeconds}s.
+            Choose students, pending-dues holders, or qualifiers in a batch, pick
+            a template (or custom text), then queue. Messages appear below as
+            In-Queue and send every {delaySeconds}s.
           </Text>
 
           <HStack align="end" flexWrap="wrap" gap={3}>
-            <FormControl maxW="200px">
+            <FormControl maxW="260px">
               <FormLabel fontSize="sm">Audience</FormLabel>
               <Select
                 value={audience}
-                onChange={(e) => setAudience(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setAudience(next);
+                  setBatchId("");
+                  if (next === "pending_dues_students") {
+                    setCustomBody((prev) => prev.trim() || PENDING_DUES_DEFAULT_BODY);
+                    setShowTags(true);
+                  }
+                }}
               >
                 <option value="qualifiers">Qualifiers</option>
-                <option value="students">Students</option>
+                <option value="students">All students</option>
+                <option value="pending_dues_students">
+                  Pending dues holders (students)
+                </option>
               </Select>
             </FormControl>
 

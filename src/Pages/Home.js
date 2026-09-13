@@ -37,6 +37,7 @@ import {
 } from "../Components/Dashboard/dashboardConfig";
 import MonthlyColumnChart from "../Components/MonthlyStudentChart";
 import BatchChart from "../Components/BatchChart";
+import BatchStudentStatusSection from "../Components/Dashboard/BatchStudentStatusSection";
 import OverdueFeeAlert from "../Components/OverdueFeeAlert";
 
 const ALL_USERS_VALUE = "";
@@ -474,6 +475,12 @@ function Home() {
               />
             </div>
           </section>
+
+          {hasPermission(["view_total_enrolled_students"]) && (
+            <section className="mb-4">
+              <BatchStudentStatusSection filters={dashboardFilters} />
+            </section>
+          )}
         </>
       )}
 

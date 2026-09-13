@@ -25,7 +25,7 @@ import Cookies from "js-cookie";
 import { HandCoins } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import ActionButton from "../../Components/ActionButton";
-import { processRefundRequest } from "../../Features/refundRequestSlice";
+import { processRefundRequest, fetchRefundRequests } from "../../Features/refundRequestSlice";
 import { fetchStudents } from "../../Features/studentSlice";
 import { canDecideRefundRequest } from "../../utlls/refundAccess";
 
@@ -108,6 +108,7 @@ function ProcessRefundAction({ student }) {
       ).unwrap();
       handleClose();
       dispatch(fetchStudents({ authToken }));
+      dispatch(fetchRefundRequests({ authToken }));
     } catch (err) {
       setIsConfirmOpen(false);
       toast({

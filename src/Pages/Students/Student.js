@@ -18,6 +18,7 @@ import {
   Switch,
   Badge,
   HStack,
+  VStack,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import UpdateModal from "./UpdateModal";
@@ -35,15 +36,16 @@ import {
   setLimitFilter as setBatchLimitFilter,
 } from "../../Features/batchSlice";
 import QrCodeModal from "../../Components/Modals/Student/QrCodeModal";
-import { FileX, FilterX, Plus, FileUp } from "lucide-react";
+import { FileX, FilterX, Plus, FileUp, Archive, HandCoins, GraduationCap } from "lucide-react";
 import {
   fetchStudents,
   selectAllStudents,
+  selectStudentStatusCounts,
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
   setBatchFilter,
-  setEnrollmentFilter,
+  setPaymentStatusFilter,
   setStartDateFilter,
   setEndDateFilter,
   setCityFilter,
@@ -63,12 +65,21 @@ import ExportModal from "./ExportModal";
 import StudentImportModal from "./StudentImportModal";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import DeleteModal from "./DeleteModal";
+import StudentRefundHistoryPanel from "./StudentRefundHistoryPanel";
+import DeletedStudentsPanel from "./DeletedStudentsPanel";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
 import { hasPermission, canDeleteStudent, canShiftStudentBatch } from "../../utlls/useful";
+import { canAccessRequestManagement } from "../../utlls/refundAccess";
 import { useNavigate } from "react-router-dom";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
+
+const LIST_VIEWS = {
+  all: "all",
+  refund: "refund",
+  deleted: "deleted",
+};
 
 function Student() {
   const navigate = useNavigate();
@@ -76,8 +87,11 @@ function Student() {
   const [authToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [listView, setListView] = useState(LIST_VIEWS.all);
   const showDeleteStudent = canDeleteStudent();
   const showShiftBatch = canShiftStudentBatch();
+  const showRefundToggle = canAccessRequestManagement();
+  const showListViewSwitcher = showRefundToggle || showDeleteStudent;
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
   const onImportOpen = () => setIsImportOpen(true);
@@ -87,6 +101,7 @@ function Student() {
     (state) => state.students
   );
   const students = useSelector(selectAllStudents);
+  const statusCounts = useSelector(selectStudentStatusCounts);
   const batches = useSelector(selectActiveBatches);
   const dispatch = useDispatch();
 
@@ -96,22 +111,22 @@ function Student() {
 
   const handleBatchChange = (batch_id) => {
     dispatch(setBatchFilter(batch_id));
-    loadStudents();
+    setTimeout(() => loadStudents(), 0);
   };
 
-  const handleEnrollmentChange = (e) => {
-    dispatch(setEnrollmentFilter(e.target.value));
-    loadStudents();
+  const handlePaymentStatusChange = (e) => {
+    dispatch(setPaymentStatusFilter(e.target.value));
+    setTimeout(() => loadStudents(), 0);
   };
 
   const handleStartDateChange = (e) => {
     dispatch(setStartDateFilter(e.target.value));
-    loadStudents();
+    setTimeout(() => loadStudents(), 0);
   };
 
   const handleEndDateChange = (e) => {
     dispatch(setEndDateFilter(e.target.value));
-    loadStudents();
+    setTimeout(() => loadStudents(), 0);
   };
 
   const handleCityChange = (e) => {
@@ -131,10 +146,79 @@ function Student() {
     }
   };
 
-  const handleStatusFilterChange = (e) => {
-    dispatch(setStatusFilter(e.target.value));
-    loadStudents();
+  const handleStatusFilterChange = (value) => {
+    const next = value == null ? "" : String(value);
+    dispatch(setStatusFilter(next));
+    // Defer fetch so Redux filter state is applied before params are read.
+    setTimeout(() => {
+      dispatch(fetchStudents({ authToken }));
+    }, 0);
   };
+
+  const handleStatusSelectChange = (e) => {
+    handleStatusFilterChange(e.target.value);
+  };
+
+  const STATUS_COUNT_OPTIONS = [
+    { value: "", label: "Total", count: statusCounts.total },
+    { value: "true", label: "Active", count: statusCounts.active },
+    { value: "false", label: "Inactive", count: statusCounts.inactive },
+  ];
+
+  const renderStatusCountFilters = () => (
+    <div className="w-full">
+      <Text fontSize="xs" color="gray.500" mb={1} fontWeight="medium">
+        Student counts
+      </Text>
+      <div className="grid grid-cols-3 gap-2 w-full max-w-xl">
+        {STATUS_COUNT_OPTIONS.map((option) => {
+          const isSelected = String(filters.is_active || "") === option.value;
+          return (
+            <Button
+              key={option.label}
+              type="button"
+              size="md"
+              w="full"
+              h="auto"
+              py={2.5}
+              px={3}
+              borderRadius="xl"
+              border="1px solid"
+              borderColor={isSelected ? "#E3B574" : "#E0E8EC"}
+              bg={isSelected ? "#FFCB82" : "white"}
+              color={isSelected ? "#654E26" : "#4A5568"}
+              _hover={{ bg: isSelected ? "#E3B574" : "#FFFBF5" }}
+              onClick={() => handleStatusFilterChange(option.value)}
+            >
+              <VStack spacing={0} w="full">
+                <Text as="span" fontWeight="600" fontSize="sm">
+                  {option.label}
+                </Text>
+                <Text as="span" fontWeight="700" fontSize="md" lineHeight="1.2">
+                  {Number(option.count) || 0}
+                </Text>
+              </VStack>
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderStatusSelectFilter = () => (
+    <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
+      <Select
+        size="lg"
+        borderRadius="xl"
+        value={filters.is_active || ""}
+        onChange={handleStatusSelectChange}
+      >
+        <option value="">All statuses</option>
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </Select>
+    </FormControl>
+  );
 
   const handleToggleStudentStatus = (student) => {
     const nextStatus = student.is_active === false;
@@ -200,12 +284,17 @@ function Student() {
     : 7;
 
   useEffect(() => {
+    dispatch(clearStudentFilters());
     if (isTeacher) {
       dispatch(setSearchFieldFilter("name"));
     }
     dispatch(setBatchLimitFilter(100));
     dispatch(fetchBatches({ authToken }));
-    dispatch(fetchStudents({ authToken }));
+    // Defer so cleared filters are applied before the list request.
+    const timer = setTimeout(() => {
+      dispatch(fetchStudents({ authToken }));
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -236,12 +325,26 @@ function Student() {
       )}
 
       <PageHeader
-        title={viewOnly ? "My Profile" : "All Students"}
+        title={
+          viewOnly
+            ? "My Profile"
+            : listView === LIST_VIEWS.refund
+              ? "Refund History"
+              : listView === LIST_VIEWS.deleted
+                ? "Deleted Students"
+                : "All Students"
+        }
         subtitle={
-          isTeacher ? "Students from your assigned batches only." : undefined
+          listView === LIST_VIEWS.refund
+            ? "Students who requested refunds — pending, approved, refunded, and rejected."
+            : listView === LIST_VIEWS.deleted
+              ? "Who deleted which student, with complete archived finance data."
+              : isTeacher
+                ? "Students from your assigned batches only."
+                : undefined
         }
       >
-        {showAdminControls && (
+        {showAdminControls && listView === LIST_VIEWS.all && (
           <FilterStack className="filter-stack--actions">
             {hasPermission(["Add_Student"]) && (
               <>
@@ -268,182 +371,219 @@ function Student() {
         )}
       </PageHeader>
 
-      {isTeacher && (
-        <FilterStack className="filter-stack--panel filter-stack--table mt-3">
-          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-            <SearchableBatchSelect
-              batches={batches}
-              value={filters.batch_id}
-              onChange={handleBatchChange}
-              placeholder="All Assigned Batches"
-              width="100%"
-            />
-          </FormControl>
-          <div className="w-full sm:max-w-xs">
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchStudents}
-              placeholder="Search by student name..."
-            />
-          </div>
-          {canUpdateStudent && (
-            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-              <Select
-                size="lg"
-                borderRadius="xl"
-                placeholder="Account Status"
-                value={filters.is_active}
-                onChange={handleStatusFilterChange}
-              >
-                <option value="">All Statuses</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </Select>
-            </FormControl>
-          )}
-          {(filters.batch_id || filters.query || filters.is_active) && (
-            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-              <FilterX className="h-4 w-4" />
+      {showAdminControls && showListViewSwitcher && (
+        <FilterStack className="filter-stack--panel mt-3 mb-1">
+          <ButtonGroup
+            isAttached
+            variant="outline"
+            borderRadius="xl"
+            flexWrap="wrap"
+            size="md"
+          >
+            <Button
+              leftIcon={<GraduationCap size={16} />}
+              borderRadius="xl"
+              bg={listView === LIST_VIEWS.all ? "#FFCB82" : "white"}
+              borderColor={listView === LIST_VIEWS.all ? "#E3B574" : "#E0E8EC"}
+              color={listView === LIST_VIEWS.all ? "#654E26" : "#4A5568"}
+              onClick={() => setListView(LIST_VIEWS.all)}
+            >
+              All Students
             </Button>
-          )}
-          {canUpdateStudent && filters.batch_id && (
-            <>
+            {showRefundToggle && (
               <Button
-                size="sm"
-                colorScheme="green"
+                leftIcon={<HandCoins size={16} />}
                 borderRadius="xl"
-                onClick={() => handleBatchStudentsStatus(true)}
+                bg={listView === LIST_VIEWS.refund ? "#FFCB82" : "white"}
+                borderColor={
+                  listView === LIST_VIEWS.refund ? "#E3B574" : "#E0E8EC"
+                }
+                color={listView === LIST_VIEWS.refund ? "#654E26" : "#4A5568"}
+                onClick={() => setListView(LIST_VIEWS.refund)}
               >
-                Activate all
+                Refund History
               </Button>
+            )}
+            {showDeleteStudent && (
               <Button
-                size="sm"
-                colorScheme="red"
-                variant="outline"
+                leftIcon={<Archive size={16} />}
                 borderRadius="xl"
-                onClick={() => handleBatchStudentsStatus(false)}
+                bg={listView === LIST_VIEWS.deleted ? "#FFCB82" : "white"}
+                borderColor={
+                  listView === LIST_VIEWS.deleted ? "#E3B574" : "#E0E8EC"
+                }
+                color={listView === LIST_VIEWS.deleted ? "#654E26" : "#4A5568"}
+                onClick={() => setListView(LIST_VIEWS.deleted)}
               >
-                Deactivate all
+                Deleted Students
               </Button>
-            </>
-          )}
+            )}
+          </ButtonGroup>
         </FilterStack>
       )}
 
+      {showAdminControls && listView === LIST_VIEWS.refund ? (
+        <StudentRefundHistoryPanel />
+      ) : showAdminControls && listView === LIST_VIEWS.deleted ? (
+        <DeletedStudentsPanel />
+      ) : (
+        <>
+      {isTeacher && (
+        <>
+          <div className="mt-3 mb-2">{renderStatusCountFilters()}</div>
+          <FilterStack className="filter-stack--panel filter-stack--table mt-2">
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+              <SearchableBatchSelect
+                batches={batches}
+                value={filters.batch_id}
+                onChange={handleBatchChange}
+                placeholder="All Assigned Batches"
+                width="100%"
+              />
+            </FormControl>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchStudents}
+                placeholder="Search by student name..."
+              />
+            </div>
+            {renderStatusSelectFilter()}
+            {(filters.batch_id || filters.query || filters.is_active) && (
+              <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+                <FilterX className="h-4 w-4" />
+              </Button>
+            )}
+            {canUpdateStudent && filters.batch_id && (
+              <>
+                <Button
+                  size="sm"
+                  colorScheme="green"
+                  borderRadius="xl"
+                  onClick={() => handleBatchStudentsStatus(true)}
+                >
+                  Activate all
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  variant="outline"
+                  borderRadius="xl"
+                  onClick={() => handleBatchStudentsStatus(false)}
+                >
+                  Deactivate all
+                </Button>
+              </>
+            )}
+          </FilterStack>
+        </>
+      )}
+
       {showAdminControls && (
-      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
-          <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
-            <Select
-              size="lg"
-              borderRadius="xl"
-              value={filters.search_field}
-              onChange={handleSearchFieldChange}
-            >
-              <option value="all">All Fields</option>
-              <option value="name">Name</option>
-              <option value="email">Email</option>
-              <option value="phone">Phone</option>
-            </Select>
-          </FormControl>
-          <div className="w-full sm:max-w-xs">
-            <TableSearch
-              ref={tableSearchRef}
-              setQueryFilter={setQueryFilter}
-              method={fetchStudents}
-              placeholder={searchPlaceholder}
-            />
-          </div>
-          <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
-            <SearchableBatchSelect
-              batches={batches}
-              value={filters.batch_id}
-              onChange={handleBatchChange}
-              placeholder="All Batches"
-              width="100%"
-            />
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "11rem" }}>
-            <Select
-              placeholder="Enrollment Status"
-              size="lg"
-              borderRadius="xl"
-              value={filters.enrollment_status}
-              onChange={handleEnrollmentChange}
-            >
-              <option value="enrolled">Enrolled</option>
-              <option value="unenrolled">Unenrolled</option>
-            </Select>
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-            <Input
-              type="date"
-              size="lg"
-              borderRadius="xl"
-              placeholder="Admission From"
-              value={filters.start_date}
-              onChange={handleStartDateChange}
-            />
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-            <Input
-              type="date"
-              size="lg"
-              borderRadius="xl"
-              placeholder="Admission To"
-              value={filters.end_date}
-              onChange={handleEndDateChange}
-            />
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "9rem" }}>
-            <Input
-              placeholder="City"
-              size="lg"
-              borderRadius="xl"
-              value={filters.city}
-              onChange={handleCityChange}
-              onKeyDown={handleCityKeyDown}
-              onBlur={loadStudents}
-            />
-          </FormControl>
-          <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
-            <Select
-              size="lg"
-              borderRadius="xl"
-              placeholder="Account Status"
-              value={filters.is_active}
-              onChange={handleStatusFilterChange}
-            >
-              <option value="">All Statuses</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </Select>
-          </FormControl>
-          {canUpdateStudent && filters.batch_id && selectedBatch && (
-            <>
-              <Button
-                size="sm"
-                colorScheme="green"
+        <>
+          <div className="mt-3 mb-2">{renderStatusCountFilters()}</div>
+          <FilterStack className="filter-stack--panel filter-stack--table mt-2">
+            <FormControl className="responsive-input" w={{ base: "full", sm: "10rem" }}>
+              <Select
+                size="lg"
                 borderRadius="xl"
-                onClick={() => handleBatchStudentsStatus(true)}
+                value={filters.search_field}
+                onChange={handleSearchFieldChange}
               >
-                Activate all in {selectedBatch.name}
-              </Button>
-              <Button
-                size="sm"
-                colorScheme="red"
-                variant="outline"
+                <option value="all">All Fields</option>
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+              </Select>
+            </FormControl>
+            <div className="w-full sm:max-w-xs">
+              <TableSearch
+                ref={tableSearchRef}
+                setQueryFilter={setQueryFilter}
+                method={fetchStudents}
+                placeholder={searchPlaceholder}
+              />
+            </div>
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+              <SearchableBatchSelect
+                batches={batches}
+                value={filters.batch_id}
+                onChange={handleBatchChange}
+                placeholder="All Batches"
+                width="100%"
+              />
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "12rem" }}>
+              <Select
+                size="lg"
                 borderRadius="xl"
-                onClick={() => handleBatchStudentsStatus(false)}
+                value={filters.payment_status || ""}
+                onChange={handlePaymentStatusChange}
               >
-                Deactivate all in {selectedBatch.name}
-              </Button>
-            </>
-          )}
-          <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
-            <FilterX className="h-4 w-4" />
-          </Button>
-      </FilterStack>
+                <option value="">All payment statuses</option>
+                <option value="pending_dues">Pending Dues</option>
+                <option value="fully_paid">Fully Paid</option>
+              </Select>
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+              <Input
+                type="date"
+                size="lg"
+                borderRadius="xl"
+                placeholder="Admission From"
+                value={filters.start_date}
+                onChange={handleStartDateChange}
+              />
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "10rem" }}>
+              <Input
+                type="date"
+                size="lg"
+                borderRadius="xl"
+                placeholder="Admission To"
+                value={filters.end_date}
+                onChange={handleEndDateChange}
+              />
+            </FormControl>
+            <FormControl className="responsive-input" w={{ base: "full", md: "9rem" }}>
+              <Input
+                placeholder="City"
+                size="lg"
+                borderRadius="xl"
+                value={filters.city}
+                onChange={handleCityChange}
+                onKeyDown={handleCityKeyDown}
+                onBlur={loadStudents}
+              />
+            </FormControl>
+            {renderStatusSelectFilter()}
+            {canUpdateStudent && filters.batch_id && selectedBatch && (
+              <>
+                <Button
+                  size="sm"
+                  colorScheme="green"
+                  borderRadius="xl"
+                  onClick={() => handleBatchStudentsStatus(true)}
+                >
+                  Activate all in {selectedBatch.name}
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  variant="outline"
+                  borderRadius="xl"
+                  onClick={() => handleBatchStudentsStatus(false)}
+                >
+                  Deactivate all in {selectedBatch.name}
+                </Button>
+              </>
+            )}
+            <Button size="icon" p={4} borderRadius="xl" onClick={handleClearFilters}>
+              <FilterX className="h-4 w-4" />
+            </Button>
+          </FilterStack>
+        </>
       )}
 
       <DataTableShell>
@@ -581,6 +721,8 @@ function Student() {
           setPageFilter={setPageFilter}
           method={fetchStudents}
         />
+      )}
+        </>
       )}
       <AddModel isOpen={isAddOpen && showAdminControls} onClose={onAddClose} />
       <StudentImportModal

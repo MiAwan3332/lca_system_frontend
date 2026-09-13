@@ -11,12 +11,39 @@ const BASE_URL = config.BASE_URL;
 const TABLE_FILTERS = config.TABLE_FILTERS;
 const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
+const STUDENT_QUERY_KEYS = [
+    "query",
+    "page",
+    "limit",
+    "batch_id",
+    "payment_status",
+    "start_date",
+    "end_date",
+    "city",
+    "search_field",
+    "is_active",
+];
+
+const buildStudentQueryParams = (filters = {}) => {
+    const params = {
+        page: Number(filters.page) || 1,
+        limit: Number(filters.limit) || 10,
+    };
+    STUDENT_QUERY_KEYS.forEach((key) => {
+        if (key === "page" || key === "limit") return;
+        const value = filters[key];
+        if (value === undefined || value === null || value === "") return;
+        params[key] = value;
+    });
+    return params;
+};
+
 const initialState = {
     students: [],
     filters: {
         ...TABLE_FILTERS,
         batch_id: "",
-        enrollment_status: "",
+        payment_status: "",
         start_date: "",
         end_date: "",
         city: "",
@@ -24,6 +51,11 @@ const initialState = {
         is_active: "",
     },
     pagination: TABLE_PAGINATION,
+    status_counts: {
+        total: 0,
+        active: 0,
+        inactive: 0,
+    },
     fetchStatus: 'idle',
     addStatus: 'idle',
     updateStatus: 'idle',
@@ -34,6 +66,12 @@ const initialState = {
     pendingFeeSlipStatus: 'idle',
     studentHistory: null,
     fetchStudentHistoryStatus: 'idle',
+    deletionArchives: [],
+    deletionArchivesPagination: TABLE_PAGINATION,
+    deletionArchivesQuery: '',
+    fetchDeletionArchivesStatus: 'idle',
+    deletionArchiveDetail: null,
+    fetchDeletionArchiveDetailStatus: 'idle',
     myFinance: null,
     fetchMyFinanceStatus: 'idle',
     error: null,
@@ -46,7 +84,7 @@ const fetchStudents = createAsyncThunk('students/fetchStudents', async (payload,
         headers: {
             Authorization: `Bearer ${authToken}`,
         },
-        params: state.students.filters,
+        params: buildStudentQueryParams(state.students.filters),
     });
     return response.data;
 });
@@ -58,7 +96,7 @@ const fetchStudentsByBatch = createAsyncThunk('students/fetchStudentsByBatch', a
         headers: {
             Authorization: `Bearer ${authToken}`,
         },
-        params: state.students.filters,
+        params: buildStudentQueryParams(state.students.filters),
     });
     return response.data;
 });
@@ -246,6 +284,61 @@ const fetchStudentHistory = createAsyncThunk(
     }
 );
 
+const fetchDeletionArchives = createAsyncThunk(
+    'students/fetchDeletionArchives',
+    async ({ authToken, page, limit, query }, { getState, rejectWithValue }) => {
+        try {
+            const state = getState().students;
+            const response = await axios.get(
+                `${BASE_URL}/students/deletion-archives`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                    params: {
+                        page: page || state.deletionArchivesPagination?.page || 1,
+                        limit: limit || state.deletionArchivesPagination?.limit || 20,
+                        query:
+                            query !== undefined
+                                ? query
+                                : state.deletionArchivesQuery || '',
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    error.message ||
+                    'Failed to load deleted students'
+            );
+        }
+    }
+);
+
+const fetchDeletionArchiveDetail = createAsyncThunk(
+    'students/fetchDeletionArchiveDetail',
+    async ({ authToken, archiveId }, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(
+                `${BASE_URL}/students/deletion-archives/${archiveId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    error.message ||
+                    'Failed to load deletion archive'
+            );
+        }
+    }
+);
+
 const updateStudentInfo = createAsyncThunk(
     'students/updateStudentInfo',
     async (payload, { rejectWithValue }) => {
@@ -364,9 +457,14 @@ const studentSlice = createSlice({
             state.filters.page = 1;
             state.filters.batch_id = action.payload;
         },
-        setEnrollmentFilter(state, action) {
+        setPaymentStatusFilter(state, action) {
             state.filters.page = 1;
-            state.filters.enrollment_status = action.payload;
+            state.filters.payment_status = action.payload;
+        },
+        setEnrollmentFilter(state, action) {
+            // Legacy alias — maps to payment_status for older callers.
+            state.filters.page = 1;
+            state.filters.payment_status = action.payload;
         },
         setStartDateFilter(state, action) {
             state.filters.page = 1;
@@ -393,11 +491,38 @@ const studentSlice = createSlice({
             state.filters.query = "";
             state.filters.search_field = "all";
             state.filters.batch_id = "";
-            state.filters.enrollment_status = "";
+            state.filters.payment_status = "";
             state.filters.start_date = "";
             state.filters.end_date = "";
             state.filters.city = "";
             state.filters.is_active = "";
+            // Drop legacy keys that used to hide the default list.
+            delete state.filters.enrollment_status;
+            delete state.filters.limits;
+        },
+        setDeletionArchivesQuery(state, action) {
+            state.deletionArchivesQuery = action.payload || "";
+            state.deletionArchivesPagination = {
+                ...state.deletionArchivesPagination,
+                page: 1,
+            };
+        },
+        setDeletionArchivesPage(state, action) {
+            state.deletionArchivesPagination = {
+                ...state.deletionArchivesPagination,
+                page: action.payload,
+            };
+        },
+        setDeletionArchivesLimit(state, action) {
+            state.deletionArchivesPagination = {
+                ...state.deletionArchivesPagination,
+                page: 1,
+                limit: action.payload,
+            };
+        },
+        clearDeletionArchiveDetail(state) {
+            state.deletionArchiveDetail = null;
+            state.fetchDeletionArchiveDetailStatus = "idle";
         },
     },
 
@@ -409,17 +534,22 @@ const studentSlice = createSlice({
             })
             .addCase(fetchStudents.fulfilled, (state, action) => {
                 state.fetchStatus = 'success';
-                state.students = action.payload.docs;
+                state.students = action.payload?.docs || [];
                 state.pagination = {
-                    totalDocs: action.payload.totalDocs,
-                    limit: action.payload.limit,
-                    totalPages: action.payload.totalPages,
-                    page: action.payload.page,
-                    pagingCounter: action.payload.pagingCounter,
-                    hasPrevPage: action.payload.hasPrevPage,
-                    hasNextPage: action.payload.hasNextPage,
-                    prevPage: action.payload.prevPage,
-                    nextPage: action.payload.nextPage,
+                    totalDocs: action.payload?.totalDocs || 0,
+                    limit: action.payload?.limit || state.filters.limit || 10,
+                    totalPages: action.payload?.totalPages || 1,
+                    page: action.payload?.page || 1,
+                    pagingCounter: action.payload?.pagingCounter || 1,
+                    hasPrevPage: Boolean(action.payload?.hasPrevPage),
+                    hasNextPage: Boolean(action.payload?.hasNextPage),
+                    prevPage: action.payload?.prevPage ?? null,
+                    nextPage: action.payload?.nextPage ?? null,
+                };
+                state.status_counts = {
+                    total: Number(action.payload?.status_counts?.total) || 0,
+                    active: Number(action.payload?.status_counts?.active) || 0,
+                    inactive: Number(action.payload?.status_counts?.inactive) || 0,
                 };
             })
             .addCase(fetchStudents.rejected, (state, action) => {
@@ -606,8 +736,33 @@ const studentSlice = createSlice({
 
             .addCase(toggleStudentStatus.fulfilled, (state, action) => {
                 const idx = state.students.findIndex((s) => s._id === action.payload._id);
+                const previous =
+                  idx !== -1 ? state.students[idx] : null;
+                const wasActive = previous ? previous.is_active !== false : null;
+                const nowActive = action.payload.is_active !== false;
                 if (idx !== -1) {
                     state.students[idx] = action.payload;
+                }
+                if (
+                  wasActive !== null &&
+                  wasActive !== nowActive &&
+                  state.status_counts
+                ) {
+                  if (nowActive) {
+                    state.status_counts.active =
+                      Math.max(0, Number(state.status_counts.active) || 0) + 1;
+                    state.status_counts.inactive = Math.max(
+                      0,
+                      (Number(state.status_counts.inactive) || 0) - 1
+                    );
+                  } else {
+                    state.status_counts.inactive =
+                      Math.max(0, Number(state.status_counts.inactive) || 0) + 1;
+                    state.status_counts.active = Math.max(
+                      0,
+                      (Number(state.status_counts.active) || 0) - 1
+                    );
+                  }
                 }
                 toast({
                     title:
@@ -636,6 +791,7 @@ const studentSlice = createSlice({
                         is_active: nextStatus,
                     }));
                 }
+                // Counts will be accurate after the following loadStudents() call.
                 toast({
                     title: nextStatus
                         ? `Activated ${action.payload.modified_count} student(s) in ${action.payload.batch_name}`
@@ -750,11 +906,63 @@ const studentSlice = createSlice({
                     isClosable: true,
                 });
             })
+            .addCase(fetchDeletionArchives.pending, (state) => {
+                state.fetchDeletionArchivesStatus = 'loading';
+            })
+            .addCase(fetchDeletionArchives.fulfilled, (state, action) => {
+                state.fetchDeletionArchivesStatus = 'succeeded';
+                state.deletionArchives = action.payload.docs || [];
+                state.deletionArchivesPagination = {
+                    totalDocs: action.payload.totalDocs,
+                    limit: action.payload.limit,
+                    totalPages: action.payload.totalPages,
+                    page: action.payload.page,
+                    pagingCounter: action.payload.pagingCounter,
+                    hasPrevPage: action.payload.hasPrevPage,
+                    hasNextPage: action.payload.hasNextPage,
+                    prevPage: action.payload.prevPage,
+                    nextPage: action.payload.nextPage,
+                };
+            })
+            .addCase(fetchDeletionArchives.rejected, (state, action) => {
+                state.fetchDeletionArchivesStatus = 'failed';
+                toast({
+                    title: "Could not load deleted students",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
+            .addCase(fetchDeletionArchiveDetail.pending, (state) => {
+                state.fetchDeletionArchiveDetailStatus = 'loading';
+            })
+            .addCase(fetchDeletionArchiveDetail.fulfilled, (state, action) => {
+                state.fetchDeletionArchiveDetailStatus = 'succeeded';
+                state.deletionArchiveDetail = action.payload;
+            })
+            .addCase(fetchDeletionArchiveDetail.rejected, (state, action) => {
+                state.fetchDeletionArchiveDetailStatus = 'failed';
+                state.deletionArchiveDetail = null;
+                toast({
+                    title: "Could not load deletion archive",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
     }
 });
 
-export const selectAllStudents = (state) => state.students.students;
+export const selectAllStudents = (state) => state.students.students || [];
+export const selectStudentStatusCounts = (state) =>
+  state.students.status_counts || { total: 0, active: 0, inactive: 0 };
 export const selectStudentHistory = (state) => state.students.studentHistory;
+export const selectDeletionArchives = (state) =>
+  state.students.deletionArchives || [];
+export const selectDeletionArchiveDetail = (state) =>
+  state.students.deletionArchiveDetail;
 
 export {
     fetchStudents,
@@ -772,8 +980,27 @@ export {
     transferStudentBatch,
     getOrCreatePendingFeeSlip,
     fetchStudentHistory,
+    fetchDeletionArchives,
+    fetchDeletionArchiveDetail,
 };
 export const selectMyFinance = (state) => state.students.myFinance;
-export const { setQueryFilter, setPageFilter, setLimitFilter, setBatchFilter, setEnrollmentFilter, setStartDateFilter, setEndDateFilter, setCityFilter, setSearchFieldFilter, setStatusFilter, clearStudentFilters } = studentSlice.actions;
+export const {
+    setQueryFilter,
+    setPageFilter,
+    setLimitFilter,
+    setBatchFilter,
+    setPaymentStatusFilter,
+    setEnrollmentFilter,
+    setStartDateFilter,
+    setEndDateFilter,
+    setCityFilter,
+    setSearchFieldFilter,
+    setStatusFilter,
+    clearStudentFilters,
+    setDeletionArchivesQuery,
+    setDeletionArchivesPage,
+    setDeletionArchivesLimit,
+    clearDeletionArchiveDetail,
+} = studentSlice.actions;
 
 export default studentSlice.reducer;

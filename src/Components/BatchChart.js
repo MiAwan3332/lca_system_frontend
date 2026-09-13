@@ -1,55 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import Chart from 'react-apexcharts';
-import axios from 'axios';
-import { useColorModeValue } from '@chakra-ui/react';
-import { config } from '../utlls/config';
+import React, { useState, useEffect } from "react";
+import Chart from "react-apexcharts";
+import axios from "axios";
+import Cookies from "js-cookie";
+import { useColorModeValue } from "@chakra-ui/react";
+import { config } from "../utlls/config";
 
 const buildChartParams = (filters = {}) => {
   const params = new URLSearchParams();
   const { batch_id, start_date, end_date } = filters;
 
-  if (batch_id) params.append('batch_id', batch_id);
-  if (start_date) params.append('start_date', start_date);
-  if (end_date) params.append('end_date', end_date);
+  if (batch_id) params.append("batch_id", batch_id);
+  if (start_date) params.append("start_date", start_date);
+  if (end_date) params.append("end_date", end_date);
 
   const queryString = params.toString();
-  return queryString ? `?${queryString}` : '';
+  return queryString ? `?${queryString}` : "";
 };
 
+const emptySeries = () => [
+  { name: "Total", data: [] },
+  { name: "Active", data: [] },
+  { name: "Inactive", data: [] },
+];
+
 const BatchChart = ({ chartTitle, filters = {} }) => {
-  const titleColor = useColorModeValue('#263238', '#f1f5f9');
-  const labelColor = useColorModeValue('#6E879C', '#94a3b8');
-  const dataLabelColor = useColorModeValue('#263238', '#f1f5f9');
+  const titleColor = useColorModeValue("#263238", "#f1f5f9");
+  const labelColor = useColorModeValue("#6E879C", "#94a3b8");
+  const dataLabelColor = useColorModeValue("#263238", "#f1f5f9");
 
   const [chartOptions, setChartOptions] = useState({
     chart: {
-      id: 'batch-column-chart',
-      type: 'bar',
+      id: "batch-column-chart",
+      type: "bar",
+      stacked: false,
+      toolbar: { show: false },
     },
     xaxis: {
       categories: [],
     },
-    colors: ['#FFCB82'],
+    colors: ["#94A3B8", "#7AEF85", "#FF8A8A"],
+    legend: {
+      position: "top",
+    },
     title: {
-      text: chartTitle || 'Batch Data',
-      align: 'center',
+      text: chartTitle || "Batch Data",
+      align: "center",
       style: {
-        fontSize: '20px',
-        color: '#263238'
-      }
+        fontSize: "20px",
+        color: "#263238",
+      },
     },
     dataLabels: {
       enabled: true,
       style: {
-        colors: ['#000000']
-      }
-    }
+        colors: ["#000000"],
+      },
+    },
   });
 
-  const [chartSeries, setChartSeries] = useState([{
-    name: 'Count',
-    data: []
-  }]);
+  const [chartSeries, setChartSeries] = useState(emptySeries());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,8 +66,8 @@ const BatchChart = ({ chartTitle, filters = {} }) => {
       ...prev,
       title: {
         ...prev.title,
-        text: chartTitle || 'Batch Data',
-        style: { fontSize: '20px', color: titleColor },
+        text: chartTitle || "Batch Data",
+        style: { fontSize: "20px", color: titleColor },
       },
       xaxis: {
         ...prev.xaxis,
@@ -78,19 +87,23 @@ const BatchChart = ({ chartTitle, filters = {} }) => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const authToken = sessionStorage.getItem('authToken');
+        const authToken =
+          Cookies.get("authToken") || sessionStorage.getItem("authToken");
 
         if (!authToken) {
-          console.error('No authToken found in session storage');
+          console.error("No authToken found");
+          setChartSeries(emptySeries());
           return;
         }
 
         const response = await axios.get(
-          `${config.BASE_URL}/students/students/Batchesgraph${buildChartParams(filters)}`,
+          `${config.BASE_URL}/students/students/Batchesgraph${buildChartParams(
+            filters
+          )}`,
           {
             headers: {
-              Authorization: `Bearer ${authToken}`
-            }
+              Authorization: `Bearer ${authToken}`,
+            },
           }
         );
 
@@ -98,32 +111,44 @@ const BatchChart = ({ chartTitle, filters = {} }) => {
 
         if (responseData && responseData.length > 0) {
           const batchNames = responseData.map((item) => item.batch);
-          const batchCounts = responseData.map((item) => item.count);
 
           setChartOptions((prevOptions) => ({
             ...prevOptions,
             xaxis: {
               ...prevOptions.xaxis,
-              categories: batchNames
-            }
+              categories: batchNames,
+            },
           }));
 
-          setChartSeries([{
-            name: 'Count',
-            data: batchCounts
-          }]);
+          setChartSeries([
+            {
+              name: "Total",
+              data: responseData.map(
+                (item) => Number(item.total ?? item.count) || 0
+              ),
+            },
+            {
+              name: "Active",
+              data: responseData.map((item) => Number(item.active) || 0),
+            },
+            {
+              name: "Inactive",
+              data: responseData.map((item) => Number(item.inactive) || 0),
+            },
+          ]);
         } else {
           setChartOptions((prevOptions) => ({
             ...prevOptions,
             xaxis: {
               ...prevOptions.xaxis,
-              categories: []
-            }
+              categories: [],
+            },
           }));
-          setChartSeries([{ name: 'Count', data: [] }]);
+          setChartSeries(emptySeries());
         }
       } catch (error) {
-        console.error('Error fetching the data', error);
+        console.error("Error fetching the data", error);
+        setChartSeries(emptySeries());
       } finally {
         setLoading(false);
       }
@@ -136,8 +161,12 @@ const BatchChart = ({ chartTitle, filters = {} }) => {
     return <div className="my-8 text-center dash-text-muted">Loading...</div>;
   }
 
-  if (chartSeries[0].data.length === 0) {
-    return <div className="my-8 text-center dash-text-muted">No batch data found for selected filters.</div>;
+  if (!chartSeries[0]?.data?.length) {
+    return (
+      <div className="my-8 text-center dash-text-muted">
+        No batch data found for selected filters.
+      </div>
+    );
   }
 
   return (
@@ -150,6 +179,6 @@ const BatchChart = ({ chartTitle, filters = {} }) => {
       />
     </div>
   );
-}
+};
 
 export default BatchChart;
