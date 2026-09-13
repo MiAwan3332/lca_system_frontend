@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Badge,
   Box,
@@ -16,7 +16,10 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import moment from "moment";
+import { Pencil } from "lucide-react";
 import PaymentEvidenceGallery from "../../Components/PaymentEvidenceGallery";
+import UpdateRefundPayoutAction from "./UpdateRefundPayoutAction";
+import { canUpdateRefundPayout } from "../../utlls/refundAccess";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -60,187 +63,229 @@ const DetailRow = ({ label, value }) => (
 
 /**
  * Full refund request details including payout method and online screenshot.
+ * Super Admin can update Cash/Online + screenshot from here.
  */
-function RefundRequestDetailModal({ request, isOpen, onClose }) {
-  if (!request) return null;
+function RefundRequestDetailModal({ request, isOpen, onClose, onUpdated }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [localRequest, setLocalRequest] = useState(request);
 
-  const statusMeta = getDisplayStatus(request);
-  const method = request.refund_payment_method || "";
+  React.useEffect(() => {
+    setLocalRequest(request);
+  }, [request]);
+
+  if (!localRequest) return null;
+
+  const statusMeta = getDisplayStatus(localRequest);
+  const method = localRequest.refund_payment_method || "";
   const methodLabel =
     method === "Online Payment" || method === "Online"
       ? "Online"
-      : method || (request.is_refunded ? "—" : "Not paid out yet");
+      : method || (localRequest.is_refunded ? "—" : "Not paid out yet");
+  const canEdit =
+    canUpdateRefundPayout() && Boolean(localRequest.is_refunded);
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      {...responsiveModalProps}
-      {...getResponsiveModalSize("lg")}
-    >
-      <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
-        <ModalHeader>
-          Refund details
-          <Badge ml={2} colorScheme={statusMeta.color} borderRadius="md">
-            {statusMeta.label}
-          </Badge>
-        </ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
-          <VStack align="stretch" spacing={4}>
-            <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
-              <DetailRow
-                label="Student"
-                value={
-                  request.student_name ||
-                  request.student?.name ||
-                  "—"
-                }
-              />
-              <DetailRow
-                label="Roll / Phone"
-                value={`${
-                  request.student_roll_number ||
-                  request.student?.roll_number ||
-                  "—"
-                } · ${
-                  request.student_phone || request.student?.phone || "—"
-                }`}
-              />
-              <DetailRow label="Batch" value={request.batch_name || "—"} />
-              <DetailRow
-                label="Requested by"
-                value={request.requested_by?.name || "—"}
-              />
-              <DetailRow
-                label="Approved amount"
-                value={formatAmount(request.amount)}
-              />
-              <DetailRow
-                label="Requested amount"
-                value={
-                  request.requested_amount != null
-                    ? formatAmount(request.requested_amount)
-                    : formatAmount(request.amount)
-                }
-              />
-              <DetailRow
-                label="Created"
-                value={formatDate(request.createdAt)}
-              />
-              <DetailRow
-                label="Reason"
-                value={request.reason || "—"}
-              />
-            </SimpleGrid>
-
-            {(request.approval_comment ||
-              request.rejection_comment ||
-              request.approved_by ||
-              request.rejected_by) && (
-              <>
-                <Divider />
-                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
-                  {request.approved_by ? (
-                    <DetailRow
-                      label="Approved by"
-                      value={`${request.approved_by?.name || "—"}${
-                        request.approved_at
-                          ? ` · ${formatDate(request.approved_at)}`
-                          : ""
-                      }`}
-                    />
-                  ) : null}
-                  {request.rejected_by ? (
-                    <DetailRow
-                      label="Rejected by"
-                      value={`${request.rejected_by?.name || "—"}${
-                        request.rejected_at
-                          ? ` · ${formatDate(request.rejected_at)}`
-                          : ""
-                      }`}
-                    />
-                  ) : null}
-                  {request.approval_comment ? (
-                    <DetailRow
-                      label="Approval comment"
-                      value={request.approval_comment}
-                    />
-                  ) : null}
-                  {request.rejection_comment ? (
-                    <DetailRow
-                      label="Rejection comment"
-                      value={request.rejection_comment}
-                    />
-                  ) : null}
-                </SimpleGrid>
-              </>
-            )}
-
-            <Divider />
-
-            <Box
-              p={4}
-              borderRadius="2xl"
-              bg="#FFF8EE"
-              border="1px solid"
-              borderColor="#F0E2C8"
-            >
-              <Text fontWeight="600" mb={3} color="#5C4318">
-                Payout
-              </Text>
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        {...responsiveModalProps}
+        {...getResponsiveModalSize("lg")}
+      >
+        <ModalOverlay />
+        <ModalContent {...responsiveModalContentProps}>
+          <ModalHeader>
+            Refund details
+            <Badge ml={2} colorScheme={statusMeta.color} borderRadius="md">
+              {statusMeta.label}
+            </Badge>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack align="stretch" spacing={4}>
               <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
                 <DetailRow
-                  label="Paid out amount"
+                  label="Student"
                   value={
-                    request.is_refunded
-                      ? formatAmount(
-                          request.refunded_amount ?? request.amount
-                        )
-                      : "—"
+                    localRequest.student_name ||
+                    localRequest.student?.name ||
+                    "—"
                   }
                 />
-                <DetailRow label="Refund via" value={methodLabel} />
                 <DetailRow
-                  label="Refunded by"
-                  value={request.refunded_by?.name || "—"}
+                  label="Roll / Phone"
+                  value={`${
+                    localRequest.student_roll_number ||
+                    localRequest.student?.roll_number ||
+                    "—"
+                  } · ${
+                    localRequest.student_phone ||
+                    localRequest.student?.phone ||
+                    "—"
+                  }`}
                 />
                 <DetailRow
-                  label="Refunded at"
-                  value={formatDate(request.refunded_at)}
+                  label="Batch"
+                  value={localRequest.batch_name || "—"}
+                />
+                <DetailRow
+                  label="Requested by"
+                  value={localRequest.requested_by?.name || "—"}
+                />
+                <DetailRow
+                  label="Approved amount"
+                  value={formatAmount(localRequest.amount)}
+                />
+                <DetailRow
+                  label="Requested amount"
+                  value={
+                    localRequest.requested_amount != null
+                      ? formatAmount(localRequest.requested_amount)
+                      : formatAmount(localRequest.amount)
+                  }
+                />
+                <DetailRow
+                  label="Created"
+                  value={formatDate(localRequest.createdAt)}
+                />
+                <DetailRow
+                  label="Reason"
+                  value={localRequest.reason || "—"}
                 />
               </SimpleGrid>
 
-              {request.is_refunded ? (
-                <PaymentEvidenceGallery
-                  value={request.refund_evidence}
-                  paymentMethod={methodLabel}
-                  title="Refund screenshot"
-                />
-              ) : (
-                <Text fontSize="sm" color="gray.500" mt={3}>
-                  Payout not completed yet.
-                </Text>
+              {(localRequest.approval_comment ||
+                localRequest.rejection_comment ||
+                localRequest.approved_by ||
+                localRequest.rejected_by) && (
+                <>
+                  <Divider />
+                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+                    {localRequest.approved_by ? (
+                      <DetailRow
+                        label="Approved by"
+                        value={`${localRequest.approved_by?.name || "—"}${
+                          localRequest.approved_at
+                            ? ` · ${formatDate(localRequest.approved_at)}`
+                            : ""
+                        }`}
+                      />
+                    ) : null}
+                    {localRequest.rejected_by ? (
+                      <DetailRow
+                        label="Rejected by"
+                        value={`${localRequest.rejected_by?.name || "—"}${
+                          localRequest.rejected_at
+                            ? ` · ${formatDate(localRequest.rejected_at)}`
+                            : ""
+                        }`}
+                      />
+                    ) : null}
+                    {localRequest.approval_comment ? (
+                      <DetailRow
+                        label="Approval comment"
+                        value={localRequest.approval_comment}
+                      />
+                    ) : null}
+                    {localRequest.rejection_comment ? (
+                      <DetailRow
+                        label="Rejection comment"
+                        value={localRequest.rejection_comment}
+                      />
+                    ) : null}
+                  </SimpleGrid>
+                </>
               )}
 
-              {request.is_refunded &&
-              (method === "Online Payment" || method === "Online") &&
-              !request.refund_evidence ? (
-                <Text fontSize="xs" color="orange.600" mt={2}>
-                  No screenshot on file for this online refund.
+              <Divider />
+
+              <Box
+                p={4}
+                borderRadius="2xl"
+                bg="#FFF8EE"
+                border="1px solid"
+                borderColor="#F0E2C8"
+              >
+                <Text fontWeight="600" mb={3} color="#5C4318">
+                  Payout
                 </Text>
-              ) : null}
-            </Box>
-          </VStack>
-        </ModalBody>
-        <ModalFooter>
-          <Button borderRadius="xl" onClick={onClose}>
-            Close
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3}>
+                  <DetailRow
+                    label="Paid out amount"
+                    value={
+                      localRequest.is_refunded
+                        ? formatAmount(
+                            localRequest.refunded_amount ?? localRequest.amount
+                          )
+                        : "—"
+                    }
+                  />
+                  <DetailRow label="Refund via" value={methodLabel} />
+                  <DetailRow
+                    label="Refunded by"
+                    value={localRequest.refunded_by?.name || "—"}
+                  />
+                  <DetailRow
+                    label="Refunded at"
+                    value={formatDate(localRequest.refunded_at)}
+                  />
+                </SimpleGrid>
+
+                {localRequest.is_refunded ? (
+                  <PaymentEvidenceGallery
+                    value={localRequest.refund_evidence}
+                    paymentMethod={methodLabel}
+                    title="Refund screenshot"
+                  />
+                ) : (
+                  <Text fontSize="sm" color="gray.500" mt={3}>
+                    Payout not completed yet.
+                  </Text>
+                )}
+
+                {localRequest.is_refunded &&
+                (method === "Online Payment" || method === "Online") &&
+                !localRequest.refund_evidence ? (
+                  <Text fontSize="xs" color="orange.600" mt={2}>
+                    No screenshot on file for this online refund.
+                  </Text>
+                ) : null}
+              </Box>
+            </VStack>
+          </ModalBody>
+          <ModalFooter gap={2}>
+            {canEdit ? (
+              <Button
+                leftIcon={<Pencil size={16} />}
+                borderRadius="xl"
+                bg="#FFCB82"
+                color="#654E26"
+                _hover={{ bg: "#E3B574" }}
+                onClick={() => setEditOpen(true)}
+              >
+                Update Cash / Online
+              </Button>
+            ) : null}
+            <Button borderRadius="xl" onClick={onClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {canEdit ? (
+        <UpdateRefundPayoutAction
+          request={localRequest}
+          asButton={false}
+          isOpen={editOpen}
+          onClose={() => setEditOpen(false)}
+          onUpdated={(updated) => {
+            setLocalRequest(updated);
+            onUpdated?.(updated);
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 
