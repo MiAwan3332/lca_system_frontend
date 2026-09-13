@@ -43,6 +43,7 @@ export const isSuperAdminRole = (role) => {
   const compact = compactRole(role || getCurrentRoleName());
   return (
     compact === "secrateadmin" ||
+    compact === "secratesuperadmin" ||
     compact === "superadmin" ||
     compact === "superadmindevelopment"
   );
@@ -95,3 +96,7 @@ export const canDecideRefundRequest = (role) =>
 
 export const canAccessRequestManagement = (role) =>
   canDecideRefundRequest(role);
+
+/** Super Admin only — edit Cash/Online + screenshot on refunded requests. */
+export const canUpdateRefundPayout = (role) =>
+  isSuperAdminRole(role);

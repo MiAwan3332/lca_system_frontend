@@ -36,6 +36,8 @@ import {
 } from "../../Features/refundRequestSlice";
 import ProcessRefundAction from "./ProcessRefundAction";
 import RefundRequestDetailModal from "./RefundRequestDetailModal";
+import UpdateRefundPayoutAction from "./UpdateRefundPayoutAction";
+import { canUpdateRefundPayout } from "../../utlls/refundAccess";
 
 const formatAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -311,6 +313,12 @@ function StudentRefundHistoryPanel() {
                             label="View Details"
                             onClick={() => setDetailRequest(request)}
                           />
+                          {canUpdateRefundPayout() && request.is_refunded ? (
+                            <UpdateRefundPayoutAction
+                              request={request}
+                              onUpdated={(updated) => setDetailRequest(updated)}
+                            />
+                          ) : null}
                           {!request.is_refunded &&
                           request.status === "Approved" ? (
                             <ProcessRefundAction student={studentForAction} />
@@ -340,6 +348,7 @@ function StudentRefundHistoryPanel() {
           request={detailRequest}
           isOpen={Boolean(detailRequest)}
           onClose={() => setDetailRequest(null)}
+          onUpdated={(updated) => setDetailRequest(updated)}
         />
       ) : null}
     </>

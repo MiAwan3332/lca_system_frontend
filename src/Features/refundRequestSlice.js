@@ -24,6 +24,7 @@ const initialState = {
   createStatus: "idle",
   decisionStatus: "idle",
   processStatus: "idle",
+  updatePayoutStatus: "idle",
   error: null,
 };
 
@@ -144,6 +145,52 @@ const processRefundRequest = createAsyncThunk(
         error?.response?.data?.message ||
           error.message ||
           "Failed to process refund"
+      );
+    }
+  }
+);
+
+const updateRefundPayout = createAsyncThunk(
+  "refundRequests/updateRefundPayout",
+  async (payload, { rejectWithValue }) => {
+    const {
+      authToken,
+      requestId,
+      payment_method,
+      payment_evidence,
+    } = payload;
+    try {
+      const evidenceList = Array.isArray(payment_evidence)
+        ? payment_evidence.filter(Boolean)
+        : payment_evidence
+          ? [payment_evidence]
+          : [];
+
+      let response;
+      if (evidenceList.length > 0) {
+        const formData = new FormData();
+        formData.append("payment_method", payment_method || "Cash");
+        evidenceList.forEach((file) => {
+          formData.append("payment_evidence", file);
+        });
+        response = await axios.post(
+          `${BASE_URL}/refund-requests/update-payout/${requestId}`,
+          formData,
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+      } else {
+        response = await axios.post(
+          `${BASE_URL}/refund-requests/update-payout/${requestId}`,
+          { payment_method: payment_method || "Cash" },
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to update refund payout"
       );
     }
   }
@@ -295,6 +342,34 @@ const refundRequestSlice = createSlice({
           duration: 4000,
           isClosable: true,
         });
+      })
+      .addCase(updateRefundPayout.pending, (state) => {
+        state.updatePayoutStatus = "loading";
+      })
+      .addCase(updateRefundPayout.fulfilled, (state, action) => {
+        state.updatePayoutStatus = "idle";
+        const updated = action.payload;
+        if (updated?._id) {
+          state.requests = state.requests.map((row) =>
+            row._id === updated._id ? updated : row
+          );
+        }
+        toast({
+          title: "Refund payout updated",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      })
+      .addCase(updateRefundPayout.rejected, (state, action) => {
+        state.updatePayoutStatus = "failed";
+        toast({
+          title: "Could not update refund payout",
+          description: action.payload || "Please try again.",
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
       });
   },
 });
@@ -315,6 +390,7 @@ export {
   approveRefundRequest,
   rejectRefundRequest,
   processRefundRequest,
+  updateRefundPayout,
 };
 
 export default refundRequestSlice.reducer;
