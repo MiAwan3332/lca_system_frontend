@@ -41,10 +41,16 @@ const normalizeRole = (role) =>
 
 export const isPrincipalRoleName = (role) => {
   const normalized = normalizeRole(role);
+  const compact = normalized.replace(/-/g, "");
   return (
     normalized === "principal" ||
+    normalized === "principle" ||
     normalized === "vice-principal" ||
-    normalized === "viceprincipal"
+    normalized === "vice-principle" ||
+    compact === "principal" ||
+    compact === "principle" ||
+    compact === "viceprincipal" ||
+    compact === "viceprinciple"
   );
 };
 

@@ -25,7 +25,6 @@ import { useDispatch, useSelector } from "react-redux";
 import ActionButton from "../../Components/ActionButton";
 import { createRefundRequest } from "../../Features/refundRequestSlice";
 import { fetchStudents } from "../../Features/studentSlice";
-import { selectUser } from "../../Features/authSlice";
 import { canCreateRefundRequest } from "../../utlls/refundAccess";
 import {
   getResponsiveModalSize,
@@ -44,12 +43,10 @@ const formatAmount = (amount) =>
 function RefundRequestAction({ student }) {
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
-  const currentUser = useSelector(selectUser);
   const { createStatus } = useSelector((state) => state.refundRequests);
   const [isOpen, setIsOpen] = useState(false);
 
   const paidFee = Math.round(Math.max(Number(student?.paid_fee) || 0, 0));
-  const userRole = currentUser?.role?.name || currentUser?.role;
   const alreadyRefunded = Boolean(student?.has_refunded_request);
   const hasOpenRequest = Boolean(
     student?.pending_refund_request || student?.approved_refund_request
@@ -116,7 +113,8 @@ function RefundRequestAction({ student }) {
     },
   });
 
-  if (!canCreateRefundRequest(userRole)) {
+  // Use session/JWT role (Accounts, CEO, etc.) — not Redux user alone
+  if (!canCreateRefundRequest()) {
     return null;
   }
 

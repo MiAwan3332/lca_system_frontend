@@ -37,10 +37,10 @@ export const getCurrentRoleName = () => {
 };
 
 export const isCeoRole = (role) =>
-  compactRole(role ?? getCurrentRoleName()) === "ceo";
+  compactRole(role || getCurrentRoleName()) === "ceo";
 
 export const isSuperAdminRole = (role) => {
-  const compact = compactRole(role ?? getCurrentRoleName());
+  const compact = compactRole(role || getCurrentRoleName());
   return (
     compact === "secrateadmin" ||
     compact === "superadmin" ||
@@ -49,19 +49,24 @@ export const isSuperAdminRole = (role) => {
 };
 
 export const isPrincipalFamilyRole = (role) => {
-  const compact = compactRole(role ?? getCurrentRoleName());
-  return compact === "principal" || compact === "viceprincipal";
+  const compact = compactRole(role || getCurrentRoleName());
+  return (
+    compact === "principal" ||
+    compact === "principle" ||
+    compact === "viceprincipal" ||
+    compact === "viceprinciple"
+  );
 };
 
 export const isAccountsRole = (role) =>
-  compactRole(role ?? getCurrentRoleName()) === "accounts";
+  compactRole(role || getCurrentRoleName()) === "accounts";
 
 /**
  * Today's collection cards on the dashboard:
  * Principal, Vice Principal, CEO, Super Admins, and Accounts.
  */
 export const canViewDashboardCollections = (role) => {
-  const current = role ?? getCurrentRoleName();
+  const current = role || getCurrentRoleName();
   return (
     isCeoRole(current) ||
     isPrincipalFamilyRole(current) ||
@@ -75,7 +80,7 @@ export const canViewDashboardCollections = (role) => {
  * CEO, Principal, Vice Principal, Super Admin, Accounts.
  */
 export const canCreateRefundRequest = (role) => {
-  const current = role ?? getCurrentRoleName();
+  const current = role || getCurrentRoleName();
   return (
     isCeoRole(current) ||
     isPrincipalFamilyRole(current) ||
