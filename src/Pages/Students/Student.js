@@ -716,9 +716,11 @@ function Student() {
                           {hasPermission(["Update_Student"]) && (
                             <>
                               <UpdateModal student={student} />
-                              {showShiftBatch && <ShiftBatchModal student={student} />}
                               <ChangePasswordModal student={student} />
                             </>
+                          )}
+                          {showShiftBatch && (
+                            <ShiftBatchModal student={student} />
                           )}
                           {showDeleteStudent && (
                             <DeleteModal studentId={student._id} />

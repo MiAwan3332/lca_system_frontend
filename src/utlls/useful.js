@@ -26,10 +26,16 @@ const normalizeRoleName = (role) =>
 /** Principal / Vice-Principal: full CRUD on allocated screens. */
 const isPrincipalManageRoleName = (role) => {
   const normalized = normalizeRoleName(role);
+  const compact = normalized.replace(/-/g, "");
   return (
     normalized === "principal" ||
+    normalized === "principle" ||
     normalized === "vice-principal" ||
-    normalized === "viceprincipal"
+    normalized === "vice-principle" ||
+    compact === "principal" ||
+    compact === "principle" ||
+    compact === "viceprincipal" ||
+    compact === "viceprinciple"
   );
 };
 
