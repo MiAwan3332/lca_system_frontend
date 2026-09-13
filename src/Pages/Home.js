@@ -38,6 +38,7 @@ import {
 import MonthlyColumnChart from "../Components/MonthlyStudentChart";
 import BatchChart from "../Components/BatchChart";
 import BatchStudentStatusSection from "../Components/Dashboard/BatchStudentStatusSection";
+import BatchFinanceSection from "../Components/Dashboard/BatchFinanceSection";
 import OverdueFeeAlert from "../Components/OverdueFeeAlert";
 
 const ALL_USERS_VALUE = "";
@@ -475,6 +476,12 @@ function Home() {
               />
             </div>
           </section>
+
+          {hasPermission(["view_total_fee_recovered"]) && (
+            <section className="mb-4">
+              <BatchFinanceSection filters={dashboardFilters} />
+            </section>
+          )}
 
           {hasPermission(["view_total_enrolled_students"]) && (
             <section className="mb-4">

@@ -17,6 +17,11 @@ import {
   getInformationOfficeVisibleRoutes,
 } from "./informationOfficeAccess";
 import {
+  isAccountsRole,
+  canAccessAccountsRoute,
+  getAccountsVisibleRoutes,
+} from "./accountsAccess";
+import {
   isQualifierRole,
   canAccessQualifierRoute,
   getQualifierVisibleRoutes,
@@ -264,6 +269,9 @@ export const canAccessRoute = (path) => {
   if (isInformationOfficeRole()) {
     return canAccessInformationOfficeRoute(path);
   }
+  if (isAccountsRole()) {
+    return canAccessAccountsRoute(path);
+  }
   if (isPrincipalRole()) {
     return canAccessPrincipalRoute(path);
   }
@@ -311,6 +319,9 @@ export const getVisibleRoutes = (allRoutes) => {
   }
   if (isInformationOfficeRole()) {
     return getInformationOfficeVisibleRoutes(visibleRouteList);
+  }
+  if (isAccountsRole()) {
+    return getAccountsVisibleRoutes(visibleRouteList);
   }
   if (isPrincipalRole()) {
     return getPrincipalVisibleRoutes(visibleRouteList);

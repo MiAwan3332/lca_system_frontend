@@ -72,6 +72,10 @@ const initialState = {
     fetchDeletionArchivesStatus: 'idle',
     deletionArchiveDetail: null,
     fetchDeletionArchiveDetailStatus: 'idle',
+    batchShifts: [],
+    batchShiftsPagination: TABLE_PAGINATION,
+    batchShiftsQuery: '',
+    fetchBatchShiftsStatus: 'idle',
     myFinance: null,
     fetchMyFinanceStatus: 'idle',
     error: null,
@@ -339,6 +343,33 @@ const fetchDeletionArchiveDetail = createAsyncThunk(
     }
 );
 
+const fetchBatchShifts = createAsyncThunk(
+    'students/fetchBatchShifts',
+    async ({ authToken, page, limit, query }, { getState, rejectWithValue }) => {
+        try {
+            const state = getState().students;
+            const response = await axios.get(`${BASE_URL}/students/batch-shifts`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    page: page || state.batchShiftsPagination?.page || 1,
+                    limit: limit || state.batchShiftsPagination?.limit || 20,
+                    query:
+                        query !== undefined ? query : state.batchShiftsQuery || '',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    error.message ||
+                    'Failed to load batch shift history'
+            );
+        }
+    }
+);
+
 const updateStudentInfo = createAsyncThunk(
     'students/updateStudentInfo',
     async (payload, { rejectWithValue }) => {
@@ -523,6 +554,26 @@ const studentSlice = createSlice({
         clearDeletionArchiveDetail(state) {
             state.deletionArchiveDetail = null;
             state.fetchDeletionArchiveDetailStatus = "idle";
+        },
+        setBatchShiftsQuery(state, action) {
+            state.batchShiftsQuery = action.payload || "";
+            state.batchShiftsPagination = {
+                ...state.batchShiftsPagination,
+                page: 1,
+            };
+        },
+        setBatchShiftsPage(state, action) {
+            state.batchShiftsPagination = {
+                ...state.batchShiftsPagination,
+                page: action.payload,
+            };
+        },
+        setBatchShiftsLimit(state, action) {
+            state.batchShiftsPagination = {
+                ...state.batchShiftsPagination,
+                page: 1,
+                limit: action.payload,
+            };
         },
     },
 
@@ -952,6 +1003,34 @@ const studentSlice = createSlice({
                     isClosable: true,
                 });
             })
+            .addCase(fetchBatchShifts.pending, (state) => {
+                state.fetchBatchShiftsStatus = 'loading';
+            })
+            .addCase(fetchBatchShifts.fulfilled, (state, action) => {
+                state.fetchBatchShiftsStatus = 'succeeded';
+                state.batchShifts = action.payload.docs || [];
+                state.batchShiftsPagination = {
+                    totalDocs: action.payload.totalDocs,
+                    limit: action.payload.limit,
+                    totalPages: action.payload.totalPages,
+                    page: action.payload.page,
+                    pagingCounter: action.payload.pagingCounter,
+                    hasPrevPage: action.payload.hasPrevPage,
+                    hasNextPage: action.payload.hasNextPage,
+                    prevPage: action.payload.prevPage,
+                    nextPage: action.payload.nextPage,
+                };
+            })
+            .addCase(fetchBatchShifts.rejected, (state, action) => {
+                state.fetchBatchShiftsStatus = 'failed';
+                toast({
+                    title: "Could not load batch shift history",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 4000,
+                    isClosable: true,
+                });
+            })
     }
 });
 
@@ -963,6 +1042,7 @@ export const selectDeletionArchives = (state) =>
   state.students.deletionArchives || [];
 export const selectDeletionArchiveDetail = (state) =>
   state.students.deletionArchiveDetail;
+export const selectBatchShifts = (state) => state.students.batchShifts || [];
 
 export {
     fetchStudents,
@@ -982,6 +1062,7 @@ export {
     fetchStudentHistory,
     fetchDeletionArchives,
     fetchDeletionArchiveDetail,
+    fetchBatchShifts,
 };
 export const selectMyFinance = (state) => state.students.myFinance;
 export const {
@@ -1001,6 +1082,9 @@ export const {
     setDeletionArchivesPage,
     setDeletionArchivesLimit,
     clearDeletionArchiveDetail,
+    setBatchShiftsQuery,
+    setBatchShiftsPage,
+    setBatchShiftsLimit,
 } = studentSlice.actions;
 
 export default studentSlice.reducer;
