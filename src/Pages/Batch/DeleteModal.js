@@ -93,10 +93,10 @@ const DeleteModal = ({ batchId, batchName = "", enrolledCount = 0 }) => {
             </Text>
 
             <Text mt={3} fontSize="sm" color="red.600">
-              This will also delete all enrolled students, their login accounts,
-              fees, fee logs, refunds, and related finance / LMS records.
-              Finance Reporting will no longer include that history. This cannot
-              be undone.
+              This will permanently delete all enrolled students, their login
+              accounts, fees, fee logs, refunds, and related finance / LMS
+              records. A deletion history of this batch and its students will be
+              kept for Accounts, Principal, Vice-Principal, and CEO.
             </Text>
 
             {Number(enrolledCount) > 0 ? (

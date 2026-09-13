@@ -16,13 +16,15 @@ import {
   Select,
   Input,
   Button,
+  ButtonGroup,
   Link,
   createStandaloneToast,
 } from "@chakra-ui/react";
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
-import { Cloud, ExternalLink, FileX, FilterX, Plus } from "lucide-react";
+import DeletedBatchesPanel from "./DeletedBatchesPanel";
+import { Archive, Cloud, ExternalLink, FileX, FilterX, Layers, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -47,7 +49,11 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isInstitutionAdmin, isTeacherRole } from "../../utlls/teacherAccess";
-import { hasPermission, isPlatformSuperAdminRole } from "../../utlls/useful";
+import {
+  hasPermission,
+  isPlatformSuperAdminRole,
+  canDeleteStudent,
+} from "../../utlls/useful";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 import { config } from "../../utlls/config";
@@ -56,14 +62,22 @@ import { formatClassTimeRange } from "../../utlls/classTime";
 const { toast } = createStandaloneToast();
 const BASE_URL = config.BASE_URL;
 
+const LIST_VIEWS = {
+  all: "all",
+  deleted: "deleted",
+};
+
 function Batch() {
   const viewOnly = isStudentViewOnly();
   const canManageInstitution = isInstitutionAdmin();
   const isTeacher = isTeacherRole();
   const showFeeAndDates = !isTeacher;
+  const showDeletedBatches = canDeleteStudent();
+  const canDeleteBatch = canDeleteStudent();
   const tableSearchRef = useRef();
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [listView, setListView] = useState(LIST_VIEWS.all);
   const [deactivateConfirm, setDeactivateConfirm] = useState(null);
   const [syncingBatchId, setSyncingBatchId] = useState("");
 
@@ -194,8 +208,23 @@ function Batch() {
 
   return (
     <>
-      <PageHeader title={viewOnly ? "My Batch" : canManageInstitution ? "All Batchs" : "My Assigned Batches"}>
-        {canManageInstitution && (
+      <PageHeader
+        title={
+          listView === LIST_VIEWS.deleted
+            ? "Deleted Batches"
+            : viewOnly
+              ? "My Batch"
+              : canManageInstitution
+                ? "All Batchs"
+                : "My Assigned Batches"
+        }
+        subtitle={
+          listView === LIST_VIEWS.deleted
+            ? "Who deleted which batch, with enrolled student snapshots."
+            : undefined
+        }
+      >
+        {canManageInstitution && listView === LIST_VIEWS.all && (
           <FilterStack className="filter-stack--actions">
             {hasPermission(["Add_Batch"]) && (
               <button
@@ -209,6 +238,46 @@ function Batch() {
           </FilterStack>
         )}
       </PageHeader>
+
+      {showDeletedBatches && (
+        <FilterStack className="filter-stack--panel mt-3 mb-1">
+          <ButtonGroup
+            isAttached
+            variant="outline"
+            borderRadius="xl"
+            flexWrap="wrap"
+            size="md"
+          >
+            <Button
+              leftIcon={<Layers size={16} />}
+              borderRadius="xl"
+              bg={listView === LIST_VIEWS.all ? "#FFCB82" : "white"}
+              borderColor={listView === LIST_VIEWS.all ? "#E3B574" : "#E0E8EC"}
+              color={listView === LIST_VIEWS.all ? "#654E26" : "#4A5568"}
+              onClick={() => setListView(LIST_VIEWS.all)}
+            >
+              All Batches
+            </Button>
+            <Button
+              leftIcon={<Archive size={16} />}
+              borderRadius="xl"
+              bg={listView === LIST_VIEWS.deleted ? "#FFCB82" : "white"}
+              borderColor={
+                listView === LIST_VIEWS.deleted ? "#E3B574" : "#E0E8EC"
+              }
+              color={listView === LIST_VIEWS.deleted ? "#654E26" : "#4A5568"}
+              onClick={() => setListView(LIST_VIEWS.deleted)}
+            >
+              Deleted Batches
+            </Button>
+          </ButtonGroup>
+        </FilterStack>
+      )}
+
+      {listView === LIST_VIEWS.deleted && showDeletedBatches ? (
+        <DeletedBatchesPanel />
+      ) : (
+        <>
       {canManageInstitution && (
         <FilterStack className="filter-stack--panel filter-stack--table mt-3">
           <div className="w-full sm:max-w-xs">
@@ -412,7 +481,7 @@ function Batch() {
                         {canManageInstitution && hasPermission(["Update_Batch"]) && (
                           <UpdateModal batch={batch} />
                         )}
-                        {canManageInstitution && hasPermission(["Delete_Batch"]) && (
+                        {canManageInstitution && canDeleteBatch && (
                           <DeleteModal
                             batchId={batch._id}
                             batchName={batch.name}
@@ -453,6 +522,8 @@ function Batch() {
         onConfirm={confirmBatchDeactivate}
         isLoading={toggleBatchStatusStatus === "loading"}
       />
+        </>
+      )}
     </>
   );
 }

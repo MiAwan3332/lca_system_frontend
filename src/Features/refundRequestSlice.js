@@ -100,17 +100,50 @@ const rejectRefundRequest = createAsyncThunk(
 const processRefundRequest = createAsyncThunk(
   "refundRequests/processRefundRequest",
   async (payload, { rejectWithValue }) => {
-    const { authToken, requestId, amount } = payload;
+    const {
+      authToken,
+      requestId,
+      amount,
+      payment_method,
+      payment_evidence,
+    } = payload;
     try {
-      const response = await axios.post(
-        `${BASE_URL}/refund-requests/process/${requestId}`,
-        { amount },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
+      const evidenceList = Array.isArray(payment_evidence)
+        ? payment_evidence.filter(Boolean)
+        : payment_evidence
+          ? [payment_evidence]
+          : [];
+
+      let response;
+      if (evidenceList.length > 0) {
+        const formData = new FormData();
+        formData.append("amount", String(amount));
+        formData.append("payment_method", payment_method || "Cash");
+        evidenceList.forEach((file) => {
+          formData.append("payment_evidence", file);
+        });
+        response = await axios.post(
+          `${BASE_URL}/refund-requests/process/${requestId}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+      } else {
+        response = await axios.post(
+          `${BASE_URL}/refund-requests/process/${requestId}`,
+          { amount, payment_method: payment_method || "Cash" },
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+      }
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error?.response?.data?.message || error.message || "Failed to process refund"
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to process refund"
       );
     }
   }

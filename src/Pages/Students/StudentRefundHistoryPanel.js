@@ -17,12 +17,14 @@ import {
   Tr,
   VStack,
 } from "@chakra-ui/react";
-import { FileX, FilterX } from "lucide-react";
+import { Eye, FileX, FilterX } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import TableSearch from "../../Components/TableSearch";
 import TableRowLoading from "../../Components/TableRowLoading";
 import TablePagination from "../../Components/TablePagination";
 import { DataTableShell, FilterStack } from "../../Components/PageHeader";
+import ActionMenu from "../../Components/ActionMenu";
+import ActionButton from "../../Components/ActionButton";
 import {
   clearRefundFilters,
   fetchRefundRequests,
@@ -33,6 +35,7 @@ import {
   setStatusFilter,
 } from "../../Features/refundRequestSlice";
 import ProcessRefundAction from "./ProcessRefundAction";
+import RefundRequestDetailModal from "./RefundRequestDetailModal";
 
 const formatAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -67,6 +70,7 @@ const getDisplayStatus = (request) => {
 function StudentRefundHistoryPanel() {
   const tableSearchRef = useRef();
   const [authToken] = useState(Cookies.get("authToken"));
+  const [detailRequest, setDetailRequest] = useState(null);
   const dispatch = useDispatch();
   const requests = useSelector(selectAllRefundRequests);
   const {
@@ -287,18 +291,31 @@ function StudentRefundHistoryPanel() {
                                   "DD MMM YYYY"
                                 )}`
                               : ""}
+                            {request.refund_payment_method
+                              ? ` · ${
+                                  request.refund_payment_method ===
+                                    "Online Payment" ||
+                                  request.refund_payment_method === "Online"
+                                    ? "Online"
+                                    : "Cash"
+                                }`
+                              : ""}
                           </Text>
                         ) : null}
                       </Td>
                       <Td isNumeric>
-                        {!request.is_refunded &&
-                        request.status === "Approved" ? (
-                          <ProcessRefundAction student={studentForAction} />
-                        ) : (
-                          <Text fontSize="xs" color="gray.400">
-                            —
-                          </Text>
-                        )}
+                        <ActionMenu>
+                          <ActionButton
+                            variant="blue"
+                            icon={<Eye size={16} />}
+                            label="View Details"
+                            onClick={() => setDetailRequest(request)}
+                          />
+                          {!request.is_refunded &&
+                          request.status === "Approved" ? (
+                            <ProcessRefundAction student={studentForAction} />
+                          ) : null}
+                        </ActionMenu>
                       </Td>
                     </Tr>
                   );
@@ -317,6 +334,14 @@ function StudentRefundHistoryPanel() {
           method={fetchRefundRequests}
         />
       )}
+
+      {detailRequest ? (
+        <RefundRequestDetailModal
+          request={detailRequest}
+          isOpen={Boolean(detailRequest)}
+          onClose={() => setDetailRequest(null)}
+        />
+      ) : null}
     </>
   );
 }

@@ -35,6 +35,12 @@ const initialState = {
   assignTeacherCoursesStatus: "idle",
   fetchBatchTeacherAssignmentsStatus: "idle",
   toggleBatchStatusStatus: "idle",
+  deletionArchives: [],
+  deletionArchivesPagination: TABLE_PAGINATION,
+  deletionArchivesQuery: "",
+  fetchDeletionArchivesStatus: "idle",
+  deletionArchiveDetail: null,
+  fetchDeletionArchiveDetailStatus: "idle",
   error: [],
 };
 
@@ -119,6 +125,38 @@ const deleteBatch = createAsyncThunk("batches/deleteBatch", async (payload) => {
   }
   return data;
 });
+
+const fetchDeletionArchives = createAsyncThunk(
+  "batches/fetchDeletionArchives",
+  async (payload, { getState }) => {
+    const state = getState();
+    const { authToken, page, limit, query } = payload || {};
+    const response = await axios.get(`${BASE_URL}/batches/deletion-archives`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      params: {
+        page: page || state.batches.deletionArchivesPagination?.page || 1,
+        limit: limit || state.batches.deletionArchivesPagination?.limit || 20,
+        query:
+          query !== undefined && query !== null
+            ? query
+            : state.batches.deletionArchivesQuery || "",
+      },
+    });
+    return response.data;
+  }
+);
+
+const fetchDeletionArchiveDetail = createAsyncThunk(
+  "batches/fetchDeletionArchiveDetail",
+  async (payload) => {
+    const { authToken, archiveId } = payload;
+    const response = await axios.get(
+      `${BASE_URL}/batches/deletion-archives/${archiveId}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data;
+  }
+);
 
 const toggleBatchStatus = createAsyncThunk(
   "batches/toggleBatchStatus",
@@ -279,6 +317,30 @@ const batchSlice = createSlice({
         state.filters.batch_type = "";
         state.filters.start_date = "";
         state.filters.end_date = "";
+      },
+      setDeletionArchivesQuery(state, action) {
+        state.deletionArchivesQuery = action.payload || "";
+        state.deletionArchivesPagination = {
+          ...state.deletionArchivesPagination,
+          page: 1,
+        };
+      },
+      setDeletionArchivesPage(state, action) {
+        state.deletionArchivesPagination = {
+          ...state.deletionArchivesPagination,
+          page: action.payload,
+        };
+      },
+      setDeletionArchivesLimit(state, action) {
+        state.deletionArchivesPagination = {
+          ...state.deletionArchivesPagination,
+          page: 1,
+          limit: action.payload,
+        };
+      },
+      clearDeletionArchiveDetail(state) {
+        state.deletionArchiveDetail = null;
+        state.fetchDeletionArchiveDetailStatus = "idle";
       },
   },
 
@@ -555,11 +617,59 @@ const batchSlice = createSlice({
           duration: 5000,
           isClosable: true,
         });
+      })
+
+      .addCase(fetchDeletionArchives.pending, (state) => {
+        state.fetchDeletionArchivesStatus = "loading";
+      })
+      .addCase(fetchDeletionArchives.fulfilled, (state, action) => {
+        state.fetchDeletionArchivesStatus = "succeeded";
+        state.deletionArchives = action.payload.docs || [];
+        state.deletionArchivesPagination = {
+          page: action.payload.page,
+          limit: action.payload.limit,
+          totalDocs: action.payload.totalDocs,
+          totalPages: action.payload.totalPages,
+          hasNextPage: action.payload.hasNextPage,
+          hasPrevPage: action.payload.hasPrevPage,
+        };
+      })
+      .addCase(fetchDeletionArchives.rejected, (state, action) => {
+        state.fetchDeletionArchivesStatus = "failed";
+        state.error.push(action.error.message);
+        toast({
+          title: action.error.message || "Failed to load deleted batches",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+
+      .addCase(fetchDeletionArchiveDetail.pending, (state) => {
+        state.fetchDeletionArchiveDetailStatus = "loading";
+      })
+      .addCase(fetchDeletionArchiveDetail.fulfilled, (state, action) => {
+        state.fetchDeletionArchiveDetailStatus = "succeeded";
+        state.deletionArchiveDetail = action.payload;
+      })
+      .addCase(fetchDeletionArchiveDetail.rejected, (state, action) => {
+        state.fetchDeletionArchiveDetailStatus = "failed";
+        state.error.push(action.error.message);
+        toast({
+          title: action.error.message || "Failed to load batch archive",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       });
   },
 });
 
 export const selectAllBatches = (state) => state.batches.batches;
+export const selectDeletionArchives = (state) =>
+  state.batches.deletionArchives || [];
+export const selectDeletionArchiveDetail = (state) =>
+  state.batches.deletionArchiveDetail;
 export const selectActiveBatches = (state) =>
   state.batches.batches.filter((batch) => batch.is_active !== false);
 
@@ -602,7 +712,22 @@ export {
   fetchBatchTeachers,
   fetchBatchTeacherAssignments,
   assignTeacherCoursesToBatch,
+  fetchDeletionArchives,
+  fetchDeletionArchiveDetail,
 };
-export const { setQueryFilter, setPageFilter, setLimitFilter, setStatusFilter, setBatchTypeFilter, setStartDateFilter, setEndDateFilter, clearBatchFilters } = batchSlice.actions;
+export const {
+  setQueryFilter,
+  setPageFilter,
+  setLimitFilter,
+  setStatusFilter,
+  setBatchTypeFilter,
+  setStartDateFilter,
+  setEndDateFilter,
+  clearBatchFilters,
+  setDeletionArchivesQuery,
+  setDeletionArchivesPage,
+  setDeletionArchivesLimit,
+  clearDeletionArchiveDetail,
+} = batchSlice.actions;
 
 export default batchSlice.reducer;
