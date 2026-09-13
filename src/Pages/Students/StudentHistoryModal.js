@@ -724,6 +724,50 @@ function StudentHistoryModal({ student }) {
                     <TabPanel px={0}>
                       <SectionTitle
                         icon={Layers}
+                        title="Batch shifts"
+                        subtitle="When this student was moved from one batch to another"
+                      />
+                      {!history.batch_shifts?.length ? (
+                        <EmptyState message="No batch shift records for this student yet." />
+                      ) : (
+                        <VStack align="stretch" spacing={0} mb={6}>
+                          {history.batch_shifts.map((shift, index) => (
+                            <TimelineItem
+                              key={String(shift._id)}
+                              title={`${shift.from_batch_name || "Unassigned"} → ${
+                                shift.to_batch_name || "—"
+                              }`}
+                              meta={formatDate(shift.shifted_at)}
+                              badge={
+                                <Badge colorScheme="blue" borderRadius="full">
+                                  Shift
+                                </Badge>
+                              }
+                              isLast={
+                                index === history.batch_shifts.length - 1 &&
+                                !history.batch_history?.length
+                              }
+                            >
+                              <Text fontSize="sm" mt={1}>
+                                Roll: {shift.from_roll_number || "—"} →{" "}
+                                {shift.to_roll_number || "—"}
+                              </Text>
+                              <Text fontSize="xs" color="gray.500" mt={1}>
+                                By{" "}
+                                {shift.shifted_by_name ||
+                                  shift.shifted_by?.name ||
+                                  "—"}
+                                {shift.shifted_by_role
+                                  ? ` · ${shift.shifted_by_role}`
+                                  : ""}
+                              </Text>
+                            </TimelineItem>
+                          ))}
+                        </VStack>
+                      )}
+
+                      <SectionTitle
+                        icon={Layers}
                         title="Batch history"
                         subtitle="Batches linked through current assignment, fees, and enrollments"
                       />

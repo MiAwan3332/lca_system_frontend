@@ -53,29 +53,34 @@ export const isPrincipalFamilyRole = (role) => {
   return compact === "principal" || compact === "viceprincipal";
 };
 
+export const isAccountsRole = (role) =>
+  compactRole(role ?? getCurrentRoleName()) === "accounts";
+
 /**
  * Today's collection cards on the dashboard:
- * Principal, Vice Principal, CEO, and all Super Admins.
+ * Principal, Vice Principal, CEO, Super Admins, and Accounts.
  */
 export const canViewDashboardCollections = (role) => {
   const current = role ?? getCurrentRoleName();
   return (
     isCeoRole(current) ||
     isPrincipalFamilyRole(current) ||
-    isSuperAdminRole(current)
+    isSuperAdminRole(current) ||
+    isAccountsRole(current)
   );
 };
 
 /**
  * Create refund requests from Students actions:
- * CEO, Principal, Vice Principal, Super Admin.
+ * CEO, Principal, Vice Principal, Super Admin, Accounts.
  */
 export const canCreateRefundRequest = (role) => {
   const current = role ?? getCurrentRoleName();
   return (
     isCeoRole(current) ||
     isPrincipalFamilyRole(current) ||
-    isSuperAdminRole(current)
+    isSuperAdminRole(current) ||
+    isAccountsRole(current)
   );
 };
 

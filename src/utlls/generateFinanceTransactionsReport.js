@@ -20,7 +20,7 @@ const isOnlineMethod = (method) => {
   );
 };
 
-/** Required columns for Finance Report Excel (must match Accounts daily sheet). */
+/** Required columns — must match Accounts daily collection sheet. */
 export const FINANCE_EXPORT_HEADERS = [
   "SR",
   "NAMES",
@@ -36,7 +36,6 @@ export const FINANCE_EXPORT_HEADERS = [
 const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) => {
   let source = Array.isArray(transactions) ? [...transactions] : [];
 
-  // Daily collection sheet focuses on fee activity (not org expenses).
   source = source.filter(
     (t) => t?.type !== "expense" && String(t?.action_type || "") !== "Expense"
   );
@@ -71,8 +70,7 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
       const signed = isRefundRow ? -paymentAmount : paymentAmount;
       if (isOnlineMethod(method)) {
         online = signed;
-      } else if (method || isPaidRow || isRefundRow) {
-        // Cash + Cheque + empty method count as cash channel for the day.
+      } else {
         cash = signed;
       }
     } else {
@@ -87,9 +85,6 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
       method ? `Method: ${method}` : "",
       t.description || t.fee_description || "",
       t.action_by && t.action_by !== "N/A" ? `By: ${t.action_by}` : "",
-      t.action_date
-        ? `Date: ${moment(t.action_date).format("DD MMM YYYY HH:mm")}`
-        : "",
     ].filter(Boolean);
 
     return {
@@ -109,10 +104,10 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
   });
 };
 
-const sheetFromCollectionRows = (rows) => {
+const buildDailyCollectionSheet = (rows) => {
   const aoa = [
     FINANCE_EXPORT_HEADERS,
-    ...rows.map((row) => FINANCE_EXPORT_HEADERS.map((key) => row[key])),
+    ...rows.map((row) => FINANCE_EXPORT_HEADERS.map((key) => row[key] ?? "")),
   ];
 
   if (rows.length) {
@@ -147,6 +142,10 @@ const sheetFromCollectionRows = (rows) => {
   return sheet;
 };
 
+/**
+ * Finance Report Excel export.
+ * Daily → single sheet with required Accounts columns only.
+ */
 export const exportFinanceTransactionsExcel = ({
   transactions = [],
   period = "daily",
@@ -168,12 +167,23 @@ export const exportFinanceTransactionsExcel = ({
   const isDaily =
     label === "daily" ||
     (startDate && endDate && String(startDate) === String(endDate));
-  const fileName = `finance_transactions_${label}_${safeDate}.xlsx`;
+  const fileName = isDaily
+    ? `daily_collection_${safeDate}.xlsx`
+    : `finance_transactions_${label}_${safeDate}.xlsx`;
 
-  // Must-have Accounts columns on every export; daily prefers payment rows.
   const collectionRows = buildCollectionRows(transactions, {
     paymentsOnly: isDaily,
   });
+
+  const workbook = XLSX.utils.book_new();
+  const collectionSheet = buildDailyCollectionSheet(collectionRows);
+
+  // Daily report: only the required Accounts columns sheet.
+  if (isDaily) {
+    XLSX.utils.book_append_sheet(workbook, collectionSheet, "Daily Collection");
+    XLSX.writeFile(workbook, fileName);
+    return fileName;
+  }
 
   const batchRows = (Array.isArray(batchWise) ? batchWise : []).map(
     (batch, index) => ({
@@ -203,15 +213,8 @@ export const exportFinanceTransactionsExcel = ({
     ["Total Cash", formatRs(totalCash)],
     ["Total Online", formatRs(totalOnline)],
     ["Combined", formatRs(toNumber(totalCash) + toNumber(totalOnline))],
-    [],
-    ["Sheet columns (required)"],
-    [FINANCE_EXPORT_HEADERS.join(" | ")],
   ]);
-
   metaSheet["!cols"] = [{ wch: 28 }, { wch: 42 }];
-
-  const collectionSheet = sheetFromCollectionRows(collectionRows);
-  const collectionSheetName = isDaily ? "Daily Collection" : "Collection";
 
   const batchSheet =
     batchRows.length > 0
@@ -220,7 +223,6 @@ export const exportFinanceTransactionsExcel = ({
           ["#", "Batch", "Total Cash", "Total Online", "Total"],
           ["", "No batch collections in this period", "", "", ""],
         ]);
-
   batchSheet["!cols"] = [
     { wch: 6 },
     { wch: 28 },
@@ -229,9 +231,7 @@ export const exportFinanceTransactionsExcel = ({
     { wch: 14 },
   ];
 
-  const workbook = XLSX.utils.book_new();
-  // Required collection columns first so the file opens on the Accounts sheet.
-  XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionSheetName);
+  XLSX.utils.book_append_sheet(workbook, collectionSheet, "Collection");
   XLSX.utils.book_append_sheet(workbook, batchSheet, "Batch Wise");
   XLSX.utils.book_append_sheet(workbook, metaSheet, "Report Info");
   XLSX.writeFile(workbook, fileName);

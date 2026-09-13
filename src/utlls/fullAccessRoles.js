@@ -56,6 +56,7 @@ export const STUDENT_DELETE_ROLE_NAMES = [
   "secratesuperadmin",
   "secrate superadmin",
   "secrate super admin",
+  "accounts",
 ];
 
 const normalizeRole = (role) =>
@@ -132,6 +133,7 @@ export const canDeleteStudentRoleName = (role) => {
     compact === "superadmin" ||
     compact === "superadmindevelopment" ||
     compact === "secrateadmin" ||
-    compact === "secratesuperadmin"
+    compact === "secratesuperadmin" ||
+    compact === "accounts"
   );
 };

@@ -36,7 +36,7 @@ import {
   setLimitFilter as setBatchLimitFilter,
 } from "../../Features/batchSlice";
 import QrCodeModal from "../../Components/Modals/Student/QrCodeModal";
-import { FileX, FilterX, Plus, FileUp, Archive, HandCoins, GraduationCap } from "lucide-react";
+import { FileX, FilterX, Plus, FileUp, Archive, HandCoins, GraduationCap, ArrowRightLeft } from "lucide-react";
 import {
   fetchStudents,
   selectAllStudents,
@@ -67,6 +67,7 @@ import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import DeleteModal from "./DeleteModal";
 import StudentRefundHistoryPanel from "./StudentRefundHistoryPanel";
 import DeletedStudentsPanel from "./DeletedStudentsPanel";
+import StudentBatchShiftHistoryPanel from "./StudentBatchShiftHistoryPanel";
 import { isStudentViewOnly, isStudentProfileIncomplete } from "../../utlls/studentAccess";
 import { isTeacherRole } from "../../utlls/teacherAccess";
 import { hasPermission, canDeleteStudent, canShiftStudentBatch } from "../../utlls/useful";
@@ -79,6 +80,7 @@ const LIST_VIEWS = {
   all: "all",
   refund: "refund",
   deleted: "deleted",
+  shifts: "shifts",
 };
 
 function Student() {
@@ -91,7 +93,8 @@ function Student() {
   const showDeleteStudent = canDeleteStudent();
   const showShiftBatch = canShiftStudentBatch();
   const showRefundToggle = canAccessRequestManagement();
-  const showListViewSwitcher = showRefundToggle || showDeleteStudent;
+  const showListViewSwitcher =
+    showRefundToggle || showDeleteStudent || showShiftBatch;
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
   const onImportOpen = () => setIsImportOpen(true);
@@ -332,16 +335,20 @@ function Student() {
               ? "Refund History"
               : listView === LIST_VIEWS.deleted
                 ? "Deleted Students"
-                : "All Students"
+                : listView === LIST_VIEWS.shifts
+                  ? "Batch Shift History"
+                  : "All Students"
         }
         subtitle={
           listView === LIST_VIEWS.refund
             ? "Students who requested refunds — pending, approved, refunded, and rejected."
             : listView === LIST_VIEWS.deleted
               ? "Who deleted which student, with complete archived finance data."
-              : isTeacher
-                ? "Students from your assigned batches only."
-                : undefined
+              : listView === LIST_VIEWS.shifts
+                ? "Who shifted which student from one batch to another."
+                : isTeacher
+                  ? "Students from your assigned batches only."
+                  : undefined
         }
       >
         {showAdminControls && listView === LIST_VIEWS.all && (
@@ -404,6 +411,20 @@ function Student() {
                 Refund History
               </Button>
             )}
+            {showShiftBatch && (
+              <Button
+                leftIcon={<ArrowRightLeft size={16} />}
+                borderRadius="xl"
+                bg={listView === LIST_VIEWS.shifts ? "#FFCB82" : "white"}
+                borderColor={
+                  listView === LIST_VIEWS.shifts ? "#E3B574" : "#E0E8EC"
+                }
+                color={listView === LIST_VIEWS.shifts ? "#654E26" : "#4A5568"}
+                onClick={() => setListView(LIST_VIEWS.shifts)}
+              >
+                Batch Shifts
+              </Button>
+            )}
             {showDeleteStudent && (
               <Button
                 leftIcon={<Archive size={16} />}
@@ -424,6 +445,8 @@ function Student() {
 
       {showAdminControls && listView === LIST_VIEWS.refund ? (
         <StudentRefundHistoryPanel />
+      ) : showAdminControls && listView === LIST_VIEWS.shifts ? (
+        <StudentBatchShiftHistoryPanel />
       ) : showAdminControls && listView === LIST_VIEWS.deleted ? (
         <DeletedStudentsPanel />
       ) : (
