@@ -9,6 +9,7 @@ import {
   Button,
   FormControl,
   FormLabel,
+  HStack,
   Input,
   Modal,
   ModalBody,
@@ -25,9 +26,17 @@ import Cookies from "js-cookie";
 import { HandCoins } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import ActionButton from "../../Components/ActionButton";
-import { processRefundRequest, fetchRefundRequests } from "../../Features/refundRequestSlice";
+import PaymentEvidenceUploader from "../../Components/PaymentEvidenceUploader";
+import {
+  processRefundRequest,
+  fetchRefundRequests,
+} from "../../Features/refundRequestSlice";
 import { fetchStudents } from "../../Features/studentSlice";
 import { canDecideRefundRequest } from "../../utlls/refundAccess";
+import {
+  FEE_PAYMENT_METHODS,
+  requiresPaymentEvidence,
+} from "../../utlls/paymentMethods";
 
 const formatAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -35,10 +44,9 @@ const formatAmount = (amount) =>
   })}`;
 
 /**
- * Shown on Students actions when the student has an approved,
+ * Shown on Students / Refund History when the student has an approved,
  * not-yet-processed refund request.
- * Refund amount cannot exceed the approved amount.
- * Requires a second confirmation before processing.
+ * Requires Cash or Online method; Online requires a screenshot.
  */
 function ProcessRefundAction({ student }) {
   const authToken = Cookies.get("authToken");
@@ -49,15 +57,24 @@ function ProcessRefundAction({ student }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [error, setError] = useState("");
+  const [evidenceError, setEvidenceError] = useState("");
 
   const refundRequest = student?.approved_refund_request;
-  const approvedMax = Math.round(Math.max(Number(refundRequest?.amount) || 0, 0));
+  const approvedMax = Math.round(
+    Math.max(Number(refundRequest?.amount) || 0, 0)
+  );
+  const needsEvidence = requiresPaymentEvidence(paymentMethod);
 
   useEffect(() => {
     if (isOpen) {
       setAmount(approvedMax > 0 ? String(approvedMax) : "");
+      setPaymentMethod("Cash");
+      setEvidenceFiles([]);
       setError("");
+      setEvidenceError("");
       setIsConfirmOpen(false);
     }
   }, [isOpen, approvedMax]);
@@ -70,6 +87,8 @@ function ProcessRefundAction({ student }) {
     setIsOpen(false);
     setIsConfirmOpen(false);
     setError("");
+    setEvidenceError("");
+    setEvidenceFiles([]);
   };
 
   const validateAmount = () => {
@@ -79,20 +98,40 @@ function ProcessRefundAction({ student }) {
       return null;
     }
     if (refundAmount > approvedMax) {
-      setError(`Maximum allowed is the approved amount (${formatAmount(approvedMax)})`);
+      setError(
+        `Maximum allowed is the approved amount (${formatAmount(approvedMax)})`
+      );
       return null;
     }
     return refundAmount;
   };
 
-  const handleAskConfirmation = () => {
+  const validateForm = () => {
     const refundAmount = validateAmount();
+    if (refundAmount == null) return null;
+
+    if (!paymentMethod || !FEE_PAYMENT_METHODS.includes(paymentMethod)) {
+      setError("Select Cash or Online refund method");
+      return null;
+    }
+
+    if (needsEvidence && evidenceFiles.length === 0) {
+      setEvidenceError("Screenshot / receipt is required for online refunds");
+      return null;
+    }
+
+    setEvidenceError("");
+    return refundAmount;
+  };
+
+  const handleAskConfirmation = () => {
+    const refundAmount = validateForm();
     if (refundAmount == null) return;
     setIsConfirmOpen(true);
   };
 
   const handleConfirmedProcess = async () => {
-    const refundAmount = validateAmount();
+    const refundAmount = validateForm();
     if (refundAmount == null) {
       setIsConfirmOpen(false);
       return;
@@ -104,6 +143,8 @@ function ProcessRefundAction({ student }) {
           authToken,
           requestId: refundRequest._id,
           amount: refundAmount,
+          payment_method: paymentMethod,
+          payment_evidence: evidenceFiles,
         })
       ).unwrap();
       handleClose();
@@ -130,7 +171,7 @@ function ProcessRefundAction({ student }) {
         onClick={() => setIsOpen(true)}
       />
 
-      <Modal isOpen={isOpen} onClose={handleClose} isCentered>
+      <Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Process Refund</ModalHeader>
@@ -176,6 +217,51 @@ function ProcessRefundAction({ student }) {
                 )}
               </FormControl>
 
+              <FormControl>
+                <FormLabel fontSize={14}>
+                  Refund via <Text as="span" color="red.500">*</Text>
+                </FormLabel>
+                <HStack spacing={2} flexWrap="wrap">
+                  {FEE_PAYMENT_METHODS.map((method) => {
+                    const label =
+                      method === "Online Payment" ? "Online" : method;
+                    const selected = paymentMethod === method;
+                    return (
+                      <Button
+                        key={method}
+                        size="sm"
+                        borderRadius="xl"
+                        variant={selected ? "solid" : "outline"}
+                        bg={selected ? "#FFCB82" : "white"}
+                        color={selected ? "#654E26" : "gray.700"}
+                        borderColor={selected ? "#E3B574" : "gray.200"}
+                        onClick={() => {
+                          setPaymentMethod(method);
+                          setEvidenceError("");
+                          if (!requiresPaymentEvidence(method)) {
+                            setEvidenceFiles([]);
+                          }
+                        }}
+                      >
+                        {label}
+                      </Button>
+                    );
+                  })}
+                </HStack>
+              </FormControl>
+
+              {needsEvidence ? (
+                <PaymentEvidenceUploader
+                  files={evidenceFiles}
+                  onChange={(files) => {
+                    setEvidenceFiles(files);
+                    setEvidenceError("");
+                  }}
+                  error={evidenceError}
+                  label="Online refund screenshot"
+                />
+              ) : null}
+
               <Text fontSize="sm" color="orange.600">
                 This will deduct the amount from finance and mark the refund as
                 completed.
@@ -217,8 +303,11 @@ function ProcessRefundAction({ student }) {
             </AlertDialogHeader>
             <AlertDialogBody>
               Are you sure you want to refund{" "}
-              <strong>{formatAmount(Number(amount) || 0)}</strong> to{" "}
-              <strong>{student?.name || "this student"}</strong>?
+              <strong>{formatAmount(Number(amount) || 0)}</strong> via{" "}
+              <strong>
+                {paymentMethod === "Online Payment" ? "Online" : "Cash"}
+              </strong>{" "}
+              to <strong>{student?.name || "this student"}</strong>?
               <Text mt={3} fontSize="sm" color="gray.600">
                 This action will deduct the amount from finance and cannot be
                 undone easily.
