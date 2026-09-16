@@ -154,7 +154,12 @@ function AddStudnet({ isOpen, onClose }) {
               return Number(value || 0) <= gross;
             }
           ),
-        discount_description: Yup.string(),
+        discount_description: Yup.string().when("discount_amount", {
+          is: (value) => Number(value) > 0,
+          then: (schema) =>
+            schema.trim().required("Discount remarks are required"),
+          otherwise: (schema) => schema.notRequired(),
+        }),
         payment_method: Yup.string().when("batch", {
           is: (batchId) => {
             const selected = batches.find((item) => item._id === batchId);
@@ -234,6 +239,22 @@ function AddStudnet({ isOpen, onClose }) {
         toast({
           title: "Invalid discount",
           description: `Discount cannot be greater than total fee (${grossFee} Rs.).`,
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      if (discountAmount > 0 && !String(values.discount_description || "").trim()) {
+        formik.setFieldError(
+          "discount_description",
+          "Discount remarks are required"
+        );
+        formik.setFieldTouched("discount_description", true, false);
+        toast({
+          title: "Discount remarks required",
+          description: "Enter a reason for the discount.",
           status: "error",
           duration: 4000,
           isClosable: true,
@@ -782,17 +803,32 @@ function AddStudnet({ isOpen, onClose }) {
       </FormControl>
 
       {discountAmount > 0 && (
-        <FormControl id="discount_description" mb={4}>
-          <FormLabel fontSize={14}>Discount reason</FormLabel>
+        <FormControl
+          id="discount_description"
+          mb={4}
+          isInvalid={
+            formik.touched.discount_description &&
+            Boolean(formik.errors.discount_description)
+          }
+        >
+          <FormLabel fontSize={14}>
+            Discount remarks <Text as="span" color="red.500">*</Text>
+          </FormLabel>
           <Input
             type="text"
             name="discount_description"
             borderRadius="0.5rem"
-            placeholder="Optional note for this discount"
+            placeholder="Reason for this discount (saved on student record)"
             value={formik.values.discount_description}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
           />
+          {formik.touched.discount_description &&
+          formik.errors.discount_description ? (
+            <Text color="red.500" fontSize="sm" mt={1}>
+              {formik.errors.discount_description}
+            </Text>
+          ) : null}
         </FormControl>
       )}
 
@@ -1262,7 +1298,7 @@ function AddStudnet({ isOpen, onClose }) {
                   name="remarks"
                   borderRadius="0.5rem"
                   rows={2}
-                  placeholder="Optional notes about this student"
+                  placeholder="Optional notes about this student (included in Excel export)"
                   value={formik.values.remarks}
                   onChange={formik.handleChange}
                 />

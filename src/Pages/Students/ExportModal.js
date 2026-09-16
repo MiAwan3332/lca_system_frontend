@@ -54,6 +54,8 @@ const ExportModal = () => {
     "Total Fee",
     "Received Fee",
     "Pending Fee",
+    "Remarks",
+    "Discount Remarks",
     "Finance History",
     "CNIC Image",
     "CNIC Back Image",
@@ -128,7 +130,7 @@ const ExportModal = () => {
               student.phone,
               student.cnic,
               moment(student.admission_date).format("DD/MM/YYYY"),
-              moment(student.dob).format("DD/MM/YYYY"),
+              moment(student.dob || student.date_of_birth).format("DD/MM/YYYY"),
               student.father_name,
               student.father_phone,
               student.latest_degree,
@@ -139,12 +141,14 @@ const ExportModal = () => {
               student.total_fee || 0,
               student.paid_fee || 0,
               student.pending_fee || 0,
+              student.remarks || "",
+              student.discount_remarks || "",
               student.finance_history || "No history",
               student.cnic_image,
               student.cnic_back_image,
               student.image,
               student.latest_degree_image,
-              student.qr_code,
+              student.qr_code || student.qrcode,
             ])
           },
         });
@@ -224,6 +228,11 @@ const ExportModal = () => {
                             <Th>City</Th>
                             <Th>Completion Year</Th>
                             <Th>Marks CGPA</Th>
+                            <Th>Total Fee</Th>
+                            <Th>Received Fee</Th>
+                            <Th>Pending Fee</Th>
+                            <Th>Remarks</Th>
+                            <Th>Discount Remarks</Th>
                             <Th>CNIC Image</Th>
                             <Th>CNIC Back Image</Th>
                             <Th>Image</Th>
@@ -240,7 +249,7 @@ const ExportModal = () => {
                               <Td>{student.phone}</Td>
                               <Td>{student.cnic}</Td>
                               <Td>{moment(student.admission_date).format("DD/MM/YYYY")}</Td>
-                              <Td>{moment(student.dob).format("DD/MM/YYYY")}</Td>
+                              <Td>{moment(student.dob || student.date_of_birth).format("DD/MM/YYYY")}</Td>
                               <Td>{student.father_name}</Td>
                               <Td>{student.father_phone}</Td>
                               <Td>{student.latest_degree}</Td>
@@ -248,11 +257,16 @@ const ExportModal = () => {
                               <Td>{student.city}</Td>
                               <Td>{student.completion_year}</Td>
                               <Td>{student.marks_cgpa}</Td>
+                              <Td>{student.total_fee || 0}</Td>
+                              <Td>{student.paid_fee || 0}</Td>
+                              <Td>{student.pending_fee || 0}</Td>
+                              <Td>{student.remarks || "—"}</Td>
+                              <Td>{student.discount_remarks || "—"}</Td>
                               <Td>{student.cnic_image}</Td>
                               <Td>{student.cnic_back_image}</Td>
                               <Td>{student.image}</Td>
                               <Td>{student.latest_degree_image}</Td>
-                              <Td>{student.qr_code}</Td>
+                              <Td>{student.qr_code || student.qrcode}</Td>
                             </Tr>
                           ))}
                         </Tbody>
