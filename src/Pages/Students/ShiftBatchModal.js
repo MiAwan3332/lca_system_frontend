@@ -17,9 +17,11 @@ import {
   AlertDescription,
   useToast,
   VStack,
+  Checkbox,
+  HStack,
 } from "@chakra-ui/react";
 import Cookies from "js-cookie";
-import { ArrowRightLeft, FileText } from "lucide-react";
+import { ArrowRightLeft, FileText, Receipt } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchBatches,
@@ -43,6 +45,10 @@ import {
 } from "../../utlls/responsiveModal";
 import ActionButton from "../../Components/ActionButton";
 import { canShiftStudentBatch } from "../../utlls/useful";
+import {
+  batchIsPaid,
+  normalizeBatchSpecialFeeOptions,
+} from "../../utlls/specialFeeOptions";
 
 const formatPendingAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -57,6 +63,7 @@ function ShiftBatchModal({ student }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [destinationBatchId, setDestinationBatchId] = useState("");
   const [pendingBlock, setPendingBlock] = useState(null);
+  const [specialSelectedOptions, setSpecialSelectedOptions] = useState([]);
   const toast = useToast();
   const dispatch = useDispatch();
 
@@ -67,6 +74,7 @@ function ShiftBatchModal({ student }) {
 
   const currentBatchId = student?.batch?._id || student?.batch || "";
   const currentBatchName = student?.batch?.name || "No Batch";
+  const oldDuesNil = !(Number(student?.pending_fee) > 0);
 
   const destinationBatches = useMemo(
     () =>
@@ -78,11 +86,55 @@ function ShiftBatchModal({ student }) {
     [batches, currentBatchId]
   );
 
+  const destinationBatch = useMemo(
+    () =>
+      destinationBatches.find(
+        (batch) => String(batch._id) === String(destinationBatchId)
+      ),
+    [destinationBatches, destinationBatchId]
+  );
+
+  const isDestinationPaid = batchIsPaid(destinationBatch);
+  const isDestinationSpecial = destinationBatch?.is_special_batch === true;
+  const specialOptions = useMemo(
+    () =>
+      normalizeBatchSpecialFeeOptions(
+        destinationBatch?.special_fee_options
+      ).filter((item) => Number(item.fee) > 0),
+    [destinationBatch]
+  );
+
+  const destinationFeeAmount = useMemo(() => {
+    if (!destinationBatch || !isDestinationPaid) return 0;
+    if (isDestinationSpecial) {
+      const selected = new Set(specialSelectedOptions);
+      return specialOptions.reduce(
+        (sum, item) => (selected.has(item.key) ? sum + Number(item.fee || 0) : sum),
+        0
+      );
+    }
+    return Number(destinationBatch.batch_fee) || 0;
+  }, [
+    destinationBatch,
+    isDestinationPaid,
+    isDestinationSpecial,
+    specialOptions,
+    specialSelectedOptions,
+  ]);
+
+  const canGoWithNewFee =
+    oldDuesNil &&
+    Boolean(destinationBatchId) &&
+    isDestinationPaid &&
+    destinationFeeAmount > 0 &&
+    (!isDestinationSpecial || specialSelectedOptions.length > 0);
+
   const onOpen = () => setIsOpen(true);
   const onClose = () => {
     setIsOpen(false);
     setDestinationBatchId("");
     setPendingBlock(null);
+    setSpecialSelectedOptions([]);
   };
 
   useEffect(() => {
@@ -101,7 +153,7 @@ function ShiftBatchModal({ student }) {
     }
   }, [dispatch, authToken, isOpen]);
 
-  const handleTransfer = async () => {
+  const handleTransfer = async ({ assignNewFee = false } = {}) => {
     if (!destinationBatchId) {
       toast({
         title: "Select a batch",
@@ -124,24 +176,46 @@ function ShiftBatchModal({ student }) {
       return;
     }
 
+    if (assignNewFee) {
+      if (!canGoWithNewFee) {
+        toast({
+          title: "Cannot assign new fee",
+          description: isDestinationSpecial
+            ? "Select at least one special batch option with a fee."
+            : "Destination batch must have a fee greater than 0.",
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+      if (!oldDuesNil) {
+        toast({
+          title: "Clear old dues first",
+          description:
+            "Old dues must be nil before assigning a new fee on batch shift.",
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+    }
+
     setPendingBlock(null);
 
     try {
-      const updatedStudent = await dispatch(
+      await dispatch(
         transferStudentBatch({
           authToken,
           studentId: student._id,
           batch: destinationBatchId,
+          assign_new_fee: assignNewFee,
+          special_selected_options: assignNewFee
+            ? specialSelectedOptions
+            : undefined,
         })
       ).unwrap();
-      
-      toast({
-        title: "Batch Transferred",
-        description: `Student successfully moved to new batch. New Roll No: ${updatedStudent.roll_number || 'Generated'}`,
-        status: "success",
-        duration: 4000,
-        isClosable: true,
-      });
 
       dispatch(fetchStudents({ authToken }));
       onClose();
@@ -150,6 +224,7 @@ function ShiftBatchModal({ student }) {
         setPendingBlock(error);
         return;
       }
+      // Error toast is handled by the Redux slice
     }
   };
 
@@ -264,6 +339,12 @@ function ShiftBatchModal({ student }) {
     }
   };
 
+  const toggleSpecialOption = (key) => {
+    setSpecialSelectedOptions((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    );
+  };
+
   return (
     <>
       <ActionButton
@@ -308,6 +389,14 @@ function ShiftBatchModal({ student }) {
                     Roll No: <strong>{student.roll_number}</strong>
                   </Text>
                 ) : null}
+                <Text fontSize="sm" color="gray.600" mt={1}>
+                  Old dues:{" "}
+                  <strong>
+                    {oldDuesNil
+                      ? "Nil"
+                      : formatPendingAmount(student.pending_fee)}
+                  </strong>
+                </Text>
               </Box>
 
               <FormControl isRequired>
@@ -318,6 +407,7 @@ function ShiftBatchModal({ student }) {
                   onChange={(batchId) => {
                     setDestinationBatchId(batchId);
                     setPendingBlock(null);
+                    setSpecialSelectedOptions([]);
                   }}
                   placeholder="Select active destination batch"
                   width="100%"
@@ -325,6 +415,49 @@ function ShiftBatchModal({ student }) {
                   showClearOption={false}
                 />
               </FormControl>
+
+              {destinationBatchId &&
+              isDestinationSpecial &&
+              specialOptions.length > 0 ? (
+                <FormControl>
+                  <FormLabel fontSize={14}>
+                    Special fee options (for new fee)
+                  </FormLabel>
+                  <VStack align="stretch" spacing={2}>
+                    {specialOptions.map((option) => (
+                      <Checkbox
+                        key={option.key}
+                        isChecked={specialSelectedOptions.includes(option.key)}
+                        onChange={() => toggleSpecialOption(option.key)}
+                      >
+                        {option.label} — {formatPendingAmount(option.fee)}
+                      </Checkbox>
+                    ))}
+                  </VStack>
+                </FormControl>
+              ) : null}
+
+              {oldDuesNil && destinationBatchId ? (
+                <Alert
+                  status="success"
+                  borderRadius="xl"
+                  alignItems="flex-start"
+                >
+                  <AlertIcon mt={1} />
+                  <AlertDescription fontSize="sm">
+                    Old dues are nil. You can transfer only, or{" "}
+                    <strong>Go with new fee</strong>
+                    {isDestinationPaid && destinationFeeAmount > 0
+                      ? ` (${formatPendingAmount(destinationFeeAmount)})`
+                      : isDestinationPaid
+                        ? isDestinationSpecial
+                          ? " after selecting special options"
+                          : " once destination fee is configured"
+                        : " — destination batch has no fee"}
+                    .
+                  </AlertDescription>
+                </Alert>
+              ) : null}
 
               {pendingBlock ? (
                 <Alert
@@ -366,28 +499,45 @@ function ShiftBatchModal({ student }) {
               ) : null}
             </VStack>
           </ModalBody>
-          <ModalFooter>
+          <ModalFooter flexWrap="wrap" gap={2}>
             <Button
               variant="ghost"
-              mr={3}
               borderRadius="0.75rem"
               onClick={onClose}
             >
               Close
             </Button>
-            <Button
-              borderRadius="0.75rem"
-              backgroundColor="#7AEF85"
-              color="#257947"
-              _hover={{ backgroundColor: "#65C76E", color: "#184E2E" }}
-              fontWeight="500"
-              onClick={handleTransfer}
-              isLoading={transferBatchStatus === "loading"}
-              loadingText="Transferring..."
-              isDisabled={!destinationBatchId}
-            >
-              Confirm Transfer
-            </Button>
+            <HStack spacing={2} flexWrap="wrap">
+              {oldDuesNil ? (
+                <Button
+                  leftIcon={<Receipt size={16} />}
+                  borderRadius="0.75rem"
+                  backgroundColor="#FFCB82"
+                  color="#85652D"
+                  _hover={{ backgroundColor: "#E3B574", color: "#654E26" }}
+                  fontWeight="500"
+                  onClick={() => handleTransfer({ assignNewFee: true })}
+                  isLoading={transferBatchStatus === "loading"}
+                  loadingText="Assigning fee..."
+                  isDisabled={!canGoWithNewFee}
+                >
+                  Go with new fee
+                </Button>
+              ) : null}
+              <Button
+                borderRadius="0.75rem"
+                backgroundColor="#7AEF85"
+                color="#257947"
+                _hover={{ backgroundColor: "#65C76E", color: "#184E2E" }}
+                fontWeight="500"
+                onClick={() => handleTransfer({ assignNewFee: false })}
+                isLoading={transferBatchStatus === "loading"}
+                loadingText="Transferring..."
+                isDisabled={!destinationBatchId}
+              >
+                Confirm Transfer
+              </Button>
+            </HStack>
           </ModalFooter>
         </ModalContent>
       </Modal>

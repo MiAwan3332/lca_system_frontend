@@ -19,6 +19,7 @@ import {
   HStack,
   IconButton,
   Select,
+  Text,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -40,6 +41,7 @@ function AddModel({ isOpen, onClose }) {
   const formik = useFormik({
     initialValues: {
       name: "",
+      roll_nickname: "",
       description: "",
       batch_type: "",
       batch_fee: "",
@@ -54,6 +56,14 @@ function AddModel({ isOpen, onClose }) {
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
+      roll_nickname: Yup.string()
+        .trim()
+        .required("Required")
+        .matches(
+          /^[A-Za-z0-9]+$/,
+          "Use letters and numbers only (no spaces or symbols)"
+        )
+        .max(20, "Max 20 characters"),
       description: Yup.string().required("Required"),
       batch_fee: Yup.number()
         .transform((value, originalValue) =>
@@ -128,6 +138,9 @@ function AddModel({ isOpen, onClose }) {
             authToken,
             values: {
               name: values.name,
+              roll_nickname: String(values.roll_nickname || "")
+                .trim()
+                .toUpperCase(),
               description: values.description,
               batch_type: values.batch_type,
               startdate: values.startdate,
@@ -240,6 +253,41 @@ function AddModel({ isOpen, onClose }) {
                 {formik.touched.name && formik.errors.name ? (
                   <Box color="red" fontSize="sm">
                     {formik.errors.name}
+                  </Box>
+                ) : null}
+              </FormControl>
+
+              <FormControl id="roll_nickname">
+                <FormLabel fontSize={14}>
+                  Nickname (for roll number)
+                </FormLabel>
+                <Input
+                  type="text"
+                  name="roll_nickname"
+                  borderRadius={"0.5rem"}
+                  placeholder="e.g. CSS or B110"
+                  value={formik.values.roll_nickname}
+                  onChange={(e) => {
+                    const next = String(e.target.value || "")
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "");
+                    formik.setFieldValue("roll_nickname", next);
+                  }}
+                  onBlur={formik.handleBlur}
+                />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Student rolls will be like{" "}
+                  <Text as="span" fontWeight="600">
+                    {formik.values.roll_nickname || "NICK"}-1
+                  </Text>
+                  ,{" "}
+                  <Text as="span" fontWeight="600">
+                    {formik.values.roll_nickname || "NICK"}-2
+                  </Text>
+                </Text>
+                {formik.touched.roll_nickname && formik.errors.roll_nickname ? (
+                  <Box color="red" fontSize="sm">
+                    {formik.errors.roll_nickname}
                   </Box>
                 ) : null}
               </FormControl>

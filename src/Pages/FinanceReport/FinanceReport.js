@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import moment from "moment";
+import axios from "axios";
 import {
   Badge,
   Button,
@@ -62,8 +63,13 @@ import FinanceReportChart from "../../Components/FinanceReportChart";
 import TableRowLoading from "../../Components/TableRowLoading";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import VoucherPreviewModal from "../../Components/FinanceReport/VoucherPreviewModal";
+import TodayCollectionsSection from "../../Components/Dashboard/TodayCollectionsSection";
+import BatchFinanceSection from "../../Components/Dashboard/BatchFinanceSection";
 import { exportFinanceTransactionsExcel } from "../../utlls/generateFinanceTransactionsReport";
 import { exportFinanceTransactionsPdf } from "../../utlls/generateFinanceTransactionsPdf";
+import { config } from "../../utlls/config";
+
+const BASE_URL = config.BASE_URL;
 
 const ALL_ADMIN_USERS_VALUE = "";
 
@@ -221,6 +227,9 @@ function FinanceReport() {
   const [txnSearch, setTxnSearch] = useState("");
   const [previewTransaction, setPreviewTransaction] = useState(null);
   const [isVoucherPreviewOpen, setIsVoucherPreviewOpen] = useState(false);
+  const [todayUserId, setTodayUserId] = useState(ALL_ADMIN_USERS_VALUE);
+  const [todayReport, setTodayReport] = useState(null);
+  const [todayLoading, setTodayLoading] = useState(false);
 
   const dispatch = useDispatch();
   const { report, status } = useSelector((state) => state.financeReport);
@@ -247,7 +256,54 @@ function FinanceReport() {
     [adminUsers, formChangedBy]
   );
 
+  const selectedTodayUser = useMemo(
+    () =>
+      adminUsers.find((user) => String(user._id) === String(todayUserId)) ||
+      null,
+    [adminUsers, todayUserId]
+  );
+
   const collectedByLabel = selectedAdminUser?.name || "All admin users";
+
+  const batchFinanceFilters = useMemo(
+    () => ({
+      batch_id: Array.isArray(formBatch)
+        ? formBatch.length
+          ? formBatch.join(",")
+          : ""
+        : formBatch || "",
+      start_date: fromDate || "",
+      end_date: toDate || "",
+    }),
+    [formBatch, fromDate, toDate]
+  );
+
+  const loadTodayCollections = useCallback(
+    async (changed_by = todayUserId) => {
+      if (!authToken) return;
+      setTodayLoading(true);
+      try {
+        const params = new URLSearchParams({
+          period: "daily",
+          start_date: moment().format("YYYY-MM-DD"),
+          end_date: moment().format("YYYY-MM-DD"),
+        });
+        if (changed_by) {
+          params.append("changed_by", changed_by);
+        }
+        const { data } = await axios.get(
+          `${BASE_URL}/fees/report?${params.toString()}`,
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        setTodayReport(data);
+      } catch {
+        setTodayReport(null);
+      } finally {
+        setTodayLoading(false);
+      }
+    },
+    [authToken, todayUserId]
+  );
 
   const loadReport = (filters = {}) => {
     const nextFrom = filters.start_date ?? fromDate;
@@ -327,6 +383,7 @@ function FinanceReport() {
     setToDate(resetDay);
     setFormBatch([]);
     setFormChangedBy(ALL_ADMIN_USERS_VALUE);
+    setTodayUserId(ALL_ADMIN_USERS_VALUE);
     setTxnTypeFilter([]);
     setTxnActionFilter([]);
     setTxnPaymentMethodFilter([]);
@@ -339,6 +396,7 @@ function FinanceReport() {
       batch_id: [],
       changed_by: ALL_ADMIN_USERS_VALUE,
     });
+    loadTodayCollections(ALL_ADMIN_USERS_VALUE);
   };
 
   const handleClearTxnFilters = () => {
@@ -438,8 +496,10 @@ function FinanceReport() {
       batch_id: [],
       changed_by: ALL_ADMIN_USERS_VALUE,
     });
+    loadTodayCollections(ALL_ADMIN_USERS_VALUE);
   }, []);
 
+  const todaySummary = todayReport?.summary || {};
   const summary = report?.summary || {};
   const batchWiseCollections = summary.batch_wise || [];
   const periodLabel =
@@ -606,12 +666,35 @@ function FinanceReport() {
           size="icon"
           p={4}
           borderRadius="xl"
-          onClick={() => loadReport()}
-          className={status === "loading" ? "animate-spin" : ""}
+          onClick={() => {
+            loadReport();
+            loadTodayCollections();
+          }}
+          className={status === "loading" || todayLoading ? "animate-spin" : ""}
         >
           <RotateCw className="h-4 w-4" />
         </Button>
       </FilterStack>
+
+      <div className="mt-4 mb-2">
+        <BatchFinanceSection filters={batchFinanceFilters} />
+      </div>
+
+      <TodayCollectionsSection
+        totalCash={todaySummary.total_cash}
+        totalOnline={todaySummary.total_online}
+        expensesToday={todaySummary.total_approved_expenses}
+        batchWise={todaySummary.batch_wise || []}
+        loading={todayLoading}
+        adminUsers={adminUsers}
+        selectedUserId={todayUserId}
+        onUserChange={(next) => {
+          const value = next || ALL_ADMIN_USERS_VALUE;
+          setTodayUserId(value);
+          loadTodayCollections(value);
+        }}
+        selectedUserLabel={selectedTodayUser?.name || "All users"}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
         {SUMMARY_CARDS.map((item) => (

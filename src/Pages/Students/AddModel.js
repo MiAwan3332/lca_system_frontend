@@ -86,6 +86,7 @@ function AddStudnet({ isOpen, onClose }) {
   const [paymentOption, setPaymentOption] = useState("later");
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
   const [createdStudent, setCreatedStudent] = useState(null);
+  const [mustPrintZeroSlip, setMustPrintZeroSlip] = useState(false);
   const [formSessionKey, setFormSessionKey] = useState(0);
   const toast = useToast();
 
@@ -371,6 +372,10 @@ function AddStudnet({ isOpen, onClose }) {
         ).unwrap();
         dispatch(fetchStudents({ authToken }));
         setCreatedStudent(created);
+        // 100% discount → paid zero slip is mandatory (auto-print via effect)
+        if (grossFee > 0 && discountAmount >= grossFee) {
+          setMustPrintZeroSlip(true);
+        }
       } catch (error) {
         const message =
           typeof error === "string"
@@ -408,6 +413,7 @@ function AddStudnet({ isOpen, onClose }) {
     setPaymentEvidenceError("");
     setPaymentOption("later");
     setCreatedStudent(null);
+    setMustPrintZeroSlip(false);
     setIsPrintingSlip(false);
     setFormSessionKey((key) => key + 1);
     dispatch(
@@ -455,25 +461,32 @@ function AddStudnet({ isOpen, onClose }) {
         : paymentOption === "partial"
           ? enteredPayAmount
           : 0;
-  const resolvedPaymentOption = isFullPayment
-    ? "full"
-    : payingNow > 0
-      ? "partial"
-      : paymentOption;
   const remainingFee = Math.max(payableFee - payingNow, 0);
-  const paymentStatus =
-    payableFee <= 0
-      ? admissionFee > 0 && discountAmount >= admissionFee
-        ? "Fully discounted"
-        : "No fee"
+  const isFullyDiscounted =
+    admissionFee > 0 && discountAmount >= admissionFee && payableFee <= 0;
+  const paymentStatus = isFullyDiscounted
+    ? "Fully discounted"
+    : payableFee <= 0
+      ? "No fee"
       : payingNow <= 0
         ? "Unpaid"
         : payingNow >= payableFee
           ? "Fully paid"
           : "Partially paid";
 
-  const paymentMethodLabel =
-    payingNow > 0 ? formik.values.payment_method || "Cash" : "N/A";
+  const resolvedPaymentOption = isFullyDiscounted
+    ? "full"
+    : isFullPayment
+      ? "full"
+      : payingNow > 0
+        ? "partial"
+        : paymentOption;
+
+  const paymentMethodLabel = isFullyDiscounted
+    ? "Discount"
+    : payingNow > 0
+      ? formik.values.payment_method || "Cash"
+      : "N/A";
   const todayDate = new Date().toISOString().split("T")[0];
 
   const showFeePanel =
@@ -588,8 +601,9 @@ function AddStudnet({ isOpen, onClose }) {
     formik.values.discount_amount,
   ]);
 
-  const handlePrintFeeSlip = async () => {
-    if (!createdStudent) {
+  const handlePrintFeeSlip = async (studentOverride = null) => {
+    const studentForSlip = studentOverride || createdStudent;
+    if (!studentForSlip) {
       toast({
         title: "Add the student first",
         description: "Save the student, then print the admission slip.",
@@ -608,6 +622,20 @@ function AddStudnet({ isOpen, onClose }) {
           selectedBatch?.class_end_time
         ) || "N/A";
 
+      const slipTotalFee = admissionFee;
+      const slipPaid = payingNow;
+      const slipRemaining = remainingFee;
+      const slipDiscount = discountAmount;
+      const slipPaymentOption = isFullyDiscounted
+        ? "full"
+        : resolvedPaymentOption;
+      const slipPaymentMethod = isFullyDiscounted
+        ? "Discount"
+        : paymentMethodLabel;
+      const slipStatus = isFullyDiscounted
+        ? "Fully discounted"
+        : paymentStatus;
+
       let qrDataUrl = null;
       let verifyUrl = "";
       try {
@@ -618,11 +646,11 @@ function AddStudnet({ isOpen, onClose }) {
             cnic: formik.values.cnic || "",
             phone: formik.values.phone || "",
             batch_name: selectedBatch?.name || "",
-            total_fee: payableFee,
-            amount_received: payingNow,
-            remaining_fee: remainingFee,
-            payment_option: resolvedPaymentOption,
-            payment_method: paymentMethodLabel,
+            total_fee: slipTotalFee,
+            amount_received: slipPaid,
+            remaining_fee: slipRemaining,
+            payment_option: slipPaymentOption,
+            payment_method: slipPaymentMethod,
             class_time: classTimeLabel,
             authorized_by: currentUser?.name || "",
             slip_type: "admission",
@@ -643,16 +671,17 @@ function AddStudnet({ isOpen, onClose }) {
           name: formik.values.name,
           cnic: formik.values.cnic || "N/A",
           phone: formik.values.phone,
-          rollNumber: createdStudent.roll_number || "",
+          rollNumber: studentForSlip.roll_number || "",
           batchName: selectedBatch?.name || "N/A",
-          batchFee: payableFee,
-          payingNow,
-          remainingFee,
-          paymentStatus,
-          paymentOption: resolvedPaymentOption,
-          paymentMethod: paymentMethodLabel,
+          batchFee: slipTotalFee,
+          payingNow: slipPaid,
+          remainingFee: slipRemaining,
+          discountAmount: slipDiscount,
+          paymentStatus: slipStatus,
+          paymentOption: slipPaymentOption,
+          paymentMethod: slipPaymentMethod,
           nextInstallmentDate:
-            remainingFee > 0
+            slipRemaining > 0
               ? formik.values.next_installment_date || ""
               : "",
           photoFile,
@@ -665,9 +694,11 @@ function AddStudnet({ isOpen, onClose }) {
         "print"
       );
       toast({
-        title: "Admission slip opened for printing",
-        description: createdStudent.roll_number
-          ? `Roll no. ${createdStudent.roll_number}. Use your browser print dialog to finish.`
+        title: isFullyDiscounted
+          ? "Paid zero slip opened for printing"
+          : "Admission slip opened for printing",
+        description: studentForSlip.roll_number
+          ? `Roll no. ${studentForSlip.roll_number}. Use your browser print dialog to finish.`
           : "Use your browser print dialog to finish.",
         status: photoFile ? "success" : "info",
         duration: 4000,
@@ -686,6 +717,14 @@ function AddStudnet({ isOpen, onClose }) {
       setIsPrintingSlip(false);
     }
   };
+
+  // Mandatory paid-zero slip when admission fee is fully discounted
+  useEffect(() => {
+    if (!mustPrintZeroSlip || !createdStudent || !isFullyDiscounted) return;
+    setMustPrintZeroSlip(false);
+    handlePrintFeeSlip(createdStudent);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mustPrintZeroSlip, createdStudent, isFullyDiscounted]);
 
   const renderPaymentPanel = () => (
     <Box
@@ -1341,6 +1380,7 @@ function AddStudnet({ isOpen, onClose }) {
             type="button"
           >
             Print Admission Slip
+            {isFullyDiscounted ? " (Paid Zero)" : ""}
           </Button>
           <Button
             borderRadius="0.75rem"
@@ -1357,6 +1397,7 @@ function AddStudnet({ isOpen, onClose }) {
             isDisabled={
               Boolean(createdStudent) ||
               (isPaidBatch &&
+                !isFullyDiscounted &&
                 (paymentOption === "partial" ||
                   paymentOption === "full" ||
                   resolvedPaymentOption !== "later") &&

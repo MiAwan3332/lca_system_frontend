@@ -211,11 +211,21 @@ const bulkImportStudents = createAsyncThunk(
 
 const transferStudentBatch = createAsyncThunk(
     'students/transferStudentBatch',
-    async ({ authToken, studentId, batch }, { rejectWithValue }) => {
+    async (
+        { authToken, studentId, batch, assign_new_fee = false, special_selected_options },
+        { rejectWithValue }
+    ) => {
         try {
+            const body = { batch };
+            if (assign_new_fee) {
+                body.assign_new_fee = true;
+                if (Array.isArray(special_selected_options) && special_selected_options.length) {
+                    body.special_selected_options = special_selected_options;
+                }
+            }
             const response = await axios.post(
                 `${BASE_URL}/students/transfer-batch/${studentId}`,
-                { batch },
+                body,
                 {
                     headers: {
                         Authorization: `Bearer ${authToken}`,
@@ -888,13 +898,19 @@ const studentSlice = createSlice({
             .addCase(transferStudentBatch.pending, (state) => {
                 state.transferBatchStatus = 'loading';
             })
-            .addCase(transferStudentBatch.fulfilled, (state) => {
+            .addCase(transferStudentBatch.fulfilled, (state, action) => {
                 state.transferBatchStatus = 'succeeded';
+                const assignedNewFee = action.payload?.assign_new_fee === true;
+                const feeAmount = Number(action.payload?.new_fee_amount) || 0;
                 toast({
-                    title: "Batch transferred",
-                    description: "Student moved to the selected batch successfully.",
+                    title: assignedNewFee
+                        ? "Batch shifted with new fee"
+                        : "Batch transferred",
+                    description: assignedNewFee
+                        ? `Student moved and new fee of Rs. ${feeAmount.toLocaleString("en-PK")} assigned.`
+                        : "Student moved to the selected batch successfully.",
                     status: "success",
-                    duration: 3000,
+                    duration: 4000,
                     isClosable: true,
                 });
             })
