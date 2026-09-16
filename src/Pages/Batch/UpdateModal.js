@@ -75,7 +75,7 @@ function AddModel({ batch }) {
         .required("Required")
         .matches(
           /^[A-Za-z0-9]+$/,
-          "Use letters and numbers only (no spaces or symbols)"
+          "Letters only, numbers only, or both (no spaces or symbols)"
         )
         .max(20, "Max 20 characters"),
       description: Yup.string().required("Required"),
@@ -327,7 +327,7 @@ function AddModel({ batch }) {
                   type="text"
                   name="roll_nickname"
                   borderRadius="0.5rem"
-                  placeholder="e.g. CSS or B110"
+                  placeholder="e.g. CSS, 110, or B110"
                   value={formik.values.roll_nickname}
                   onChange={(e) => {
                     const next = String(e.target.value || "")
@@ -338,7 +338,7 @@ function AddModel({ batch }) {
                   onBlur={formik.handleBlur}
                 />
                 <Text fontSize="xs" color="gray.500" mt={1}>
-                  Student rolls will be like{" "}
+                  Letters, numbers, or both. Rolls will be like{" "}
                   <Text as="span" fontWeight="600">
                     {formik.values.roll_nickname || "NICK"}-1
                   </Text>
