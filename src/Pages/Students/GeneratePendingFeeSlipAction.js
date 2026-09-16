@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -81,6 +81,7 @@ function GeneratePendingFeeSlipAction({
   const [hasPaid, setHasPaid] = useState(false);
   const [paidSlipPayload, setPaidSlipPayload] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const printSlipPayloadRef = useRef(null);
 
   const outstanding = Math.round(
     Math.max(Number(student?.pending_fee) || 0, 0)
@@ -114,7 +115,16 @@ function GeneratePendingFeeSlipAction({
           otherwise: (schema) => schema.notRequired(),
         }),
         payment_option: Yup.string().oneOf(["full", "partial"]).required(),
-        payment_method: Yup.string().oneOf(FEE_PAYMENT_METHODS).required("Required"),
+        payment_method: Yup.string().when(["payment_option", "discount_amount"], {
+          is: (payment_option, discount_amount) => {
+            const discount = parseRupees(discount_amount);
+            const payable = Math.max(outstanding - discount, 0);
+            return payable > 0;
+          },
+          then: (schema) =>
+            schema.oneOf(FEE_PAYMENT_METHODS).required("Required"),
+          otherwise: (schema) => schema.notRequired(),
+        }),
         next_installment_date: Yup.string()
           .transform((value) => (value === "" ? undefined : value))
           .when("payment_option", {
@@ -253,7 +263,12 @@ function GeneratePendingFeeSlipAction({
           ),
           discountAmount: discount,
           paymentOption: option,
-          paymentMethod: values.payment_method,
+          paymentMethod:
+            payingNow > 0
+              ? values.payment_method
+              : discount > 0
+                ? "Discount"
+                : values.payment_method,
           nextInstallmentDate: values.next_installment_date,
           photoUrl: student.image || "",
           authorizedBy: currentUser?.name || "",
@@ -264,16 +279,31 @@ function GeneratePendingFeeSlipAction({
         setHasPaid(true);
         saveLastFeeSlipPayload(student._id, slipPayload);
 
+        const isFullyDiscounted =
+          discount > 0 &&
+          payingNow <= 0 &&
+          slipPayload.remainingAfter <= 0;
+
         toast({
-          title: "Payment recorded",
-          description:
-            discount > 0
+          title: isFullyDiscounted
+            ? "Fully discounted — paid zero slip"
+            : "Payment recorded",
+          description: isFullyDiscounted
+            ? `${formatAmount(discount)} discount applied. Opening paid zero slip for printing.`
+            : discount > 0
               ? `${formatAmount(payingNow)} collected, ${formatAmount(discount)} discount applied. You can print the slip now.`
               : `${formatAmount(payingNow)} collected. You can print the slip now.`,
           status: "success",
           duration: 4500,
           isClosable: true,
         });
+
+        if (isFullyDiscounted) {
+          // Mandatory paid-zero slip for 100% discount
+          setTimeout(() => {
+            printSlipPayloadRef.current?.(slipPayload, { duplicate: false });
+          }, 0);
+        }
       } catch (error) {
         toast({
           title: "Could not record payment",
@@ -342,8 +372,8 @@ function GeneratePendingFeeSlipAction({
     }
   };
 
-  const handlePrintSlip = async ({ duplicate = false } = {}) => {
-    if (!hasPaid || !paidSlipPayload) {
+  const printSlipPayload = async (slipPayload, { duplicate = false } = {}) => {
+    if (!slipPayload) {
       toast({
         title: "Record payment first",
         description: "Submit the payment, then print the fee slip.",
@@ -356,7 +386,7 @@ function GeneratePendingFeeSlipAction({
 
     setIsPrinting(true);
     try {
-      const payload = { ...paidSlipPayload, isDuplicate: duplicate };
+      const payload = { ...slipPayload, isDuplicate: duplicate };
       const { qrDataUrl, verifyUrl } = await issueSlipVerificationQr({
         authToken,
         student_name: payload.name,
@@ -380,7 +410,12 @@ function GeneratePendingFeeSlipAction({
         "print"
       );
       toast({
-        title: duplicate ? "Duplicate slip ready" : "Fee slip ready",
+        title: duplicate
+          ? "Duplicate slip ready"
+          : Number(payload.discountAmount) > 0 &&
+              !(Number(payload.payingNow) > 0)
+            ? "Paid zero slip ready"
+            : "Fee slip ready",
         description: duplicate
           ? "Duplicate slip opened for printing."
           : "Fee slip opened for printing.",
@@ -399,6 +434,21 @@ function GeneratePendingFeeSlipAction({
     } finally {
       setIsPrinting(false);
     }
+  };
+  printSlipPayloadRef.current = printSlipPayload;
+
+  const handlePrintSlip = async ({ duplicate = false } = {}) => {
+    if (!hasPaid || !paidSlipPayload) {
+      toast({
+        title: "Record payment first",
+        description: "Submit the payment, then print the fee slip.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+    await printSlipPayload(paidSlipPayload, { duplicate });
   };
 
   const handleSubmitClick = async () => {

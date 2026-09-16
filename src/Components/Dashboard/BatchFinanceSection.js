@@ -21,7 +21,11 @@ const formatRs = (value) =>
 
 const buildParams = (filters = {}) => {
   const params = {};
-  if (filters.batch_id) params.batch_id = filters.batch_id;
+  if (filters.batch_id) {
+    params.batch_id = Array.isArray(filters.batch_id)
+      ? filters.batch_id.filter(Boolean).join(",")
+      : filters.batch_id;
+  }
   if (filters.start_date) params.start_date = filters.start_date;
   if (filters.end_date) params.end_date = filters.end_date;
   return params;

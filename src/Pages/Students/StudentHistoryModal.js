@@ -504,17 +504,27 @@ function StudentHistoryModal({ student }) {
                                 {profile.university || "—"}
                               </Text>
                             </Flex>
-                            {profile.remarks ? (
-                              <>
-                                <Divider />
-                                <Box>
-                                  <Text color="gray.500" mb={1}>
-                                    Remarks
-                                  </Text>
-                                  <Text fontWeight="500">{profile.remarks}</Text>
-                                </Box>
-                              </>
-                            ) : null}
+                            <Divider />
+                            <Box>
+                              <Text color="gray.500" mb={1}>
+                                Remarks (on add)
+                              </Text>
+                              <Text fontWeight="500" whiteSpace="pre-wrap">
+                                {profile.remarks?.trim()
+                                  ? profile.remarks
+                                  : "—"}
+                              </Text>
+                            </Box>
+                            <Box>
+                              <Text color="gray.500" mb={1}>
+                                Discount remarks
+                              </Text>
+                              <Text fontWeight="500" whiteSpace="pre-wrap">
+                                {profile.discount_remarks?.trim()
+                                  ? profile.discount_remarks
+                                  : "—"}
+                              </Text>
+                            </Box>
                           </VStack>
                         </Box>
 

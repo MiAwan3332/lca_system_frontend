@@ -87,7 +87,8 @@ const toJpegDataUrl = async (source, maxSide = 900) => {
   }
 };
 
-const getPaymentLabel = (paymentOption) => {
+const getPaymentLabel = (paymentOption, { isFullyDiscounted = false } = {}) => {
+  if (isFullyDiscounted) return "Fully Discounted";
   if (paymentOption === "full") return "Full Payment";
   if (paymentOption === "partial") return "Partial Payment";
   return "Pay Later";
@@ -150,6 +151,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     batchFee = 0,
     payingNow = 0,
     remainingFee = 0,
+    discountAmount = 0,
+    paymentStatus = "",
     paymentOption = "later",
     paymentMethod = "N/A",
     nextInstallmentDate = "",
@@ -168,6 +171,14 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   if (!batchName) {
     throw new Error("Please select a batch to print the fee slip.");
   }
+
+  const discount = Math.max(Number(discountAmount) || 0, 0);
+  const grossFee = Math.max(Number(batchFee) || 0, 0);
+  const paidAmount = Math.max(Number(payingNow) || 0, 0);
+  const pendingAmount = Math.max(Number(remainingFee) || 0, 0);
+  const isFullyDiscounted =
+    String(paymentStatus || "").toLowerCase() === "fully discounted" ||
+    (grossFee > 0 && discount >= grossFee && pendingAmount <= 0);
 
   const classTimeLabel =
     formatClassTimeRange(classStartTime, classEndTime) || "N/A";
@@ -194,7 +205,12 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     textMarginBottom = 0,
   } = frame;
 
-  const paymentLabel = getPaymentLabel(paymentOption);
+  const paymentLabel = getPaymentLabel(paymentOption, { isFullyDiscounted });
+  const methodLabel = isFullyDiscounted
+    ? "Discount"
+    : paidAmount > 0
+      ? paymentMethod
+      : "N/A";
   const cnicValue = String(cnic || "").trim() || "N/A";
   const issuedAt = moment().format("DD MMM YYYY · hh:mm A");
   const signerName =
@@ -326,26 +342,24 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   y = drawRow("CNIC", cnicValue, y);
   y = drawRow("Class Time", classTimeLabel, y, true);
   y = drawRow("Payment", paymentLabel, y);
-  y = drawRow(
-    "Method",
-    payingNow > 0 ? paymentMethod : "N/A",
-    y,
-    true
-  );
-  y = drawRow("Paid Amount", formatCurrency(payingNow), y);
+  y = drawRow("Method", methodLabel, y, true);
+  y = drawRow("Paid Amount", formatCurrency(paidAmount), y);
+  if (discount > 0) {
+    y = drawRow("Discount", formatCurrency(discount), y, true);
+  }
   y = drawRow(
     "Next Installment",
-    Number(remainingFee) > 0
+    pendingAmount > 0
       ? nextInstallmentDate
         ? moment(nextInstallmentDate).format("DD MMM YYYY")
         : "To be scheduled"
       : "N/A",
     y,
-    true
+    discount <= 0
   );
   y += 1.5;
 
-  const hasPendingDues = Number(remainingFee) > 0;
+  const hasPendingDues = pendingAmount > 0;
   if (hasPendingDues) {
     y = drawPendingDuesNotice(doc, {
       x: innerX,
@@ -368,9 +382,9 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     y,
     innerW,
     gap,
-    total: batchFee,
-    paid: payingNow,
-    pending: remainingFee,
+    total: grossFee,
+    paid: paidAmount,
+    pending: pendingAmount,
     formatCurrency,
     colors: COLORS,
   });

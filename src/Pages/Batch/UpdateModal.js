@@ -42,6 +42,7 @@ import {
 
 const getInitialValues = (batch) => ({
   name: batch?.name || "",
+  roll_nickname: batch?.roll_nickname || "",
   description: batch?.description || "",
   batch_type: batch?.batch_type || "",
   batch_fee: batch?.batch_fee ?? "",
@@ -69,6 +70,14 @@ function AddModel({ batch }) {
     initialValues: getInitialValues(batch),
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
+      roll_nickname: Yup.string()
+        .trim()
+        .required("Required")
+        .matches(
+          /^[A-Za-z0-9]+$/,
+          "Use letters and numbers only (no spaces or symbols)"
+        )
+        .max(20, "Max 20 characters"),
       description: Yup.string().required("Required"),
       batch_type: Yup.string(),
       is_paid_batch: Yup.boolean(),
@@ -156,6 +165,9 @@ function AddModel({ batch }) {
     const isPaid = values.is_paid_batch === true;
     const payload = {
       name: values.name,
+      roll_nickname: String(values.roll_nickname || "")
+        .trim()
+        .toUpperCase(),
       description: values.description,
       batch_type: values.batch_type || "",
       startdate: values.startdate,
@@ -303,6 +315,41 @@ function AddModel({ batch }) {
                 {formik.touched.name && formik.errors.name ? (
                   <Box color="red" fontSize="sm">
                     {formik.errors.name}
+                  </Box>
+                ) : null}
+              </FormControl>
+
+              <FormControl id="roll_nickname" minW={0}>
+                <FormLabel fontSize={14}>
+                  Nickname (for roll number)
+                </FormLabel>
+                <Input
+                  type="text"
+                  name="roll_nickname"
+                  borderRadius="0.5rem"
+                  placeholder="e.g. CSS or B110"
+                  value={formik.values.roll_nickname}
+                  onChange={(e) => {
+                    const next = String(e.target.value || "")
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "");
+                    formik.setFieldValue("roll_nickname", next);
+                  }}
+                  onBlur={formik.handleBlur}
+                />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Student rolls will be like{" "}
+                  <Text as="span" fontWeight="600">
+                    {formik.values.roll_nickname || "NICK"}-1
+                  </Text>
+                  ,{" "}
+                  <Text as="span" fontWeight="600">
+                    {formik.values.roll_nickname || "NICK"}-2
+                  </Text>
+                </Text>
+                {formik.touched.roll_nickname && formik.errors.roll_nickname ? (
+                  <Box color="red" fontSize="sm">
+                    {formik.errors.roll_nickname}
                   </Box>
                 ) : null}
               </FormControl>

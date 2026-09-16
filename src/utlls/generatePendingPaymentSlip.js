@@ -199,8 +199,11 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   }
 
   const remainingAmount = Number(remainingAfter) || 0;
-  const paymentLabel =
-    remainingAmount > 0 || paymentOption === "partial"
+  const isFullyDiscounted =
+    discount > 0 && !(Number(payingNow) > 0) && remainingAmount <= 0;
+  const paymentLabel = isFullyDiscounted
+    ? "Fully Discounted"
+    : remainingAmount > 0 || paymentOption === "partial"
       ? "Partial Payment"
       : "Full Payment";
   const classTimeLabel =
@@ -380,7 +383,13 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   y = drawRow("CNIC", cnicValue, y, true);
   y = drawRow("Class Time", classTimeLabel, y);
   y = drawRow("Payment", paymentLabel, y, true);
-  y = drawRow("Method", paymentMethod || "N/A", y);
+  y = drawRow(
+    "Method",
+    discount > 0 && !(Number(payingNow) > 0)
+      ? "Discount"
+      : paymentMethod || "N/A",
+    y
+  );
   y = drawRow("Paid Amount", formatCurrency(payingNow), y, true);
   y = drawRow(
     "Next Installment",
