@@ -19,7 +19,6 @@ import {
   HStack,
   IconButton,
   Select,
-  Text,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";

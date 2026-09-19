@@ -723,7 +723,6 @@ function AddStudnet({ isOpen, onClose }) {
     if (!mustPrintZeroSlip || !createdStudent || !isFullyDiscounted) return;
     setMustPrintZeroSlip(false);
     handlePrintFeeSlip(createdStudent);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mustPrintZeroSlip, createdStudent, isFullyDiscounted]);
 
   const renderPaymentPanel = () => (
