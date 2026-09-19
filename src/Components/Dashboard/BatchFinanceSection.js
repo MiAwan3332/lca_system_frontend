@@ -19,6 +19,9 @@ const formatRs = (value) =>
     maximumFractionDigits: 0,
   })}`;
 
+const formatCount = (value) =>
+  Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 });
+
 const buildParams = (filters = {}) => {
   const params = {};
   if (filters.batch_id) {
@@ -32,14 +35,17 @@ const buildParams = (filters = {}) => {
 };
 
 /**
- * Dashboard table: active batches — fee created, discount, received, pending.
+ * Dashboard table: active batches — students, fee created, discount,
+ * received, refund, pending.
  */
 function BatchFinanceSection({ filters = {} }) {
   const [rows, setRows] = useState([]);
   const [totals, setTotals] = useState({
+    active_students: 0,
     total_fee_created: 0,
     discount: 0,
     received: 0,
+    refund: 0,
     pending: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -68,9 +74,11 @@ function BatchFinanceSection({ filters = {} }) {
         setRows(Array.isArray(data?.batches) ? data.batches : []);
         setTotals(
           data?.totals || {
+            active_students: 0,
             total_fee_created: 0,
             discount: 0,
             received: 0,
+            refund: 0,
             pending: 0,
           }
         );
@@ -92,24 +100,40 @@ function BatchFinanceSection({ filters = {} }) {
   const summaryBadges = useMemo(
     () => [
       {
+        label: "Active Students",
+        value: formatCount(totals.active_students),
+        color: "purple",
+        isMoney: false,
+      },
+      {
         label: "Created",
         value: totals.total_fee_created,
         color: "blue",
+        isMoney: true,
       },
       {
         label: "Discount",
         value: totals.discount,
         color: "orange",
+        isMoney: true,
       },
       {
         label: "Received",
         value: totals.received,
         color: "green",
+        isMoney: true,
+      },
+      {
+        label: "Refund",
+        value: totals.refund,
+        color: "pink",
+        isMoney: true,
       },
       {
         label: "Pending",
         value: totals.pending,
         color: "red",
+        isMoney: true,
       },
     ],
     [totals]
@@ -123,8 +147,8 @@ function BatchFinanceSection({ filters = {} }) {
             Batch-wise Fee Summary
           </h2>
           <p className="text-sm dash-text-muted">
-            Total fee created, discount, received, and pending dues for active
-            batches only
+            Active students, fee created, discount, received, refund, and
+            pending dues for active batches only
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -136,7 +160,8 @@ function BatchFinanceSection({ filters = {} }) {
               px={2}
               py={1}
             >
-              {item.label}: {formatRs(item.value)}
+              {item.label}:{" "}
+              {item.isMoney === false ? item.value : formatRs(item.value)}
             </Badge>
           ))}
         </div>
@@ -160,9 +185,11 @@ function BatchFinanceSection({ filters = {} }) {
             <Thead>
               <Tr>
                 <Th>Batch</Th>
+                <Th isNumeric>Active Students</Th>
                 <Th isNumeric>Total Fee Created</Th>
                 <Th isNumeric>Discount</Th>
                 <Th isNumeric>Received</Th>
+                <Th isNumeric>Refund</Th>
                 <Th isNumeric>Pending Dues</Th>
               </Tr>
             </Thead>
@@ -171,6 +198,9 @@ function BatchFinanceSection({ filters = {} }) {
                 <Tr key={row.batch_id || row.batch_name}>
                   <Td>
                     <Text fontWeight="medium">{row.batch_name}</Text>
+                  </Td>
+                  <Td isNumeric fontWeight="semibold">
+                    {formatCount(row.active_students)}
                   </Td>
                   <Td isNumeric fontWeight="semibold">
                     {formatRs(row.total_fee_created)}
@@ -187,6 +217,14 @@ function BatchFinanceSection({ filters = {} }) {
                   </Td>
                   <Td isNumeric>
                     <Badge
+                      colorScheme={row.refund > 0 ? "pink" : "gray"}
+                      borderRadius="md"
+                    >
+                      {formatRs(row.refund)}
+                    </Badge>
+                  </Td>
+                  <Td isNumeric>
+                    <Badge
                       colorScheme={row.pending > 0 ? "red" : "gray"}
                       borderRadius="md"
                     >
@@ -198,6 +236,9 @@ function BatchFinanceSection({ filters = {} }) {
               <Tr>
                 <Td fontWeight="700">Total</Td>
                 <Td isNumeric fontWeight="700">
+                  {formatCount(totals.active_students)}
+                </Td>
+                <Td isNumeric fontWeight="700">
                   {formatRs(totals.total_fee_created)}
                 </Td>
                 <Td isNumeric fontWeight="700">
@@ -205,6 +246,9 @@ function BatchFinanceSection({ filters = {} }) {
                 </Td>
                 <Td isNumeric fontWeight="700">
                   {formatRs(totals.received)}
+                </Td>
+                <Td isNumeric fontWeight="700">
+                  {formatRs(totals.refund)}
                 </Td>
                 <Td isNumeric fontWeight="700">
                   {formatRs(totals.pending)}
