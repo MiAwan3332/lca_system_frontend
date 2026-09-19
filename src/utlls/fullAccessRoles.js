@@ -37,8 +37,8 @@ export const PLATFORM_SUPER_ADMIN_ROLE_NAMES = [
 ];
 
 /**
- * Only these roles may delete a student (UI + API).
- * vice-principle, principle, ceo, superadmin, secratesuperadmin
+ * Only these roles may delete a student or shift batch (UI + API).
+ * vice-principle, principle, ceo, superadmin, secratesuperadmin, accounts
  */
 export const STUDENT_DELETE_ROLE_NAMES = [
   "ceo",

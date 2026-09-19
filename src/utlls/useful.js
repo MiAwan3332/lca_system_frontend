@@ -126,10 +126,10 @@ const isFullAccessRole = () => hasFullAccess();
 const isPlatformSuperAdminRole = () =>
   isPlatformSuperAdminRoleName(getCurrentRoleName());
 
-/** Delete student — only vice-principle, principle, ceo, superadmin, secratesuperadmin. */
+/** Delete student — VP, Principal, CEO, Super Admin, Secrate Super Admin, Accounts. */
 const canDeleteStudent = () => canDeleteStudentRoleName(getCurrentRoleName());
 
-/** Shift batch — same restricted roles as delete student. */
+/** Shift batch — same roles as delete student (includes Accounts). */
 const canShiftStudentBatch = () => canDeleteStudentRoleName(getCurrentRoleName());
 
 /** Full action rights (add/update/view/delete) without opening Roles/Permissions/Logs. */
