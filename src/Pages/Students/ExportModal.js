@@ -39,6 +39,7 @@ const ExportModal = () => {
   const fileHeaders = [
     "No",
     "Name",
+    "Roll No",
     "Email",
     "Phone",
     "CNIC",
@@ -126,6 +127,7 @@ const ExportModal = () => {
             body: students.map((student) => [
               students.indexOf(student) + 1,
               student.name,
+              student.roll_number || "",
               formatStudentEmail(student.email),
               student.phone,
               student.cnic,
@@ -216,6 +218,7 @@ const ExportModal = () => {
                           <Tr>
                             <Th>No</Th>
                             <Th>Name</Th>
+                            <Th>Roll No</Th>
                             <Th>Email</Th>
                             <Th>Phone</Th>
                             <Th>CNIC</Th>
@@ -245,6 +248,7 @@ const ExportModal = () => {
                             <Tr key={student._id}>
                               <Td>{index + 1}</Td>
                               <Td>{student.name}</Td>
+                              <Td>{student.roll_number || "—"}</Td>
                               <Td>{formatStudentEmail(student.email)}</Td>
                               <Td>{student.phone}</Td>
                               <Td>{student.cnic}</Td>
