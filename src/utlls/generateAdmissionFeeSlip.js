@@ -357,6 +357,14 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     y,
     discount <= 0
   );
+  const remarksText = String(data?.remarks || "").trim();
+  const discountRemarksText = String(data?.discountRemarks || "").trim();
+  if (remarksText) {
+    y = drawRow("Remarks", remarksText, y);
+  }
+  if (discountRemarksText) {
+    y = drawRow("Discount Remarks", discountRemarksText, y, true);
+  }
   y += 1.5;
 
   const hasPendingDues = pendingAmount > 0;

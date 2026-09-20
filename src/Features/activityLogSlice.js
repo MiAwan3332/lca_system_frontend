@@ -10,7 +10,9 @@ const initialState = {
   logs: [],
   filterOptions: { modules: [], actions: [] },
   filters: {
-    ...TABLE_FILTERS,
+    query: TABLE_FILTERS.query,
+    page: TABLE_FILTERS.page,
+    limit: TABLE_FILTERS.limit,
     actor_category: "",
     module: "",
     action: "",
@@ -23,13 +25,33 @@ const initialState = {
   error: null,
 };
 
+const buildActivityLogParams = (filters, overrides = {}) => {
+  const merged = { ...filters, ...overrides };
+  const page = Math.max(1, Number(merged.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(merged.limit) || 10));
+  return {
+    query: merged.query || "",
+    page,
+    limit,
+    actor_category: merged.actor_category || "",
+    module: merged.module || "",
+    action: merged.action || "",
+    start_date: merged.start_date || "",
+    end_date: merged.end_date || "",
+  };
+};
+
 const fetchActivityLogs = createAsyncThunk(
   "activityLogs/fetchActivityLogs",
   async (payload, { getState }) => {
-    const { authToken } = payload;
+    const { authToken, ...overrides } = payload || {};
+    const params = buildActivityLogParams(
+      getState().activityLogs.filters,
+      overrides
+    );
     const response = await axios.get(`${BASE_URL}/activity-logs`, {
       headers: { Authorization: `Bearer ${authToken}` },
-      params: getState().activityLogs.filters,
+      params,
     });
     return response.data;
   }
@@ -60,11 +82,11 @@ const activityLogSlice = createSlice({
       state.filters.query = action.payload;
     },
     setPageFilter(state, action) {
-      state.filters.page = action.payload;
+      state.filters.page = Number(action.payload) || 1;
     },
     setLimitFilter(state, action) {
       state.filters.page = 1;
-      state.filters.limit = action.payload;
+      state.filters.limit = Number(action.payload) || 10;
     },
     setModuleFilter(state, action) {
       state.filters.page = 1;
@@ -84,7 +106,9 @@ const activityLogSlice = createSlice({
     },
     clearActivityLogFilters(state) {
       state.filters = {
-        ...TABLE_FILTERS,
+        query: TABLE_FILTERS.query,
+        page: TABLE_FILTERS.page,
+        limit: TABLE_FILTERS.limit,
         actor_category: "",
         module: "",
         action: "",
@@ -112,6 +136,9 @@ const activityLogSlice = createSlice({
           prevPage: action.payload.prevPage,
           nextPage: action.payload.nextPage,
         };
+        // Keep filter page/limit in sync with server response
+        if (action.payload.page) state.filters.page = action.payload.page;
+        if (action.payload.limit) state.filters.limit = action.payload.limit;
       })
       .addCase(fetchActivityLogs.rejected, (state, action) => {
         state.fetchStatus = "failure";
@@ -126,10 +153,7 @@ const activityLogSlice = createSlice({
 
 export const selectAllActivityLogs = (state) => state.activityLogs.logs;
 
-export {
-  fetchActivityLogs,
-  fetchActivityLogFilters,
-};
+export { fetchActivityLogs, fetchActivityLogFilters };
 
 export const {
   setActorCategoryFilter,

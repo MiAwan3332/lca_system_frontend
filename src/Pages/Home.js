@@ -140,7 +140,7 @@ function Home() {
       dispatch(fetchUsers({ authToken }));
     }
     if (authToken) {
-      dispatch(fetchNotifications({ authToken }));
+      dispatch(fetchNotifications({ authToken, page: 1, limit: 8 }));
     }
     loadStatistics({ batch_id: "", start_date: "", end_date: "" });
     loadTodayCollections(ALL_USERS_VALUE);

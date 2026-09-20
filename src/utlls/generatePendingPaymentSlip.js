@@ -173,6 +173,8 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     payingNow = 0,
     remainingAfter = 0,
     discountAmount = 0,
+    remarks = "",
+    discountRemarks = "",
     paymentOption = "full",
     paymentMethod = "Cash",
     nextInstallmentDate = "",
@@ -402,6 +404,14 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   );
   if (discount > 0) {
     y = drawRow("Discount", formatCurrency(discount), y, true);
+  }
+  const remarksText = String(remarks || "").trim();
+  const discountRemarksText = String(discountRemarks || "").trim();
+  if (remarksText) {
+    y = drawRow("Remarks", remarksText, y);
+  }
+  if (discountRemarksText) {
+    y = drawRow("Discount Remarks", discountRemarksText, y, true);
   }
   y += 1.5;
 

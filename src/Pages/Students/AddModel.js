@@ -183,7 +183,7 @@ function AddStudnet({ isOpen, onClose }) {
             schema.required("Next installment date is required for partial payment"),
           otherwise: (schema) => schema.notRequired(),
         }),
-        remarks: Yup.string(),
+        remarks: Yup.string().trim().required("Remarks are required"),
       }).test(
         "special-options-required",
         "Select at least one special batch option",
@@ -256,6 +256,19 @@ function AddStudnet({ isOpen, onClose }) {
         toast({
           title: "Discount remarks required",
           description: "Enter a reason for the discount.",
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      if (!String(values.remarks || "").trim()) {
+        formik.setFieldError("remarks", "Remarks are required");
+        formik.setFieldTouched("remarks", true, false);
+        toast({
+          title: "Remarks required",
+          description: "Enter remarks for this student.",
           status: "error",
           duration: 4000,
           isClosable: true,
@@ -677,6 +690,11 @@ function AddStudnet({ isOpen, onClose }) {
           payingNow: slipPaid,
           remainingFee: slipRemaining,
           discountAmount: slipDiscount,
+          remarks: formik.values.remarks?.trim() || "",
+          discountRemarks:
+            slipDiscount > 0
+              ? formik.values.discount_description?.trim() || ""
+              : "",
           paymentStatus: slipStatus,
           paymentOption: slipPaymentOption,
           paymentMethod: slipPaymentMethod,
@@ -723,7 +741,6 @@ function AddStudnet({ isOpen, onClose }) {
     if (!mustPrintZeroSlip || !createdStudent || !isFullyDiscounted) return;
     setMustPrintZeroSlip(false);
     handlePrintFeeSlip(createdStudent);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mustPrintZeroSlip, createdStudent, isFullyDiscounted]);
 
   const renderPaymentPanel = () => (
@@ -1331,16 +1348,30 @@ function AddStudnet({ isOpen, onClose }) {
             )}
 
             <GridItem colSpan={{ base: 1, md: 2 }}>
-              <FormControl id="remarks">
-                <FormLabel fontSize={14}>Remarks</FormLabel>
+              <FormControl
+                id="remarks"
+                isRequired
+                isInvalid={
+                  formik.touched.remarks && Boolean(formik.errors.remarks)
+                }
+              >
+                <FormLabel fontSize={14}>
+                  Remarks <Text as="span" color="red.500">*</Text>
+                </FormLabel>
                 <Textarea
                   name="remarks"
                   borderRadius="0.5rem"
                   rows={2}
-                  placeholder="Optional notes about this student (included in Excel export)"
+                  placeholder="Required notes about this student (shown in history & pending fee)"
                   value={formik.values.remarks}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
+                {formik.touched.remarks && formik.errors.remarks ? (
+                  <Box color="red" fontSize="sm" mt={1}>
+                    {formik.errors.remarks}
+                  </Box>
+                ) : null}
               </FormControl>
             </GridItem>
 

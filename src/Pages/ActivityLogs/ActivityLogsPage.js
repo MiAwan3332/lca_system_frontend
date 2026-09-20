@@ -63,45 +63,55 @@ export function ActivityLogsPage() {
 
   const canView = isPlatformSuperAdminRole();
 
-  const loadLogs = () => {
-    dispatch(fetchActivityLogs({ authToken }));
-  };
+  // TableSearch / TablePagination only update filters; this effect loads from the API.
+  const skipClientFetch = () => ({ type: "activityLogs/skipClientFetch" });
 
-  // Only run once on mount for the single page
   useEffect(() => {
+    if (!authToken || !canView) return;
     dispatch(fetchActivityLogFilters({ authToken }));
+  }, [authToken, canView, dispatch]);
+
+  // Server-side pagination/filter: refetch whenever backend query params change
+  useEffect(() => {
+    if (!authToken || !canView) return;
     dispatch(fetchActivityLogs({ authToken }));
-  }, [authToken, dispatch]);
+  }, [
+    authToken,
+    canView,
+    dispatch,
+    filters.page,
+    filters.limit,
+    filters.query,
+    filters.actor_category,
+    filters.module,
+    filters.action,
+    filters.start_date,
+    filters.end_date,
+  ]);
 
   const handleActorCategoryChange = (e) => {
     dispatch(setActorCategoryFilter(e.target.value));
-    loadLogs();
   };
 
   const handleModuleChange = (e) => {
     dispatch(setModuleFilter(e.target.value));
-    loadLogs();
   };
 
   const handleActionChange = (e) => {
     dispatch(setActionFilter(e.target.value));
-    loadLogs();
   };
 
   const handleStartDateChange = (e) => {
     dispatch(setStartDateFilter(e.target.value));
-    loadLogs();
   };
 
   const handleEndDateChange = (e) => {
     dispatch(setEndDateFilter(e.target.value));
-    loadLogs();
   };
 
   const handleClearFilters = () => {
     tableSearchRef.current?.clearSearch?.();
     dispatch(clearActivityLogFilters());
-    loadLogs();
   };
 
   if (!canView) {
@@ -112,9 +122,9 @@ export function ActivityLogsPage() {
 
   return (
     <>
-      <PageHeader 
-        title="Activity Logs" 
-        subtitle="Complete activity history for all system users across all roles." 
+      <PageHeader
+        title="Activity Logs"
+        subtitle="Complete activity history for all system users across all roles."
       />
 
       <FilterStack className="filter-stack--panel filter-stack--table mt-3">
@@ -122,7 +132,7 @@ export function ActivityLogsPage() {
           <TableSearch
             ref={tableSearchRef}
             setQueryFilter={setQueryFilter}
-            method={fetchActivityLogs}
+            method={skipClientFetch}
             placeholder="Search users or logs..."
           />
         </div>
@@ -222,7 +232,9 @@ export function ActivityLogsPage() {
               ) : (
                 logs.map((log, index) => (
                   <Tr key={log._id}>
-                    <Td>{(pagination.page - 1) * pagination.limit + index + 1}</Td>
+                    <Td>
+                      {(pagination.page - 1) * pagination.limit + index + 1}
+                    </Td>
                     <Td whiteSpace="nowrap">
                       {moment(log.created_at).format("DD MMM YYYY, hh:mm A")}
                     </Td>
@@ -235,11 +247,16 @@ export function ActivityLogsPage() {
                       </Box>
                     </Td>
                     <Td>
-                      <Badge textTransform="capitalize">{log.actor_role || log.actor_category}</Badge>
+                      <Badge textTransform="capitalize">
+                        {log.actor_role || log.actor_category}
+                      </Badge>
                     </Td>
                     <Td textTransform="capitalize">{log.module || "—"}</Td>
                     <Td>
-                      <Badge colorScheme={getActionColor(log.action)} textTransform="capitalize">
+                      <Badge
+                        colorScheme={getActionColor(log.action)}
+                        textTransform="capitalize"
+                      >
                         {log.action}
                       </Badge>
                     </Td>
@@ -252,7 +269,9 @@ export function ActivityLogsPage() {
                       </Text>
                     </Td>
                     <Td>
-                      <Badge colorScheme={log.status_code >= 400 ? "red" : "green"}>
+                      <Badge
+                        colorScheme={log.status_code >= 400 ? "red" : "green"}
+                      >
                         {log.status_code || "—"}
                       </Badge>
                     </Td>
@@ -264,12 +283,12 @@ export function ActivityLogsPage() {
         </TableContainer>
       </DataTableShell>
 
-      {fetchStatus !== "loading" && (
+      {fetchStatus !== "loading" && pagination.totalDocs > 0 && (
         <TablePagination
           pagination={pagination}
           setLimitFilter={setLimitFilter}
           setPageFilter={setPageFilter}
-          method={fetchActivityLogs}
+          method={skipClientFetch}
         />
       )}
     </>

@@ -32,12 +32,14 @@ export default function TablePagination({
 
   const handlePage = (page) => {
     dispatch(setPageFilter(page));
-    dispatch(method({ authToken, ...payload }));
+    // Pass page explicitly so the request never uses a stale Redux filter value
+    dispatch(method({ authToken, page, ...payload }));
   };
 
   const handleLimit = (e) => {
-    dispatch(setLimitFilter(e.target.value));
-    dispatch(method({ authToken, ...payload }));
+    const nextLimit = Number(e.target.value) || 10;
+    dispatch(setLimitFilter(nextLimit));
+    dispatch(method({ authToken, page: 1, limit: nextLimit, ...payload }));
   };
 
   const renderPageButtons = () => {

@@ -38,9 +38,9 @@ function NotificationBell() {
 
   useEffect(() => {
     if (authToken) {
-      dispatch(fetchNotifications({ authToken, page: 1, limit: 20, read_filter: "all" }));
+      dispatch(fetchNotifications({ authToken, page: 1, limit: 8, read_filter: "all" }));
       const interval = setInterval(() => {
-        dispatch(fetchNotifications({ authToken, page: 1, limit: 20, read_filter: "all" }));
+        dispatch(fetchNotifications({ authToken, page: 1, limit: 8, read_filter: "all" }));
       }, 60000);
       return () => clearInterval(interval);
     }
@@ -48,7 +48,7 @@ function NotificationBell() {
   }, [authToken, dispatch]);
 
   const handleOpen = () => {
-    dispatch(fetchNotifications({ authToken, page: 1, limit: 20, read_filter: "all" }));
+    dispatch(fetchNotifications({ authToken, page: 1, limit: 8, read_filter: "all" }));
   };
 
   const handleNotificationClick = (notification) => {
@@ -106,7 +106,7 @@ function NotificationBell() {
         {notifications.length === 0 ? (
           <MenuItem isDisabled>No notifications</MenuItem>
         ) : (
-          notifications.slice(0, 8).map((n) => {
+          notifications.map((n) => {
             const actionHint = getNotificationActionHint(n.type);
             const overdue = isNotificationOverdue(n);
             return (
