@@ -194,6 +194,7 @@ export const drawFeeSummaryChips = (
     total = 0,
     paid = 0,
     pending = 0,
+    totalLabel = "Total",
     formatCurrency,
     colors = {},
   } = {}
@@ -212,7 +213,7 @@ export const drawFeeSummaryChips = (
       : `Rs. ${Number(value || 0).toLocaleString("en-PK")}`;
 
   const chips = [
-    { label: "Total", value: money(total), highlight: false },
+    { label: totalLabel, value: money(total), highlight: false },
     { label: "Paid Amount", value: money(paid), highlight: false },
     {
       label: "Pending Dues",

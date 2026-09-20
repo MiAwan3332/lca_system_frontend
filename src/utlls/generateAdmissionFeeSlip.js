@@ -147,6 +147,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     cnic,
     phone,
     rollNumber = "",
+    roll_number = "",
     batchName,
     batchFee = 0,
     payingNow = 0,
@@ -171,6 +172,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   if (!batchName) {
     throw new Error("Please select a batch to print the fee slip.");
   }
+
+  const rollValue = String(rollNumber || roll_number || "").trim();
 
   const discount = Math.max(Number(discountAmount) || 0, 0);
   const grossFee = Math.max(Number(batchFee) || 0, 0);
@@ -308,7 +311,6 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6);
   doc.setTextColor(...COLORS.muted);
-  const rollValue = String(rollNumber || "").trim();
   const metaLine = rollValue ? `Roll: ${rollValue} · ${issuedAt}` : issuedAt;
   const issuedLines = doc.splitTextToSize(metaLine, infoMaxW);
   doc.text(issuedLines.slice(0, 1), infoX, identityTop + 16.5);
@@ -390,9 +392,11 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     y,
     innerW,
     gap,
-    total: grossFee,
+    // Net total after discount (not gross batch fee)
+    total: Math.max(grossFee - discount, 0),
     paid: paidAmount,
     pending: pendingAmount,
+    totalLabel: discount > 0 ? "After Discount" : "Total",
     formatCurrency,
     colors: COLORS,
   });

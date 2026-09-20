@@ -42,7 +42,7 @@ export const buildFeeSlipPayloadFromStudent = (student, overrides = {}) => {
     name: student?.name,
     phone: student?.phone,
     cnic: student?.cnic || "",
-    rollNumber: student?.roll_number,
+    rollNumber: String(student?.roll_number || "").trim(),
     batchName: student?.batch?.name || "N/A",
     batchFee: Number(student?.batch?.batch_fee) || 0,
     totalFee:

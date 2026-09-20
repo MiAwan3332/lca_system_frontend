@@ -158,6 +158,7 @@ export const generatePendingFeeSlipPdf = async (data = {}) => {
     phone,
     cnic = "",
     rollNumber = "",
+    roll_number = "",
     batchName = "N/A",
     totalFee = 0,
     paidFee = 0,
@@ -175,6 +176,8 @@ export const generatePendingFeeSlipPdf = async (data = {}) => {
   if (!(Number(pendingAmount) > 0)) {
     throw new Error("Pending amount must be greater than zero.");
   }
+
+  const rollValue = String(rollNumber || roll_number || "").trim();
 
   const [photoDataUrl, logoPng] = await Promise.all([
     toJpegDataUrl(photoFile || photoUrl),
@@ -319,7 +322,7 @@ export const generatePendingFeeSlipPdf = async (data = {}) => {
     halfW,
     chipH,
     "Roll No",
-    rollNumber || "—"
+    rollValue || "—"
   );
   y += chipH + gap;
 

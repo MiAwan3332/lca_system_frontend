@@ -684,7 +684,7 @@ function AddStudnet({ isOpen, onClose }) {
           name: formik.values.name,
           cnic: formik.values.cnic || "N/A",
           phone: formik.values.phone,
-          rollNumber: studentForSlip.roll_number || "",
+          rollNumber: String(studentForSlip.roll_number || "").trim(),
           batchName: selectedBatch?.name || "N/A",
           batchFee: slipTotalFee,
           payingNow: slipPaid,
