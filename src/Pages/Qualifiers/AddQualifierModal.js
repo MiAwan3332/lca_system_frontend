@@ -476,9 +476,11 @@ function AddQualifierModal({ isOpen, onClose }) {
                 <CameraCapture
                   onCapture={setPhotoFile}
                   label="Qualifier Photo"
+                  enableCrop
+                  fileNamePrefix="qualifier-photo"
                 />
                 <Text fontSize="xs" color="gray.500" mt={2}>
-                  Capture or upload the qualifier photo.
+                  Open camera or pick from gallery, then crop the photo.
                 </Text>
               </GridItem>
 

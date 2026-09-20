@@ -15,7 +15,6 @@ import {
   Textarea,
   VStack,
   Box,
-  Image,
   SimpleGrid,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
@@ -28,6 +27,7 @@ import {
   fetchQualifiers,
 } from "../../Features/qualifierSlice";
 import ActionButton from "../../Components/ActionButton";
+import CameraCapture from "../../Components/CameraCapture";
 import { getMediaUrl } from "../../utlls/useful";
 import { provinceSelectOptions, citySelectOptions, getCitiesForProvince } from "../../utlls/pakistanProvinces";
 import SearchableTextSelect from "../../Components/SearchableTextSelect";
@@ -39,9 +39,12 @@ import {
 function UpdateQualifierModal({ qualifier }) {
   const [isOpen, setIsOpen] = useState(false);
   const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
+  const onClose = () => {
+    setPhotoFile(null);
+    setIsOpen(false);
+  };
   const [authToken] = useState(Cookies.get("authToken"));
-  const [preview, setPreview] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
   const { updateStatus } = useSelector((state) => state.qualifiers);
   const interviewBatches = useSelector(selectActiveInterviewBatches);
   const dispatch = useDispatch();
@@ -59,6 +62,10 @@ function UpdateQualifierModal({ qualifier }) {
     );
   }, [isOpen, authToken, dispatch]);
 
+  useEffect(() => {
+    if (!isOpen) setPhotoFile(null);
+  }, [isOpen]);
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -75,7 +82,6 @@ function UpdateQualifierModal({ qualifier }) {
       description: qualifier?.description || "",
       batch: currentBatchId,
       is_active: qualifier?.is_active === false ? "false" : "true",
-      photo: null,
     },
     validationSchema: Yup.object({
       name: Yup.string().trim().required("Required"),
@@ -98,8 +104,8 @@ function UpdateQualifierModal({ qualifier }) {
       formData.append("description", values.description?.trim() || "");
       formData.append("batch", values.batch);
       formData.append("is_active", values.is_active);
-      if (values.photo) {
-        formData.append("photo", values.photo);
+      if (photoFile) {
+        formData.append("photo", photoFile);
       }
 
       dispatch(
@@ -118,12 +124,6 @@ function UpdateQualifierModal({ qualifier }) {
     },
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      setPreview(getMediaUrl(qualifier?.photo) || "");
-    }
-  }, [isOpen, qualifier?.photo]);
-
   const batchOptions = useMemo(() => {
     const docs = [...interviewBatches];
     const current = qualifier?.batch;
@@ -136,6 +136,7 @@ function UpdateQualifierModal({ qualifier }) {
     return docs;
   }, [interviewBatches, qualifier?.batch]);
 
+  const existingPhotoUrl = getMediaUrl(qualifier?.photo) || "";
   return (
     <>
       <ActionButton
@@ -327,33 +328,14 @@ function UpdateQualifierModal({ qualifier }) {
                   />
                 </FormControl>
 
-                <FormControl id="photo">
-                  <FormLabel fontSize={14}>Photo</FormLabel>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    name="photo"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      formik.setFieldValue("photo", file);
-                      setPreview(
-                        file
-                          ? URL.createObjectURL(file)
-                          : getMediaUrl(qualifier?.photo) || ""
-                      );
-                    }}
-                  />
-                  {preview ? (
-                    <Image
-                      src={preview}
-                      alt={qualifier?.name || "Qualifier"}
-                      mt={3}
-                      boxSize="96px"
-                      objectFit="cover"
-                      borderRadius="full"
-                    />
-                  ) : null}
-                </FormControl>
+                <CameraCapture
+                  key={isOpen ? `photo-${qualifier?._id}` : "closed"}
+                  onCapture={setPhotoFile}
+                  label="Qualifier Photo"
+                  enableCrop
+                  initialPreviewUrl={existingPhotoUrl}
+                  fileNamePrefix="qualifier-photo"
+                />
               </VStack>
             </ModalBody>
 
