@@ -17,10 +17,12 @@ import {
   Textarea,
   useToast,
   VStack,
+  Spinner,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
+import axios from "axios";
 import { FileText, Printer } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import moment from "moment";
@@ -42,6 +44,7 @@ import {
   responsiveModalContentProps,
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import { config } from "../../utlls/config";
 
 const formatAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -81,21 +84,79 @@ function GeneratePendingFeeSlipAction({
   const [hasPaid, setHasPaid] = useState(false);
   const [paidSlipPayload, setPaidSlipPayload] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [detailStudent, setDetailStudent] = useState(null);
+  const [loadingRemarks, setLoadingRemarks] = useState(false);
   const printSlipPayloadRef = useRef(null);
 
+  // Prefer freshly loaded profile (includes admission remarks + enriched discount remarks)
+  const profile = detailStudent || student;
+
   const outstanding = Math.round(
-    Math.max(Number(student?.pending_fee) || 0, 0)
+    Math.max(Number(profile?.pending_fee ?? student?.pending_fee) || 0, 0)
   );
 
-  const getFormValues = () => ({
-    amount: "",
-    discount_amount: "",
-    discount_description: String(student?.discount_remarks || "").trim(),
-    payment_method: "Cash",
-    payment_option: "full",
-    next_installment_date: "",
-    remarks: String(student?.remarks || "").trim(),
-  });
+  const admissionRemarks = String(profile?.remarks || "").trim();
+  const admissionDiscountRemarks = String(
+    profile?.discount_remarks || ""
+  ).trim();
+
+  // Load full student profile when modal opens so admission remarks are available
+  useEffect(() => {
+    if (!isOpen || !student?._id || !authToken) {
+      if (!isOpen) setDetailStudent(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setLoadingRemarks(true);
+
+    (async () => {
+      try {
+        const response = await axios.get(
+          `${config.BASE_URL}/students/history/${student._id}`,
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        const loaded = response.data?.student;
+        if (!cancelled && loaded) {
+          // Merge so we keep list batch fields (class times, etc.) and get remarks
+          setDetailStudent({
+            ...student,
+            ...loaded,
+            batch: {
+              ...(student.batch && typeof student.batch === "object"
+                ? student.batch
+                : {}),
+              ...(loaded.batch && typeof loaded.batch === "object"
+                ? loaded.batch
+                : {}),
+            },
+          });
+        }
+      } catch {
+        // Fall back to the row student object
+        if (!cancelled) setDetailStudent(null);
+      } finally {
+        if (!cancelled) setLoadingRemarks(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, student?._id, authToken]);
+
+  const initialValues = useMemo(
+    () => ({
+      amount: "",
+      discount_amount: "",
+      discount_description: admissionDiscountRemarks,
+      payment_method: "Cash",
+      payment_option: "full",
+      next_installment_date: "",
+      remarks: admissionRemarks,
+    }),
+    [admissionRemarks, admissionDiscountRemarks, student?._id, isOpen]
+  );
 
   const today = moment().format("YYYY-MM-DD");
 
@@ -156,7 +217,7 @@ function GeneratePendingFeeSlipAction({
 
   const formik = useFormik({
     enableReinitialize: true,
-    initialValues: getFormValues(),
+    initialValues,
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       if (hasPaid) {
@@ -248,15 +309,15 @@ function GeneratePendingFeeSlipAction({
         ).unwrap();
 
         const slipPayload = {
-          name: student.name,
-          phone: student.phone,
-          cnic: student.cnic || "",
-          rollNumber: student.roll_number,
-          batchName: student.batch?.name || "N/A",
-          batchFee: Number(student.batch?.batch_fee) || 0,
+          name: profile.name,
+          phone: profile.phone,
+          cnic: profile.cnic || "",
+          rollNumber: profile.roll_number,
+          batchName: profile.batch?.name || "N/A",
+          batchFee: Number(profile.batch?.batch_fee) || 0,
           totalFee:
-            Number(student.total_fee) || Number(student.batch?.batch_fee) || 0,
-          paidFee: Number(student.paid_fee) || 0,
+            Number(profile.total_fee) || Number(profile.batch?.batch_fee) || 0,
+          paidFee: Number(profile.paid_fee) || 0,
           outstandingBalance: outstanding,
           payingNow,
           remainingAfter: Math.max(
@@ -266,11 +327,11 @@ function GeneratePendingFeeSlipAction({
           discountAmount: discount,
           remarks:
             String(values.remarks || "").trim() ||
-            String(student?.remarks || "").trim() ||
+            admissionRemarks ||
             "",
           discountRemarks:
             String(values.discount_description || "").trim() ||
-            String(student?.discount_remarks || "").trim() ||
+            admissionDiscountRemarks ||
             "",
           paymentOption: option,
           paymentMethod:
@@ -280,14 +341,14 @@ function GeneratePendingFeeSlipAction({
                 ? "Discount"
                 : values.payment_method,
           nextInstallmentDate: values.next_installment_date,
-          photoUrl: student.image || "",
+          photoUrl: profile.image || "",
           authorizedBy: currentUser?.name || "",
-          classStartTime: student.batch?.class_start_time || "",
-          classEndTime: student.batch?.class_end_time || "",
+          classStartTime: profile.batch?.class_start_time || "",
+          classEndTime: profile.batch?.class_end_time || "",
         };
         setPaidSlipPayload(slipPayload);
         setHasPaid(true);
-        saveLastFeeSlipPayload(student._id, slipPayload);
+        saveLastFeeSlipPayload(profile._id || student._id, slipPayload);
 
         const isFullyDiscounted =
           discount > 0 &&
@@ -334,7 +395,6 @@ function GeneratePendingFeeSlipAction({
     setPaidSlipPayload(null);
     setEvidenceFiles([]);
     setEvidenceError("");
-    formik.resetForm({ values: getFormValues() });
   }, [isOpen, student?._id]);
 
   const paymentOption =
@@ -360,7 +420,8 @@ function GeneratePendingFeeSlipAction({
     setEvidenceError("");
     setHasPaid(false);
     setPaidSlipPayload(null);
-    formik.resetForm({ values: getFormValues() });
+    setDetailStudent(null);
+    formik.resetForm({ values: initialValues });
   };
 
   const handleOpen = () => {
@@ -529,9 +590,9 @@ function GeneratePendingFeeSlipAction({
                 bg="gray.50"
               >
                 <Text fontSize="sm" color="gray.600">
-                  {student?.name}
-                  {student?.roll_number ? ` · ${student.roll_number}` : ""}
-                  {student?.batch?.name ? ` · ${student.batch.name}` : ""}
+                  {profile?.name}
+                  {profile?.roll_number ? ` · ${profile.roll_number}` : ""}
+                  {profile?.batch?.name ? ` · ${profile.batch.name}` : ""}
                 </Text>
                 <Text mt={2} fontSize="sm" color="gray.500">
                   Outstanding balance
@@ -540,8 +601,8 @@ function GeneratePendingFeeSlipAction({
                   {formatAmount(outstanding)}
                 </Text>
                 <HStack mt={3} spacing={4} fontSize="sm" color="gray.600">
-                  <Text>Total: {formatAmount(student?.total_fee)}</Text>
-                  <Text>Paid: {formatAmount(student?.paid_fee)}</Text>
+                  <Text>Total: {formatAmount(profile?.total_fee)}</Text>
+                  <Text>Paid: {formatAmount(profile?.paid_fee)}</Text>
                 </HStack>
               </Box>
 
@@ -555,18 +616,29 @@ function GeneratePendingFeeSlipAction({
                 <Text fontSize="sm" fontWeight="600" color="#85652D" mb={2}>
                   Student remarks (from admission)
                 </Text>
-                <Text fontSize="sm" color="gray.500" mb={1}>
-                  Remarks
-                </Text>
-                <Text fontSize="sm" whiteSpace="pre-wrap" mb={3}>
-                  {String(student?.remarks || "").trim() || "—"}
-                </Text>
-                <Text fontSize="sm" color="gray.500" mb={1}>
-                  Discount remarks
-                </Text>
-                <Text fontSize="sm" whiteSpace="pre-wrap">
-                  {String(student?.discount_remarks || "").trim() || "—"}
-                </Text>
+                {loadingRemarks ? (
+                  <HStack spacing={2} py={2}>
+                    <Spinner size="sm" />
+                    <Text fontSize="sm" color="gray.500">
+                      Loading remarks…
+                    </Text>
+                  </HStack>
+                ) : (
+                  <>
+                    <Text fontSize="sm" color="gray.500" mb={1}>
+                      Remarks
+                    </Text>
+                    <Text fontSize="sm" whiteSpace="pre-wrap" mb={3}>
+                      {admissionRemarks || "—"}
+                    </Text>
+                    <Text fontSize="sm" color="gray.500" mb={1}>
+                      Discount remarks
+                    </Text>
+                    <Text fontSize="sm" whiteSpace="pre-wrap">
+                      {admissionDiscountRemarks || "—"}
+                    </Text>
+                  </>
+                )}
               </Box>
 
               <FormControl>
