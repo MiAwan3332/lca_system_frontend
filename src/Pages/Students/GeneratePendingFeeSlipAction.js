@@ -312,7 +312,9 @@ function GeneratePendingFeeSlipAction({
           name: profile.name,
           phone: profile.phone,
           cnic: profile.cnic || "",
-          rollNumber: profile.roll_number,
+          rollNumber: String(
+            profile?.roll_number || student?.roll_number || ""
+          ).trim(),
           batchName: profile.batch?.name || "N/A",
           batchFee: Number(profile.batch?.batch_fee) || 0,
           totalFee:

@@ -147,7 +147,7 @@ function ReprintFeeSlipAction({ student }) {
       name: student.name,
       phone: student.phone,
       cnic: student.cnic || "",
-      rollNumber: student.roll_number,
+      rollNumber: String(student?.roll_number || "").trim(),
       batchName,
       batchFee,
       totalFee: Number(student.total_fee) || batchFee,

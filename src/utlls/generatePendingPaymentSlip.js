@@ -167,6 +167,7 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     phone = "",
     cnic = "",
     rollNumber = "",
+    roll_number = "",
     batchName = "N/A",
     batchFee = 0,
     totalFee = 0,
@@ -193,6 +194,8 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     throw new Error("Student name is required to print the fee slip.");
   }
 
+  const rollValue = String(rollNumber || roll_number || "").trim();
+
   const discount = Math.max(Number(discountAmount) || 0, 0);
   if (!(Number(payingNow) > 0) && !(discount > 0)) {
     throw new Error(
@@ -201,6 +204,13 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   }
 
   const remainingAmount = Number(remainingAfter) || 0;
+  const outstandingBefore = Math.max(
+    Number(data.outstandingBalance) || 0,
+    Number(payingNow) + remainingAmount + discount,
+    0
+  );
+  // Net amount after this slip's discount (what Total chip must show)
+  const totalAfterDiscount = Math.max(outstandingBefore - discount, 0);
   const isFullyDiscounted =
     discount > 0 && !(Number(payingNow) > 0) && remainingAmount <= 0;
   const paymentLabel = isFullyDiscounted
@@ -348,8 +358,8 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6);
   doc.setTextColor(...COLORS.muted);
-  const metaLine = rollNumber
-    ? `Roll: ${rollNumber} · ${issuedAt}`
+  const metaLine = rollValue
+    ? `Roll: ${rollValue} · ${issuedAt}`
     : issuedAt;
   const issuedLines = doc.splitTextToSize(metaLine, infoMaxW);
   doc.text(issuedLines.slice(0, 1), infoX, identityTop + 16.5);
@@ -382,17 +392,19 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   };
 
   y = drawRow("Batch", batchName, y);
-  y = drawRow("CNIC", cnicValue, y, true);
-  y = drawRow("Class Time", classTimeLabel, y);
-  y = drawRow("Payment", paymentLabel, y, true);
+  y = drawRow("Roll No", rollValue || "N/A", y, true);
+  y = drawRow("CNIC", cnicValue, y);
+  y = drawRow("Class Time", classTimeLabel, y, true);
+  y = drawRow("Payment", paymentLabel, y);
   y = drawRow(
     "Method",
     discount > 0 && !(Number(payingNow) > 0)
       ? "Discount"
       : paymentMethod || "N/A",
-    y
+    y,
+    true
   );
-  y = drawRow("Paid Amount", formatCurrency(payingNow), y, true);
+  y = drawRow("Paid Amount", formatCurrency(payingNow), y);
   y = drawRow(
     "Next Installment",
     remainingAmount > 0
@@ -400,10 +412,11 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
         ? moment(nextInstallmentDate).format("DD MMM YYYY")
         : "To be scheduled"
       : "N/A",
-    y
+    y,
+    true
   );
   if (discount > 0) {
-    y = drawRow("Discount", formatCurrency(discount), y, true);
+    y = drawRow("Discount", formatCurrency(discount), y);
   }
   const remarksText = String(remarks || "").trim();
   const discountRemarksText = String(discountRemarks || "").trim();
@@ -435,9 +448,11 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     y,
     innerW,
     gap,
-    total: totalBatchFee,
+    // Net total after discount (not gross / pre-discount fee)
+    total: totalAfterDiscount,
     paid: payingNow,
     pending: remainingAmount,
+    totalLabel: discount > 0 ? "After Discount" : "Total",
     formatCurrency,
     colors: COLORS,
   });

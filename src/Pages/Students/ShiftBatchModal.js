@@ -295,7 +295,7 @@ function ShiftBatchModal({ student }) {
         name: student.name,
         phone: student.phone,
         cnic: student.cnic,
-        rollNumber: student.roll_number,
+        rollNumber: String(student.roll_number || "").trim(),
         batchName: currentBatchName,
         totalFee: student.total_fee,
         paidFee: student.paid_fee,
