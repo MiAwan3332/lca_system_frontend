@@ -39,6 +39,7 @@ import {
   responsiveModalContentProps,
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import { buildRollNumberSample } from "../../utlls/rollNumber";
 
 const getInitialValues = (batch) => ({
   name: batch?.name || "",
@@ -79,7 +80,9 @@ function AddModel({ batch }) {
         )
         .max(20, "Max 20 characters"),
       description: Yup.string().required("Required"),
-      batch_type: Yup.string(),
+      batch_type: Yup.string()
+        .oneOf(["Online", "On Campus"], "Select Online or On Campus")
+        .required("Required"),
       is_paid_batch: Yup.boolean(),
       is_special_batch: Yup.boolean(),
       is_interview_batch: Yup.boolean(),
@@ -338,13 +341,21 @@ function AddModel({ batch }) {
                   onBlur={formik.handleBlur}
                 />
                 <Text fontSize="xs" color="gray.500" mt={1}>
-                  Letters, numbers, or both. Rolls will be like{" "}
+                  Pattern: Online → On-NICK-1, On Campus → OC-NICK-1. Example:{" "}
                   <Text as="span" fontWeight="600">
-                    {formik.values.roll_nickname || "NICK"}-1
+                    {buildRollNumberSample(
+                      formik.values.batch_type,
+                      formik.values.roll_nickname,
+                      1
+                    )}
                   </Text>
                   ,{" "}
                   <Text as="span" fontWeight="600">
-                    {formik.values.roll_nickname || "NICK"}-2
+                    {buildRollNumberSample(
+                      formik.values.batch_type,
+                      formik.values.roll_nickname,
+                      2
+                    )}
                   </Text>
                 </Text>
                 {formik.touched.roll_nickname && formik.errors.roll_nickname ? (
@@ -377,11 +388,17 @@ function AddModel({ batch }) {
                   borderRadius="0.5rem"
                   value={formik.values.batch_type}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 >
                   <option value="">Select Type</option>
                   <option value="Online">Online</option>
                   <option value="On Campus">On Campus</option>
                 </Select>
+                {formik.touched.batch_type && formik.errors.batch_type ? (
+                  <Box color="red" fontSize="sm">
+                    {formik.errors.batch_type}
+                  </Box>
+                ) : null}
               </FormControl>
 
               <FormControl id="is_paid_batch" minW={0}>

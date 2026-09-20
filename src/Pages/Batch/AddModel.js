@@ -28,6 +28,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchBatches, addBatch } from "../../Features/batchSlice";
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
+import { buildRollNumberSample } from "../../utlls/rollNumber";
 import {
   createEmptySpecialFeeRow,
   formRowsToSpecialFeePayload,
@@ -64,6 +65,9 @@ function AddModel({ isOpen, onClose }) {
           "Letters only, numbers only, or both (no spaces or symbols)"
         )
         .max(20, "Max 20 characters"),
+      batch_type: Yup.string()
+        .oneOf(["Online", "On Campus"], "Select Online or On Campus")
+        .required("Required"),
       description: Yup.string().required("Required"),
       batch_fee: Yup.number()
         .transform((value, originalValue) =>
@@ -276,13 +280,21 @@ function AddModel({ isOpen, onClose }) {
                   onBlur={formik.handleBlur}
                 />
                 <Text fontSize="xs" color="gray.500" mt={1}>
-                  Letters, numbers, or both. Rolls will be like{" "}
+                  Pattern: Online → On-NICK-1, On Campus → OC-NICK-1. Example:{" "}
                   <Text as="span" fontWeight="600">
-                    {formik.values.roll_nickname || "NICK"}-1
+                    {buildRollNumberSample(
+                      formik.values.batch_type,
+                      formik.values.roll_nickname,
+                      1
+                    )}
                   </Text>
                   ,{" "}
                   <Text as="span" fontWeight="600">
-                    {formik.values.roll_nickname || "NICK"}-2
+                    {buildRollNumberSample(
+                      formik.values.batch_type,
+                      formik.values.roll_nickname,
+                      2
+                    )}
                   </Text>
                 </Text>
                 {formik.touched.roll_nickname && formik.errors.roll_nickname ? (
@@ -315,6 +327,7 @@ function AddModel({ isOpen, onClose }) {
                   borderRadius={"0.5rem"}
                   value={formik.values.batch_type}
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 >
                   <option value="">Select Type</option>
                   <option value="Online">Online</option>
