@@ -7,14 +7,17 @@ const BASE_URL = config.BASE_URL;
 const initialState = {
   notifications: [],
   unreadCount: 0,
-  pagination: { page: 1, totalPages: 1, totalDocs: 0 },
+  pagination: { page: 1, totalPages: 1, totalDocs: 0, limit: 8 },
   fetchStatus: "idle",
 };
 
 export const fetchNotifications = createAsyncThunk(
   "notifications/fetchNotifications",
-  async ({ authToken, page = 1, limit = 20, unread_only, read_filter, type }) => {
-    const params = { page, limit };
+  async ({ authToken, page = 1, limit = 8, unread_only, read_filter, type, date }) => {
+    const params = {
+      page: Math.max(1, Number(page) || 1),
+      limit: Math.min(100, Math.max(1, Number(limit) || 8)),
+    };
 
     if (read_filter === "unread" || unread_only === true) {
       params.unread_only = "true";
@@ -24,6 +27,10 @@ export const fetchNotifications = createAsyncThunk(
 
     if (type && type !== "all") {
       params.type = type;
+    }
+
+    if (date) {
+      params.date = date;
     }
 
     const response = await axios.get(`${BASE_URL}/notifications`, {
@@ -78,6 +85,7 @@ const notificationSlice = createSlice({
             : state.notifications.filter((n) => !n.is_read).length;
         state.pagination = {
           page: action.payload.page,
+          limit: action.payload.limit,
           totalPages: action.payload.totalPages,
           totalDocs: action.payload.totalDocs,
         };
@@ -86,7 +94,9 @@ const notificationSlice = createSlice({
         state.fetchStatus = "failed";
       })
       .addCase(markNotificationRead.fulfilled, (state, action) => {
-        const idx = state.notifications.findIndex((n) => n._id === action.payload._id);
+        const idx = state.notifications.findIndex(
+          (n) => n._id === action.payload._id
+        );
         if (idx !== -1) {
           const wasUnread = !state.notifications[idx].is_read;
           state.notifications[idx] = action.payload;

@@ -6,13 +6,23 @@ import {
   Badge,
   Box,
   Button,
+  ButtonGroup,
   FormControl,
   Input,
   Select,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { Bell, CheckCheck, FileX, FilterX } from "lucide-react";
+import {
+  Bell,
+  CheckCheck,
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
+  FileX,
+  FilterX,
+} from "lucide-react";
 import { useDispatch } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
 import PageHeader, { FilterStack } from "../../Components/PageHeader";
@@ -97,14 +107,28 @@ function NotificationCard({ item, onOpen }) {
               {moment(item.createdAt).format("DD MMM YYYY, hh:mm A")}
             </Text>
           </Box>
-          <Text fontWeight="semibold" mb={1} noOfLines={2} color={overdue ? "#991B1B" : undefined}>
+          <Text
+            fontWeight="semibold"
+            mb={1}
+            noOfLines={2}
+            color={overdue ? "#991B1B" : undefined}
+          >
             {item.title}
           </Text>
-          <Text fontSize="sm" color={overdue ? "#B91C1C" : "gray.600"} noOfLines={4}>
+          <Text
+            fontSize="sm"
+            color={overdue ? "#B91C1C" : "gray.600"}
+            noOfLines={4}
+          >
             {item.message}
           </Text>
           {item.metadata?.due_date && (
-            <Text fontSize="xs" color={overdue ? "#DC2626" : "#C05621"} mt={2} fontWeight={overdue ? "bold" : "normal"}>
+            <Text
+              fontSize="xs"
+              color={overdue ? "#DC2626" : "#C05621"}
+              mt={2}
+              fontWeight={overdue ? "bold" : "normal"}
+            >
               Due date: {moment(item.metadata.due_date).format("DD MMM YYYY")}
               {overdue ? ` · ${getOverdueMessage(item.metadata.due_date)}` : ""}
             </Text>
@@ -169,6 +193,7 @@ function NotificationsPage() {
     }
   }, [authToken, canView, reportDate]);
 
+  // Backend pagination via GET /notifications?page=&limit=
   const loadNotifications = useCallback(async () => {
     if (!authToken || !canView) return;
 
@@ -196,15 +221,15 @@ function NotificationsPage() {
           : (data.docs || []).filter((n) => !n.is_read).length
       );
       setPagination({
-        totalDocs: data.totalDocs,
-        limit: data.limit,
-        totalPages: data.totalPages,
-        page: data.page,
-        pagingCounter: data.pagingCounter,
-        hasPrevPage: data.hasPrevPage,
-        hasNextPage: data.hasNextPage,
-        prevPage: data.prevPage,
-        nextPage: data.nextPage,
+        totalDocs: data.totalDocs || 0,
+        limit: data.limit || filters.limit,
+        totalPages: data.totalPages || 1,
+        page: data.page || filters.page,
+        pagingCounter: data.pagingCounter || 1,
+        hasPrevPage: Boolean(data.hasPrevPage),
+        hasNextPage: Boolean(data.hasNextPage),
+        prevPage: data.prevPage ?? null,
+        nextPage: data.nextPage ?? null,
       });
       setFetchStatus("success");
     } catch {
@@ -221,8 +246,11 @@ function NotificationsPage() {
   const handleOpen = async (notification) => {
     if (!notification.is_read) {
       await dispatch(markNotificationRead({ authToken, id: notification._id }));
-      dispatch(fetchNotifications({ authToken, page: 1, limit: 20, read_filter: "all" }));
-      loadNotifications();
+      // Keep bell badge in sync (small page) without affecting this page's local list
+      dispatch(
+        fetchNotifications({ authToken, page: 1, limit: 8, read_filter: "all" })
+      );
+      await loadNotifications();
     }
     navigateForNotification(notification, navigate);
   };
@@ -231,7 +259,9 @@ function NotificationsPage() {
     setMarkingAll(true);
     try {
       await dispatch(markAllNotificationsRead({ authToken })).unwrap();
-      dispatch(fetchNotifications({ authToken, page: 1, limit: 20, read_filter: "all" }));
+      dispatch(
+        fetchNotifications({ authToken, page: 1, limit: 8, read_filter: "all" })
+      );
       await loadNotifications();
     } finally {
       setMarkingAll(false);
@@ -239,27 +269,73 @@ function NotificationsPage() {
   };
 
   const handlePageChange = (page) => {
+    if (!page || page === filters.page) return;
     setFilters((prev) => ({ ...prev, page }));
   };
 
   const handleLimitChange = (limit) => {
-    setFilters((prev) => ({ ...prev, limit: Number(limit), page: 1 }));
+    setFilters((prev) => ({ ...prev, limit: Number(limit) || 10, page: 1 }));
   };
 
-  const handleReadFilterChange = (e) => {
-    setFilters((prev) => ({ ...prev, read_filter: e.target.value, page: 1 }));
-  };
-
-  const handleTypeChange = (e) => {
-    setFilters((prev) => ({ ...prev, type: e.target.value, page: 1 }));
-  };
-
-  const handleClearFilters = () => {
-    setFilters({ page: 1, limit: 10, read_filter: "all", type: "all", date: "" });
-  };
-
-  const handleNotificationDateChange = (e) => {
-    setFilters((prev) => ({ ...prev, date: e.target.value, page: 1 }));
+  const renderPageButtons = () => {
+    const { totalPages, page } = pagination;
+    if (totalPages < 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1).map((item) => (
+        <Button
+          key={item}
+          onClick={() => handlePageChange(item)}
+          isDisabled={page === item}
+          borderRadius="xl"
+        >
+          {item}
+        </Button>
+      ));
+    }
+    if (page < 3) {
+      return Array.from({ length: 5 }, (_, i) => i + 1).map((item) => (
+        <Button
+          key={item}
+          onClick={() => handlePageChange(item)}
+          isDisabled={page === item}
+          borderRadius="xl"
+        >
+          {item}
+        </Button>
+      ));
+    }
+    if (page > totalPages - 2) {
+      return (
+        <>
+          <Button borderRadius="xl">...</Button>
+          {Array.from({ length: 5 }, (_, i) => totalPages - 4 + i).map((item) => (
+            <Button
+              key={item}
+              onClick={() => handlePageChange(item)}
+              isDisabled={page === item}
+              borderRadius="xl"
+            >
+              {item}
+            </Button>
+          ))}
+        </>
+      );
+    }
+    return (
+      <>
+        {page !== 3 && <Button borderRadius="xl">...</Button>}
+        {Array.from({ length: 5 }, (_, i) => page - 2 + i).map((item) => (
+          <Button
+            key={item}
+            onClick={() => handlePageChange(item)}
+            isDisabled={page === item}
+            borderRadius="xl"
+          >
+            {item}
+          </Button>
+        ))}
+        <Button borderRadius="xl">...</Button>
+      </>
+    );
   };
 
   if (!canView) {
@@ -267,6 +343,8 @@ function NotificationsPage() {
   }
 
   const loading = fetchStatus === "loading" && notifications.length === 0;
+  const { page, limit, totalDocs, totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } =
+    pagination;
 
   return (
     <>
@@ -307,7 +385,13 @@ function NotificationsPage() {
             size="lg"
             borderRadius="xl"
             value={filters.read_filter}
-            onChange={handleReadFilterChange}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                read_filter: e.target.value,
+                page: 1,
+              }))
+            }
           >
             <option value="all">All notifications</option>
             <option value="unread">Unread only</option>
@@ -319,7 +403,13 @@ function NotificationsPage() {
             size="lg"
             borderRadius="xl"
             value={filters.type}
-            onChange={handleTypeChange}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                type: e.target.value,
+                page: 1,
+              }))
+            }
           >
             {NOTIFICATION_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -335,17 +425,33 @@ function NotificationsPage() {
             borderRadius="xl"
             bg="#FAFBFC"
             value={filters.date}
-            onChange={handleNotificationDateChange}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                date: e.target.value,
+                page: 1,
+              }))
+            }
             placeholder="Notification date"
           />
         </FormControl>
-        {(filters.read_filter !== "all" || filters.type !== "all" || filters.date) && (
+        {(filters.read_filter !== "all" ||
+          filters.type !== "all" ||
+          filters.date) && (
           <Button
             leftIcon={<FilterX size={16} />}
             size="md"
             borderRadius="xl"
             variant="outline"
-            onClick={handleClearFilters}
+            onClick={() =>
+              setFilters({
+                page: 1,
+                limit: filters.limit,
+                read_filter: "all",
+                type: "all",
+                date: "",
+              })
+            }
           >
             Clear filters
           </Button>
@@ -403,52 +509,61 @@ function NotificationsPage() {
         )}
       </Box>
 
-      {pagination.totalPages > 1 && (
-        <Box mt={6}>
-          <div className="flex flex-wrap justify-between items-center gap-4 my-5 px-2 sm:px-4 lg:px-8 w-full max-w-full overflow-x-auto">
-            <div className="flex items-center gap-4">
-              <p className="text-md">
-                {`${pagination.page * pagination.limit - pagination.limit + 1} - ${
-                  pagination.page * pagination.limit > pagination.totalDocs
-                    ? pagination.totalDocs
-                    : pagination.page * pagination.limit
-                } of ${pagination.totalDocs} records`}
-              </p>
-              <Select
-                value={filters.limit}
-                onChange={(e) => handleLimitChange(e.target.value)}
-                w="24"
-                borderRadius="xl"
-                backgroundColor="white"
-                cursor="pointer"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={30}>30</option>
-              </Select>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              isDisabled={!pagination.hasPrevPage}
-              onClick={() => handlePageChange(pagination.page - 1)}
+      {fetchStatus !== "loading" && totalDocs > 0 && (
+        <div className="flex flex-wrap justify-between items-center gap-4 my-5 px-2 sm:px-4 lg:px-8 w-full max-w-full overflow-x-auto">
+          <div className="flex items-center gap-4">
+            <p className="text-md">
+              {`${page * limit - limit + 1} - ${
+                page * limit > totalDocs ? totalDocs : page * limit
+              } of ${totalDocs} records`}
+            </p>
+            <Select
+              value={filters.limit}
+              onChange={(e) => handleLimitChange(e.target.value)}
+              w="24"
+              borderRadius="xl"
+              backgroundColor="white"
+              cursor="pointer"
             >
-              Previous
-            </Button>
-            <Text fontSize="sm">
-              Page {pagination.page} of {pagination.totalPages}
-            </Text>
-            <Button
-              size="sm"
-              variant="outline"
-              isDisabled={!pagination.hasNextPage}
-              onClick={() => handlePageChange(pagination.page + 1)}
-            >
-              Next
-            </Button>
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+            </Select>
           </div>
-        </Box>
+          <ButtonGroup size="md" isAttached variant="outline" backgroundColor="white">
+            <Button
+              onClick={() => handlePageChange(1)}
+              isDisabled={!hasPrevPage}
+              borderRadius="xl"
+            >
+              <ChevronFirst />
+            </Button>
+            <Button
+              onClick={() => handlePageChange(prevPage)}
+              isDisabled={!hasPrevPage}
+              borderRadius="xl"
+            >
+              <ChevronLeft />
+            </Button>
+            {renderPageButtons()}
+            <Button
+              onClick={() => handlePageChange(nextPage)}
+              isDisabled={!hasNextPage}
+              borderRadius="xl"
+            >
+              <ChevronRight />
+            </Button>
+            <Button
+              onClick={() => handlePageChange(totalPages)}
+              isDisabled={!hasNextPage}
+              borderRadius="xl"
+            >
+              <ChevronLast />
+            </Button>
+          </ButtonGroup>
+        </div>
       )}
     </>
   );

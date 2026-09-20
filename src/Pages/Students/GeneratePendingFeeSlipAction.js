@@ -87,6 +87,16 @@ function GeneratePendingFeeSlipAction({
     Math.max(Number(student?.pending_fee) || 0, 0)
   );
 
+  const getFormValues = () => ({
+    amount: "",
+    discount_amount: "",
+    discount_description: String(student?.discount_remarks || "").trim(),
+    payment_method: "Cash",
+    payment_option: "full",
+    next_installment_date: "",
+    remarks: String(student?.remarks || "").trim(),
+  });
+
   const today = moment().format("YYYY-MM-DD");
 
   const validationSchema = useMemo(
@@ -146,15 +156,7 @@ function GeneratePendingFeeSlipAction({
 
   const formik = useFormik({
     enableReinitialize: true,
-    initialValues: {
-      amount: "",
-      discount_amount: "",
-      discount_description: "",
-      payment_method: "Cash",
-      payment_option: "full",
-      next_installment_date: "",
-      remarks: "",
-    },
+    initialValues: getFormValues(),
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       if (hasPaid) {
@@ -262,6 +264,14 @@ function GeneratePendingFeeSlipAction({
             0
           ),
           discountAmount: discount,
+          remarks:
+            String(values.remarks || "").trim() ||
+            String(student?.remarks || "").trim() ||
+            "",
+          discountRemarks:
+            String(values.discount_description || "").trim() ||
+            String(student?.discount_remarks || "").trim() ||
+            "",
           paymentOption: option,
           paymentMethod:
             payingNow > 0
@@ -324,7 +334,7 @@ function GeneratePendingFeeSlipAction({
     setPaidSlipPayload(null);
     setEvidenceFiles([]);
     setEvidenceError("");
-    formik.resetForm();
+    formik.resetForm({ values: getFormValues() });
   }, [isOpen, student?._id]);
 
   const paymentOption =
@@ -350,7 +360,7 @@ function GeneratePendingFeeSlipAction({
     setEvidenceError("");
     setHasPaid(false);
     setPaidSlipPayload(null);
-    formik.resetForm();
+    formik.resetForm({ values: getFormValues() });
   };
 
   const handleOpen = () => {
@@ -535,6 +545,30 @@ function GeneratePendingFeeSlipAction({
                 </HStack>
               </Box>
 
+              <Box
+                p={4}
+                borderRadius="xl"
+                border="1px solid"
+                borderColor="#E0E8EC"
+                bg="orange.50"
+              >
+                <Text fontSize="sm" fontWeight="600" color="#85652D" mb={2}>
+                  Student remarks (from admission)
+                </Text>
+                <Text fontSize="sm" color="gray.500" mb={1}>
+                  Remarks
+                </Text>
+                <Text fontSize="sm" whiteSpace="pre-wrap" mb={3}>
+                  {String(student?.remarks || "").trim() || "—"}
+                </Text>
+                <Text fontSize="sm" color="gray.500" mb={1}>
+                  Discount remarks
+                </Text>
+                <Text fontSize="sm" whiteSpace="pre-wrap">
+                  {String(student?.discount_remarks || "").trim() || "—"}
+                </Text>
+              </Box>
+
               <FormControl>
                 <FormLabel fontSize={14}>Discount amount (optional)</FormLabel>
                 <Input
@@ -555,11 +589,16 @@ function GeneratePendingFeeSlipAction({
 
               {discount > 0 ? (
                 <FormControl>
-                  <FormLabel fontSize={14}>Discount description</FormLabel>
+                  <FormLabel fontSize={14}>
+                    Discount remarks{" "}
+                    <Text as="span" color="red.500">
+                      *
+                    </Text>
+                  </FormLabel>
                   <Input
                     name="discount_description"
                     borderRadius="0.5rem"
-                    placeholder="Reason for discount"
+                    placeholder="Pre-filled from admission; update if needed"
                     isDisabled={hasPaid}
                     value={formik.values.discount_description}
                     onChange={formik.handleChange}
@@ -723,11 +762,13 @@ function GeneratePendingFeeSlipAction({
               )}
 
               <FormControl isRequired>
-                <FormLabel fontSize={14}>Remarks</FormLabel>
+                <FormLabel fontSize={14}>
+                  Payment remarks (shown with student remarks)
+                </FormLabel>
                 <Textarea
                   name="remarks"
                   borderRadius="0.5rem"
-                  placeholder="Required for all payment types"
+                  placeholder="Required — student admission remarks are pre-filled"
                   isDisabled={hasPaid}
                   value={formik.values.remarks}
                   onChange={formik.handleChange}

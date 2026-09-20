@@ -505,18 +505,36 @@ function StudentHistoryModal({ student }) {
                               </Text>
                             </Flex>
                             <Divider />
-                            <Box>
-                              <Text color="gray.500" mb={1}>
-                                Remarks (on add)
+                            <Box
+                              p={3}
+                              borderRadius="xl"
+                              bg="orange.50"
+                              border="1px solid"
+                              borderColor="orange.100"
+                            >
+                              <Text
+                                fontSize="xs"
+                                fontWeight="700"
+                                color="#85652D"
+                                mb={2}
+                                textTransform="uppercase"
+                                letterSpacing="0.04em"
+                              >
+                                Admission notes
                               </Text>
-                              <Text fontWeight="500" whiteSpace="pre-wrap">
+                              <Text color="gray.500" fontSize="sm" mb={1}>
+                                Remarks
+                              </Text>
+                              <Text
+                                fontWeight="500"
+                                whiteSpace="pre-wrap"
+                                mb={3}
+                              >
                                 {profile.remarks?.trim()
                                   ? profile.remarks
                                   : "—"}
                               </Text>
-                            </Box>
-                            <Box>
-                              <Text color="gray.500" mb={1}>
+                              <Text color="gray.500" fontSize="sm" mb={1}>
                                 Discount remarks
                               </Text>
                               <Text fontWeight="500" whiteSpace="pre-wrap">

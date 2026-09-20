@@ -432,6 +432,13 @@ function QualifierSelfProfile({ qualifier, loading }) {
                   formik.setStatus(undefined);
                 }}
                 label="Update Photo *"
+                enableCrop
+                fileNamePrefix="qualifier-photo"
+                initialPreviewUrl={
+                  photoFile
+                    ? undefined
+                    : getMediaUrl(qualifier?.photo) || ""
+                }
               />
               {formik.status?.photo ? (
                 <Text color="red" fontSize="sm" mt={1}>

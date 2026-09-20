@@ -1,12 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Button, HStack, Image, Input, Text } from "@chakra-ui/react";
 import { Camera, RotateCcw, SwitchCamera, Upload } from "lucide-react";
+import ImageCropModal from "./ImageCropModal";
 
-function CameraCapture({ onCapture, label = "Student Photo" }) {
+function CameraCapture({
+  onCapture,
+  label = "Photo",
+  enableCrop = true,
+  initialPreviewUrl = "",
+  fileNamePrefix = "photo",
+}) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
   const deviceIdRef = useRef(null);
 
   const [preview, setPreview] = useState(null);
@@ -16,6 +23,8 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
   const [deviceId, setDeviceId] = useState(null);
   const [facingMode, setFacingMode] = useState("user"); // user = front, environment = back
   const [switching, setSwitching] = useState(false);
+  const [cropSrc, setCropSrc] = useState(null);
+  const [cropOpen, setCropOpen] = useState(false);
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -91,7 +100,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
       await applyStream(stream, mode);
       return true;
     } catch {
-      setError("Unable to access camera. Use upload photo instead.");
+      setError("Unable to access camera. Use gallery upload instead.");
       setActive(false);
       return false;
     }
@@ -105,7 +114,6 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     try {
       const videoInputs = devices.length ? devices : await refreshDevices();
 
-      // External/USB + laptop cameras: cycle by deviceId
       if (videoInputs.length >= 2) {
         const currentId = deviceIdRef.current;
         const currentIndex = Math.max(
@@ -129,7 +137,6 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
         return;
       }
 
-      // Phone: toggle front/back facing mode
       const nextMode = facingMode === "user" ? "environment" : "user";
       try {
         const stream = await openStream({
@@ -176,13 +183,30 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
 
   useEffect(() => () => stopCamera(), []);
 
+  useEffect(() => {
+    if (preview || !initialPreviewUrl) return;
+    setPreview(initialPreviewUrl);
+  }, [initialPreviewUrl, preview]);
+
   const setCapturedFile = (file) => {
-    if (preview) {
+    if (preview && preview.startsWith("blob:")) {
       URL.revokeObjectURL(preview);
     }
     const url = URL.createObjectURL(file);
     setPreview(url);
     onCapture?.(file);
+  };
+
+  const beginCropFromFile = async (file) => {
+    if (!file) return;
+    stopCamera();
+    if (cropSrc?.startsWith("blob:")) {
+      URL.revokeObjectURL(cropSrc);
+    }
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropOpen(true);
+    setError("");
   };
 
   const normalizeImageFile = async (file) => {
@@ -214,7 +238,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
         canvas.toBlob(resolve, "image/jpeg", 0.92)
       );
       if (!blob) return file;
-      return new File([blob], `student-photo-${Date.now()}.jpg`, {
+      return new File([blob], `${fileNamePrefix}-${Date.now()}.jpg`, {
         type: "image/jpeg",
       });
     } catch {
@@ -245,16 +269,20 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     ctx.drawImage(video, 0, 0, width, height);
 
     canvas.toBlob(
-      (blob) => {
+      async (blob) => {
         if (!blob) {
           setError("Could not capture photo. Please try again.");
           return;
         }
-        const file = new File([blob], `student-photo-${Date.now()}.jpg`, {
+        const file = new File([blob], `${fileNamePrefix}-${Date.now()}.jpg`, {
           type: "image/jpeg",
         });
-        setCapturedFile(file);
         stopCamera();
+        if (enableCrop) {
+          await beginCropFromFile(file);
+        } else {
+          setCapturedFile(file);
+        }
         setError("");
       },
       "image/jpeg",
@@ -263,7 +291,7 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
   };
 
   const handleRetake = () => {
-    if (preview) {
+    if (preview && preview.startsWith("blob:")) {
       URL.revokeObjectURL(preview);
     }
     setPreview(null);
@@ -274,13 +302,30 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
     });
   };
 
-  const handleFileUpload = async (event) => {
+  const handleGalleryUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const normalized = await normalizeImageFile(file);
-    setCapturedFile(normalized);
-    stopCamera();
+    if (enableCrop) {
+      await beginCropFromFile(normalized);
+    } else {
+      setCapturedFile(normalized);
+      stopCamera();
+    }
     event.target.value = "";
+  };
+
+  const handleCropClose = () => {
+    setCropOpen(false);
+    if (cropSrc?.startsWith("blob:")) {
+      URL.revokeObjectURL(cropSrc);
+    }
+    setCropSrc(null);
+  };
+
+  const handleCropped = (file) => {
+    setCapturedFile(file);
+    handleCropClose();
   };
 
   const currentDeviceIndex = Math.max(
@@ -299,6 +344,8 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
         : "Front Camera";
 
   const mirrorPreview = facingMode === "user" && devices.length < 2;
+  const displayPreview =
+    preview || (!preview && initialPreviewUrl ? initialPreviewUrl : null);
 
   return (
     <Box
@@ -311,31 +358,46 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
       <Text fontSize="sm" fontWeight="semibold" mb={2}>
         {label}
       </Text>
+      <Text fontSize="xs" color="gray.500" mb={2}>
+        Capture from camera or choose from gallery
+        {enableCrop ? ", then crop before saving." : "."}
+      </Text>
       {error ? (
         <Text fontSize="sm" color="red.500" mb={2}>
           {error}
         </Text>
       ) : null}
 
-      {preview ? (
+      {displayPreview && !active ? (
         <>
           <Image
-            src={preview}
-            alt="Captured student"
+            src={displayPreview}
+            alt="Selected photo"
             maxH="220px"
             borderRadius="lg"
             objectFit="cover"
             mb={3}
           />
-          <Button
-            size="sm"
-            type="button"
-            leftIcon={<RotateCcw size={16} />}
-            variant="outline"
-            onClick={handleRetake}
-          >
-            Retake Photo
-          </Button>
+          <HStack spacing={2} flexWrap="wrap">
+            <Button
+              size="sm"
+              type="button"
+              leftIcon={<RotateCcw size={16} />}
+              variant="outline"
+              onClick={handleRetake}
+            >
+              Retake / Change
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              leftIcon={<Upload size={16} />}
+              onClick={() => galleryInputRef.current?.click()}
+            >
+              From Gallery
+            </Button>
+          </HStack>
         </>
       ) : active ? (
         <>
@@ -400,6 +462,17 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
               size="sm"
               type="button"
               variant="outline"
+              leftIcon={<Upload size={16} />}
+              onClick={() => galleryInputRef.current?.click()}
+              w={{ base: "full", sm: "auto" }}
+              minH="40px"
+            >
+              From Gallery
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
               onClick={stopCamera}
               w={{ base: "full", sm: "auto" }}
               minH="40px"
@@ -427,22 +500,31 @@ function CameraCapture({ onCapture, label = "Student Photo" }) {
             type="button"
             variant="outline"
             leftIcon={<Upload size={16} />}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => galleryInputRef.current?.click()}
             w={{ base: "full", sm: "auto" }}
             minH="40px"
           >
-            Upload Photo
+            From Gallery
           </Button>
-          <Input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            display="none"
-            onChange={handleFileUpload}
-          />
         </HStack>
       )}
+
+      <Input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        display="none"
+        onChange={handleGalleryUpload}
+      />
+
+      <ImageCropModal
+        isOpen={cropOpen}
+        imageSrc={cropSrc}
+        onClose={handleCropClose}
+        onCropped={handleCropped}
+        title="Crop Photo"
+        fileNamePrefix={fileNamePrefix}
+      />
     </Box>
   );
 }

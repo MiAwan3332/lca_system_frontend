@@ -156,6 +156,8 @@ function ReprintFeeSlipAction({ student }) {
       payingNow,
       remainingAfter,
       discountAmount: 0,
+      remarks: String(student?.remarks || "").trim(),
+      discountRemarks: String(student?.discount_remarks || "").trim(),
       paymentOption: remainingAfter > 0 ? "partial" : "full",
       paymentMethod: log.payment_method || "Cash",
       nextInstallmentDate:
