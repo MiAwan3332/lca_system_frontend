@@ -303,17 +303,25 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const nameLines = doc.splitTextToSize(studentName, infoMaxW).slice(0, 2);
   doc.text(nameLines, infoX, identityTop + 4.5);
 
+  const nameBlockH = nameLines.length > 1 ? 8.5 : 4.5;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.ink);
+  doc.text(
+    `Roll No: ${rollValue || "N/A"}`,
+    infoX,
+    identityTop + nameBlockH + 3.2
+  );
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.ink);
-  doc.text(`Ph: ${phone || "N/A"}`, infoX, identityTop + 12);
+  doc.text(`Ph: ${phone || "N/A"}`, infoX, identityTop + nameBlockH + 8);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6);
   doc.setTextColor(...COLORS.muted);
-  const metaLine = rollValue ? `Roll: ${rollValue} · ${issuedAt}` : issuedAt;
-  const issuedLines = doc.splitTextToSize(metaLine, infoMaxW);
-  doc.text(issuedLines.slice(0, 1), infoX, identityTop + 16.5);
+  doc.text(issuedAt, infoX, identityTop + nameBlockH + 12.2);
 
   y = identityTop + identityH + 2.5;
 
@@ -321,8 +329,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   const rowH = 6.2;
   const labelW = innerW * 0.38;
 
-  const drawRow = (label, value, rowY, alt = false) => {
-    if (rowY + rowH > contentBottom - 38) return rowY;
+  const drawRow = (label, value, rowY, alt = false, { required = false } = {}) => {
+    if (!required && rowY + rowH > contentBottom - 38) return rowY;
     doc.setFillColor(...(alt ? COLORS.soft : COLORS.white));
     doc.setDrawColor(...COLORS.softBorder);
     doc.setLineWidth(0.15);
@@ -339,8 +347,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     return rowY + rowH + 0.4;
   };
 
-  y = drawRow("Batch", batchName, y);
-  y = drawRow("Roll No", rollValue || "N/A", y, true);
+  y = drawRow("Roll No", rollValue || "N/A", y, false, { required: true });
+  y = drawRow("Batch", batchName, y, true);
   y = drawRow("CNIC", cnicValue, y);
   y = drawRow("Class Time", classTimeLabel, y, true);
   y = drawRow("Payment", paymentLabel, y);

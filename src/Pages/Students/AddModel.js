@@ -629,6 +629,28 @@ function AddStudnet({ isOpen, onClose }) {
 
     setIsPrintingSlip(true);
     try {
+      let rollNumber = String(studentForSlip.roll_number || "").trim();
+      if (!rollNumber && studentForSlip._id) {
+        try {
+          const profileResponse = await axios.get(
+            `${config.BASE_URL}/students/history/${studentForSlip._id}`,
+            { headers: { Authorization: `Bearer ${authToken}` } }
+          );
+          rollNumber = String(
+            profileResponse.data?.student?.roll_number || ""
+          ).trim();
+          if (rollNumber) {
+            setCreatedStudent((prev) =>
+              prev && String(prev._id) === String(studentForSlip._id)
+                ? { ...prev, roll_number: rollNumber }
+                : prev
+            );
+          }
+        } catch {
+          // Keep empty roll; slip will still print with N/A
+        }
+      }
+
       const classTimeLabel =
         formatClassTimeRange(
           selectedBatch?.class_start_time,
@@ -659,6 +681,7 @@ function AddStudnet({ isOpen, onClose }) {
             cnic: formik.values.cnic || "",
             phone: formik.values.phone || "",
             batch_name: selectedBatch?.name || "",
+            roll_number: rollNumber,
             total_fee: slipTotalFee,
             amount_received: slipPaid,
             remaining_fee: slipRemaining,
@@ -684,7 +707,8 @@ function AddStudnet({ isOpen, onClose }) {
           name: formik.values.name,
           cnic: formik.values.cnic || "N/A",
           phone: formik.values.phone,
-          rollNumber: String(studentForSlip.roll_number || "").trim(),
+          rollNumber,
+          roll_number: rollNumber,
           batchName: selectedBatch?.name || "N/A",
           batchFee: slipTotalFee,
           payingNow: slipPaid,
@@ -715,8 +739,8 @@ function AddStudnet({ isOpen, onClose }) {
         title: isFullyDiscounted
           ? "Paid zero slip opened for printing"
           : "Admission slip opened for printing",
-        description: studentForSlip.roll_number
-          ? `Roll no. ${studentForSlip.roll_number}. Use your browser print dialog to finish.`
+        description: rollNumber
+          ? `Roll no. ${rollNumber}. Use your browser print dialog to finish.`
           : "Use your browser print dialog to finish.",
         status: photoFile ? "success" : "info",
         duration: 4000,
