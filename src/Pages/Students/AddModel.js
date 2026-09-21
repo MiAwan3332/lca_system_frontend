@@ -384,7 +384,29 @@ function AddStudnet({ isOpen, onClose }) {
           addStudent({ authToken, formData })
         ).unwrap();
         dispatch(fetchStudents({ authToken }));
-        setCreatedStudent(created);
+        let studentRecord = created;
+        if (
+          studentRecord?._id &&
+          !String(studentRecord.roll_number || "").trim()
+        ) {
+          try {
+            const ensureResponse = await axios.post(
+              `${config.BASE_URL}/students/ensure-roll/${studentRecord._id}`,
+              {},
+              { headers: { Authorization: `Bearer ${authToken}` } }
+            );
+            studentRecord = {
+              ...studentRecord,
+              roll_number:
+                ensureResponse.data?.roll_number ||
+                ensureResponse.data?.student?.roll_number ||
+                studentRecord.roll_number,
+            };
+          } catch {
+            // Print path will try again / block if still missing
+          }
+        }
+        setCreatedStudent(studentRecord);
         // 100% discount → paid zero slip is mandatory (auto-print via effect)
         if (grossFee > 0 && discountAmount >= grossFee) {
           setMustPrintZeroSlip(true);
@@ -630,14 +652,17 @@ function AddStudnet({ isOpen, onClose }) {
     setIsPrintingSlip(true);
     try {
       let rollNumber = String(studentForSlip.roll_number || "").trim();
-      if (!rollNumber && studentForSlip._id) {
+      if ((!rollNumber || /^n\/?a$/i.test(rollNumber)) && studentForSlip._id) {
         try {
-          const profileResponse = await axios.get(
-            `${config.BASE_URL}/students/history/${studentForSlip._id}`,
+          const ensureResponse = await axios.post(
+            `${config.BASE_URL}/students/ensure-roll/${studentForSlip._id}`,
+            {},
             { headers: { Authorization: `Bearer ${authToken}` } }
           );
           rollNumber = String(
-            profileResponse.data?.student?.roll_number || ""
+            ensureResponse.data?.roll_number ||
+              ensureResponse.data?.student?.roll_number ||
+              ""
           ).trim();
           if (rollNumber) {
             setCreatedStudent((prev) =>
@@ -646,9 +671,43 @@ function AddStudnet({ isOpen, onClose }) {
                 : prev
             );
           }
-        } catch {
-          // Keep empty roll; slip will still print with N/A
+        } catch (ensureError) {
+          try {
+            const profileResponse = await axios.get(
+              `${config.BASE_URL}/students/history/${studentForSlip._id}`,
+              { headers: { Authorization: `Bearer ${authToken}` } }
+            );
+            rollNumber = String(
+              profileResponse.data?.student?.roll_number || ""
+            ).trim();
+          } catch {
+            // fall through
+          }
+          if (!rollNumber) {
+            toast({
+              title: "Roll number required",
+              description:
+                ensureError?.response?.data?.message ||
+                "Could not assign a roll number. Set the batch type (Online / On Campus) and roll nickname, then try again.",
+              status: "error",
+              duration: 6000,
+              isClosable: true,
+            });
+            return;
+          }
         }
+      }
+
+      if (!rollNumber || /^n\/?a$/i.test(rollNumber)) {
+        toast({
+          title: "Roll number required",
+          description:
+            "Admission slip cannot print without a roll number. Check the batch roll nickname / type.",
+          status: "error",
+          duration: 6000,
+          isClosable: true,
+        });
+        return;
       }
 
       const classTimeLabel =
