@@ -32,7 +32,7 @@ import { useDispatch, useSelector } from "react-redux";
 import PageHeader, { FilterStack } from "../../Components/PageHeader";
 import CameraCapture from "../../Components/CameraCapture";
 import { getMediaUrl } from "../../utlls/useful";
-import { CSS_OPTIONAL_SUBJECTS } from "../../utlls/cssOptionalSubjects";
+import { CSS_OPTIONAL_SUBJECTS, MAX_OPTIONAL_SUBJECTS } from "../../utlls/cssOptionalSubjects";
 import { provinceSelectOptions, citySelectOptions, getCitiesForProvince } from "../../utlls/pakistanProvinces";
 import SearchableTextSelect from "../../Components/SearchableTextSelect";
 import {
@@ -96,6 +96,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
       phone: qualifier?.phone || "",
       cnic: qualifier?.cnic || "",
       css_pms_roll_no: qualifier?.css_pms_roll_no || "",
+      exam_type: qualifier?.exam_type || "",
       class_type: qualifier?.class_type || "",
       city: qualifier?.city || "",
       province: qualifier?.province || "",
@@ -153,6 +154,10 @@ function QualifierSelfProfile({ qualifier, loading }) {
       optional_subjects: Yup.array()
         .of(Yup.string().trim())
         .min(1, "Select at least one optional subject")
+        .max(
+          MAX_OPTIONAL_SUBJECTS,
+          `Select at most ${MAX_OPTIONAL_SUBJECTS} optional subjects`
+        )
         .required("Required"),
       no_of_attempts: Yup.number()
         .transform((_value, original) => {
@@ -179,6 +184,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
       formData.append("phone", values.phone.trim());
       formData.append("cnic", values.cnic.trim());
       formData.append("css_pms_roll_no", values.css_pms_roll_no?.trim() || "");
+      formData.append("exam_type", values.exam_type || "");
       formData.append("class_type", values.class_type || "");
       formData.append("city", values.city.trim());
       formData.append("province", values.province.trim());
@@ -232,6 +238,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
     const exists = current.some(
       (item) => item.toLowerCase() === subject.toLowerCase()
     );
+    if (!exists && current.length >= MAX_OPTIONAL_SUBJECTS) return;
     formik.setFieldValue(
       "optional_subjects",
       exists
@@ -245,6 +252,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
     const name = customSubject.trim();
     if (!name) return;
     const current = formik.values.optional_subjects || [];
+    if (current.length >= MAX_OPTIONAL_SUBJECTS) return;
     if (current.some((item) => item.toLowerCase() === name.toLowerCase())) {
       setCustomSubject("");
       return;
@@ -321,6 +329,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
 
   const isActive = qualifier.is_active !== false;
   const selectedSubjects = formik.values.optional_subjects || [];
+  const atSubjectLimit = selectedSubjects.length >= MAX_OPTIONAL_SUBJECTS;
   const showEmail = !isDefaultQualifierEmail(qualifier.email);
 
   return (
@@ -531,6 +540,31 @@ function QualifierSelfProfile({ qualifier, loading }) {
                 bg={isEditing ? "white" : "gray.50"}
                 placeholder="Optional"
               />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize={14}>CSS or PMS</FormLabel>
+              {isEditing ? (
+                <Select
+                  name="exam_type"
+                  {...fieldStyles}
+                  value={formik.values.exam_type}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  bg="white"
+                >
+                  <option value="">Select</option>
+                  <option value="CSS">CSS</option>
+                  <option value="PMS">PMS</option>
+                </Select>
+              ) : (
+                <Input
+                  {...fieldStyles}
+                  value={formik.values.exam_type || "—"}
+                  isReadOnly
+                  bg="gray.50"
+                />
+              )}
             </FormControl>
 
             <FormControl>
@@ -1044,9 +1078,14 @@ function QualifierSelfProfile({ qualifier, loading }) {
             </Text>
             <Text fontSize="xs" color="gray.500" mb={3}>
               {isEditing
-                ? "Select at least one CSS optional subject, or add a custom subject."
+                ? `Select 1–${MAX_OPTIONAL_SUBJECTS} CSS optional subjects, or add a custom subject. (${selectedSubjects.length}/${MAX_OPTIONAL_SUBJECTS})`
                 : "Your selected optional subjects."}
             </Text>
+            {isEditing && atSubjectLimit ? (
+              <Text fontSize="xs" color="orange.600" mb={2}>
+                Maximum of {MAX_OPTIONAL_SUBJECTS} subjects selected.
+              </Text>
+            ) : null}
             {isEditing && formik.errors.optional_subjects ? (
               <Text color="red" fontSize="sm" mb={2}>
                 {formik.errors.optional_subjects}
@@ -1092,6 +1131,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
                       <Checkbox
                         key={subject}
                         isChecked={checked}
+                        isDisabled={!checked && atSubjectLimit}
                         onChange={() => toggleSubject(subject)}
                         colorScheme="orange"
                       >
@@ -1108,6 +1148,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
                     value={customSubject}
                     onChange={(e) => setCustomSubject(e.target.value)}
                     bg="white"
+                    isDisabled={atSubjectLimit}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -1122,6 +1163,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
                     flexShrink={0}
                     w={{ base: "full", sm: "auto" }}
                     minH="44px"
+                    isDisabled={atSubjectLimit}
                   >
                     Add Subject
                   </Button>

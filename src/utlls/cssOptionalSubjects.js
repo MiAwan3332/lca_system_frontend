@@ -45,3 +45,6 @@ export const CSS_OPTIONAL_SUBJECTS = [
   "Urdu Literature",
   "Zoology",
 ];
+
+/** Maximum optional subjects a qualifier can select. */
+export const MAX_OPTIONAL_SUBJECTS = 6;

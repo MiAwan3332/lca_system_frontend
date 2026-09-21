@@ -310,6 +310,7 @@ function Qualifiers() {
                 <Th>No</Th>
                 <Th data-searchable>Photo / Name</Th>
                 <Th data-searchable>Batch</Th>
+                <Th data-searchable>CSS/PMS</Th>
                 <Th data-searchable>CSS/PMS Roll No</Th>
                 <Th data-searchable>Mode</Th>
                 <Th data-searchable>Phone</Th>
@@ -322,12 +323,12 @@ function Qualifiers() {
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={showActions ? 9 : 9}
+                  nOfColumns={showActions ? 10 : 10}
                   actions={showActions ? ["w-10"] : []}
                 />
               ) : qualifiers.length === 0 ? (
                 <Tr>
-                  <Td colSpan={showActions ? 10 : 9}>
+                  <Td colSpan={showActions ? 11 : 10}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No qualifier records found
@@ -361,6 +362,7 @@ function Qualifiers() {
                         </div>
                       </Td>
                       <Td>{qualifier.batch?.name || "—"}</Td>
+                      <Td>{qualifier.exam_type || "—"}</Td>
                       <Td>{qualifier.css_pms_roll_no || "—"}</Td>
                       <Td>{qualifier.class_type || "—"}</Td>
                       <Td>{qualifier.phone}</Td>

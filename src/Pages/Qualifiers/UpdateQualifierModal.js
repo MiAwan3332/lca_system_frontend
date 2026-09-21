@@ -15,7 +15,8 @@ import {
   Textarea,
   VStack,
   Box,
-  SimpleGrid,
+  Grid,
+  GridItem,
   useToast,
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
@@ -31,20 +32,19 @@ import ActionButton from "../../Components/ActionButton";
 import CameraCapture from "../../Components/CameraCapture";
 import { getMediaUrl } from "../../utlls/useful";
 import {
-  provinceSelectOptions,
-  citySelectOptions,
-  getCitiesForProvince,
-} from "../../utlls/pakistanProvinces";
-import SearchableTextSelect from "../../Components/SearchableTextSelect";
-import {
   fetchBatches,
   selectActiveInterviewBatches,
 } from "../../Features/batchSlice";
+import {
+  educationEntriesToFormRows,
+  formRowsToEducationPayload,
+} from "../../utlls/qualifierEducation";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import QualifierProfileDetailsFields from "./QualifierProfileDetailsFields";
 
 function UpdateQualifierModal({ qualifier }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,10 +52,12 @@ function UpdateQualifierModal({ qualifier }) {
   const onOpen = () => setIsOpen(true);
   const onClose = () => {
     setPhotoFile(null);
+    setCustomSubject("");
     setIsOpen(false);
   };
   const [authToken] = useState(Cookies.get("authToken"));
   const [photoFile, setPhotoFile] = useState(null);
+  const [customSubject, setCustomSubject] = useState("");
   const { updateStatus } = useSelector((state) => state.qualifiers);
   const interviewBatches = useSelector(selectActiveInterviewBatches);
   const dispatch = useDispatch();
@@ -75,7 +77,10 @@ function UpdateQualifierModal({ qualifier }) {
   }, [isOpen, authToken, dispatch]);
 
   useEffect(() => {
-    if (!isOpen) setPhotoFile(null);
+    if (!isOpen) {
+      setPhotoFile(null);
+      setCustomSubject("");
+    }
   }, [isOpen]);
 
   const formik = useFormik({
@@ -86,12 +91,24 @@ function UpdateQualifierModal({ qualifier }) {
       email: qualifier?.email || "",
       cnic: qualifier?.cnic || "",
       css_pms_roll_no: qualifier?.css_pms_roll_no || "",
+      exam_type: qualifier?.exam_type || "",
       class_type: qualifier?.class_type || "",
       city: qualifier?.city || "",
       province: qualifier?.province || "",
       father_name: qualifier?.father_name || "",
       father_phone: qualifier?.father_phone || "",
       description: qualifier?.description || "",
+      latest_degree: qualifier?.latest_degree || "",
+      no_of_attempts:
+        qualifier?.no_of_attempts != null
+          ? String(qualifier.no_of_attempts)
+          : "0",
+      education_entries: educationEntriesToFormRows(
+        qualifier?.education_background
+      ),
+      optional_subjects: Array.isArray(qualifier?.optional_subjects)
+        ? qualifier.optional_subjects.filter(Boolean)
+        : [],
       batch: currentBatchId,
       is_active: qualifier?.is_active === false ? "false" : "true",
     },
@@ -109,6 +126,17 @@ function UpdateQualifierModal({ qualifier }) {
         ["", "Online", "On Campus"],
         "Select Online or On Campus"
       ),
+      no_of_attempts: Yup.number()
+        .transform((_value, original) => {
+          if (original === "" || original === null || original === undefined) {
+            return 0;
+          }
+          const n = Number(original);
+          return Number.isFinite(n) ? n : NaN;
+        })
+        .typeError("Must be a number")
+        .min(0, "Must be 0 or more")
+        .integer("Must be a whole number"),
     }),
     onSubmit: async (values) => {
       try {
@@ -121,12 +149,26 @@ function UpdateQualifierModal({ qualifier }) {
           "css_pms_roll_no",
           values.css_pms_roll_no?.trim() || ""
         );
+        formData.append("exam_type", values.exam_type || "");
         formData.append("class_type", values.class_type || "");
         formData.append("city", values.city?.trim() || "");
         formData.append("province", values.province?.trim() || "");
         formData.append("father_name", values.father_name?.trim() || "");
         formData.append("father_phone", values.father_phone?.trim() || "");
         formData.append("description", values.description?.trim() || "");
+        formData.append("latest_degree", values.latest_degree?.trim() || "");
+        formData.append(
+          "no_of_attempts",
+          String(Number(values.no_of_attempts) || 0)
+        );
+        formData.append(
+          "education_background",
+          JSON.stringify(formRowsToEducationPayload(values.education_entries))
+        );
+        formData.append(
+          "optional_subjects",
+          JSON.stringify(values.optional_subjects || [])
+        );
         formData.append("batch", values.batch);
         formData.append("is_active", values.is_active);
         if (photoFile instanceof File) {
@@ -198,7 +240,7 @@ function UpdateQualifierModal({ qualifier }) {
         isOpen={isOpen}
         onClose={onClose}
         {...responsiveModalProps}
-        {...getResponsiveModalSize("xl")}
+        {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
         <ModalContent {...responsiveModalContentProps}>
@@ -206,7 +248,10 @@ function UpdateQualifierModal({ qualifier }) {
             Update Qualifier
           </ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
+          <ModalBody
+            maxH={{ base: "70vh", md: "75vh" }}
+            overflowY="auto"
+          >
             <VStack spacing={4} align="stretch">
               <FormControl id="batch" isRequired>
                 <FormLabel fontSize={14}>Interview Batch</FormLabel>
@@ -233,158 +278,130 @@ function UpdateQualifierModal({ qualifier }) {
                 ) : null}
               </FormControl>
 
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                <FormControl id="name" isRequired>
-                  <FormLabel fontSize={14}>Name</FormLabel>
-                  <Input
-                    name="name"
-                    value={formik.values.name}
-                    onChange={formik.handleChange}
-                  />
-                  {formik.touched.name && formik.errors.name ? (
-                    <Box color="red" fontSize="sm">
-                      {formik.errors.name}
-                    </Box>
-                  ) : null}
-                </FormControl>
-                <FormControl id="phone" isRequired>
-                  <FormLabel fontSize={14}>Phone No</FormLabel>
-                  <Input
-                    type="tel"
-                    name="phone"
-                    value={formik.values.phone}
-                    onChange={formik.handleChange}
-                  />
-                  {formik.touched.phone && formik.errors.phone ? (
-                    <Box color="red" fontSize="sm">
-                      {formik.errors.phone}
-                    </Box>
-                  ) : null}
-                </FormControl>
-                <FormControl id="email">
-                  <FormLabel fontSize={14}>Email</FormLabel>
-                  <Input
-                    type="email"
-                    name="email"
-                    value={formik.values.email}
-                    onChange={formik.handleChange}
-                  />
-                  {formik.touched.email && formik.errors.email ? (
-                    <Box color="red" fontSize="sm">
-                      {formik.errors.email}
-                    </Box>
-                  ) : null}
-                </FormControl>
-                <FormControl id="cnic">
-                  <FormLabel fontSize={14}>CNIC</FormLabel>
-                  <Input
-                    name="cnic"
-                    value={formik.values.cnic}
-                    onChange={formik.handleChange}
-                  />
-                </FormControl>
-                <FormControl id="css_pms_roll_no">
-                  <FormLabel fontSize={14}>CSS/PMS Roll No</FormLabel>
-                  <Input
-                    name="css_pms_roll_no"
-                    placeholder="Optional"
-                    value={formik.values.css_pms_roll_no}
-                    onChange={formik.handleChange}
-                  />
-                </FormControl>
-                <FormControl id="class_type">
-                  <FormLabel fontSize={14}>Online / On Campus</FormLabel>
-                  <Select
-                    name="class_type"
-                    value={formik.values.class_type}
-                    onChange={formik.handleChange}
-                  >
-                    <option value="">Select</option>
-                    <option value="Online">Online</option>
-                    <option value="On Campus">On Campus</option>
-                  </Select>
-                  {formik.touched.class_type && formik.errors.class_type ? (
-                    <Box color="red" fontSize="sm">
-                      {formik.errors.class_type}
-                    </Box>
-                  ) : null}
-                </FormControl>
-                <FormControl id="province">
-                  <FormLabel fontSize={14}>Province</FormLabel>
-                  <SearchableTextSelect
-                    name="province"
-                    placeholder="Type to search province"
-                    emptyMessage="No province found"
-                    options={provinceSelectOptions(formik.values.province)}
-                    value={formik.values.province}
-                    onChange={(nextProvince) => {
-                      formik.setFieldValue("province", nextProvince);
-                      const cities = getCitiesForProvince(nextProvince);
-                      if (
-                        formik.values.city &&
-                        !cities.includes(formik.values.city)
-                      ) {
-                        formik.setFieldValue("city", "");
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormControl id="city">
-                  <FormLabel fontSize={14}>City</FormLabel>
-                  <SearchableTextSelect
-                    name="city"
-                    placeholder={
-                      formik.values.province
-                        ? "Type to search city"
-                        : "Select province first"
-                    }
-                    emptyMessage="No city found"
-                    options={citySelectOptions(
-                      formik.values.province,
-                      formik.values.city
-                    )}
-                    value={formik.values.city}
-                    onChange={(nextCity) =>
-                      formik.setFieldValue("city", nextCity)
-                    }
-                    isDisabled={!formik.values.province}
-                  />
-                </FormControl>
-                <FormControl id="is_active">
-                  <FormLabel fontSize={14}>Status</FormLabel>
-                  <Select
-                    name="is_active"
-                    value={formik.values.is_active}
-                    onChange={formik.handleChange}
-                  >
-                    <option value="true">Active</option>
-                    <option value="false">Inactive</option>
-                  </Select>
-                </FormControl>
-                <FormControl id="father_name">
-                  <FormLabel fontSize={14}>Father Name</FormLabel>
-                  <Input
-                    name="father_name"
-                    value={formik.values.father_name}
-                    onChange={formik.handleChange}
-                  />
-                </FormControl>
-                <FormControl id="father_phone">
-                  <FormLabel fontSize={14}>Father Phone</FormLabel>
-                  <Input
-                    type="tel"
-                    name="father_phone"
-                    value={formik.values.father_phone}
-                    onChange={formik.handleChange}
-                  />
-                </FormControl>
-              </SimpleGrid>
+              <Grid
+                templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+                gap={4}
+              >
+                <GridItem>
+                  <FormControl id="name" isRequired>
+                    <FormLabel fontSize={14}>Name</FormLabel>
+                    <Input
+                      name="name"
+                      borderRadius="0.5rem"
+                      value={formik.values.name}
+                      onChange={formik.handleChange}
+                    />
+                    {formik.touched.name && formik.errors.name ? (
+                      <Box color="red" fontSize="sm">
+                        {formik.errors.name}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                </GridItem>
+                <GridItem>
+                  <FormControl id="phone" isRequired>
+                    <FormLabel fontSize={14}>Phone No</FormLabel>
+                    <Input
+                      type="tel"
+                      name="phone"
+                      borderRadius="0.5rem"
+                      value={formik.values.phone}
+                      onChange={formik.handleChange}
+                    />
+                    {formik.touched.phone && formik.errors.phone ? (
+                      <Box color="red" fontSize="sm">
+                        {formik.errors.phone}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                </GridItem>
+                <GridItem>
+                  <FormControl id="cnic">
+                    <FormLabel fontSize={14}>CNIC</FormLabel>
+                    <Input
+                      name="cnic"
+                      borderRadius="0.5rem"
+                      value={formik.values.cnic}
+                      onChange={formik.handleChange}
+                    />
+                  </FormControl>
+                </GridItem>
+                <GridItem>
+                  <FormControl id="exam_type">
+                    <FormLabel fontSize={14}>CSS or PMS</FormLabel>
+                    <Select
+                      name="exam_type"
+                      borderRadius="0.5rem"
+                      value={formik.values.exam_type}
+                      onChange={formik.handleChange}
+                    >
+                      <option value="">Select</option>
+                      <option value="CSS">CSS</option>
+                      <option value="PMS">PMS</option>
+                    </Select>
+                  </FormControl>
+                </GridItem>
+                <GridItem>
+                  <FormControl id="css_pms_roll_no">
+                    <FormLabel fontSize={14}>CSS/PMS Roll No</FormLabel>
+                    <Input
+                      name="css_pms_roll_no"
+                      borderRadius="0.5rem"
+                      placeholder="Optional"
+                      value={formik.values.css_pms_roll_no}
+                      onChange={formik.handleChange}
+                    />
+                  </FormControl>
+                </GridItem>
+                <GridItem>
+                  <FormControl id="class_type">
+                    <FormLabel fontSize={14}>Online / On Campus</FormLabel>
+                    <Select
+                      name="class_type"
+                      borderRadius="0.5rem"
+                      value={formik.values.class_type}
+                      onChange={formik.handleChange}
+                    >
+                      <option value="">Select</option>
+                      <option value="Online">Online</option>
+                      <option value="On Campus">On Campus</option>
+                    </Select>
+                    {formik.touched.class_type && formik.errors.class_type ? (
+                      <Box color="red" fontSize="sm">
+                        {formik.errors.class_type}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                </GridItem>
+                <GridItem>
+                  <FormControl id="is_active">
+                    <FormLabel fontSize={14}>Status</FormLabel>
+                    <Select
+                      name="is_active"
+                      borderRadius="0.5rem"
+                      value={formik.values.is_active}
+                      onChange={formik.handleChange}
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </Select>
+                  </FormControl>
+                </GridItem>
+
+                <QualifierProfileDetailsFields
+                  formik={formik}
+                  customSubject={customSubject}
+                  setCustomSubject={setCustomSubject}
+                  showEmail
+                />
+              </Grid>
 
               <FormControl id="description">
                 <FormLabel fontSize={14}>Notes / Description</FormLabel>
                 <Textarea
                   name="description"
                   rows={3}
+                  borderRadius="0.5rem"
                   value={formik.values.description}
                   onChange={formik.handleChange}
                 />

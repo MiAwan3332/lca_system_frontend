@@ -94,6 +94,10 @@ function ViewQualifierModal({ qualifier }) {
                 <DetailItem label="Email" value={qualifier?.email} />
                 <DetailItem label="CNIC" value={qualifier?.cnic} />
                 <DetailItem
+                  label="CSS or PMS"
+                  value={qualifier?.exam_type}
+                />
+                <DetailItem
                   label="CSS/PMS Roll No"
                   value={qualifier?.css_pms_roll_no}
                 />

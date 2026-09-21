@@ -35,15 +35,21 @@ import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { FEE_PAYMENT_METHODS } from "../../utlls/paymentMethods";
 import { batchIsPaid } from "../../utlls/specialFeeOptions";
 import {
+  createEmptyEducationEntry,
+  formRowsToEducationPayload,
+} from "../../utlls/qualifierEducation";
+import {
   getResponsiveModalSize,
   responsiveModalContentProps,
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
+import QualifierProfileDetailsFields from "./QualifierProfileDetailsFields";
 
 function AddQualifierModal({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [photoFile, setPhotoFile] = useState(null);
   const [paymentOption, setPaymentOption] = useState("later");
+  const [customSubject, setCustomSubject] = useState("");
   const { addStatus } = useSelector((state) => state.qualifiers);
   const interviewBatches = useSelector(selectActiveInterviewBatches);
   const dispatch = useDispatch();
@@ -62,16 +68,27 @@ function AddQualifierModal({ isOpen, onClose }) {
     if (!isOpen) {
       setPhotoFile(null);
       setPaymentOption("later");
+      setCustomSubject("");
     }
   }, [isOpen]);
 
   const formik = useFormik({
     initialValues: {
       name: "",
+      email: "",
       cnic: "",
       css_pms_roll_no: "",
+      exam_type: "",
       class_type: "",
       phone: "",
+      city: "",
+      province: "",
+      father_name: "",
+      father_phone: "",
+      latest_degree: "",
+      no_of_attempts: "0",
+      education_entries: [createEmptyEducationEntry()],
+      optional_subjects: [],
       batch: "",
       remarks: "",
       paying_now: "",
@@ -82,9 +99,25 @@ function AddQualifierModal({ isOpen, onClose }) {
     validationSchema: Yup.object({
       name: Yup.string().trim().required("Required"),
       phone: Yup.string().trim().required("Required"),
+      email: Yup.string()
+        .trim()
+        .transform((value) => (value === "" ? undefined : value))
+        .email("Invalid email")
+        .notRequired(),
       cnic: Yup.string(),
       batch: Yup.string().required("Please select a batch"),
       remarks: Yup.string(),
+      no_of_attempts: Yup.number()
+        .transform((_value, original) => {
+          if (original === "" || original === null || original === undefined) {
+            return 0;
+          }
+          const n = Number(original);
+          return Number.isFinite(n) ? n : NaN;
+        })
+        .typeError("Must be a number")
+        .min(0, "Must be 0 or more")
+        .integer("Must be a whole number"),
       discount_amount: Yup.number()
         .transform((value, originalValue) =>
           originalValue === "" || originalValue === null ? 0 : value
@@ -169,9 +202,28 @@ function AddQualifierModal({ isOpen, onClose }) {
       const formData = new FormData();
       formData.append("name", values.name.trim());
       formData.append("phone", values.phone.trim());
+      formData.append("email", values.email?.trim() || "");
       formData.append("cnic", values.cnic?.trim() || "");
       formData.append("css_pms_roll_no", values.css_pms_roll_no?.trim() || "");
+      formData.append("exam_type", values.exam_type || "");
       formData.append("class_type", values.class_type || "");
+      formData.append("city", values.city?.trim() || "");
+      formData.append("province", values.province?.trim() || "");
+      formData.append("father_name", values.father_name?.trim() || "");
+      formData.append("father_phone", values.father_phone?.trim() || "");
+      formData.append("latest_degree", values.latest_degree?.trim() || "");
+      formData.append(
+        "no_of_attempts",
+        String(Number(values.no_of_attempts) || 0)
+      );
+      formData.append(
+        "education_background",
+        JSON.stringify(formRowsToEducationPayload(values.education_entries))
+      );
+      formData.append(
+        "optional_subjects",
+        JSON.stringify(values.optional_subjects || [])
+      );
       formData.append("batch", values.batch);
       formData.append("description", values.remarks?.trim() || "");
       formData.append("is_active", "true");
@@ -197,6 +249,7 @@ function AddQualifierModal({ isOpen, onClose }) {
           formik.resetForm();
           setPhotoFile(null);
           setPaymentOption("later");
+          setCustomSubject("");
           onClose();
           dispatch(fetchQualifiers({ authToken }));
         })
@@ -244,6 +297,7 @@ function AddQualifierModal({ isOpen, onClose }) {
     formik.resetForm();
     setPhotoFile(null);
     setPaymentOption("later");
+    setCustomSubject("");
     onClose();
   };
 
@@ -319,7 +373,7 @@ function AddQualifierModal({ isOpen, onClose }) {
       isOpen={isOpen}
       onClose={handleClose}
       {...responsiveModalProps}
-      {...getResponsiveModalSize("lg")}
+      {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
       <ModalContent
@@ -400,6 +454,22 @@ function AddQualifierModal({ isOpen, onClose }) {
               </GridItem>
 
               <GridItem>
+                <FormControl id="exam_type">
+                  <FormLabel fontSize={14}>CSS or PMS</FormLabel>
+                  <Select
+                    name="exam_type"
+                    borderRadius="0.5rem"
+                    value={formik.values.exam_type}
+                    onChange={formik.handleChange}
+                  >
+                    <option value="">Select</option>
+                    <option value="CSS">CSS</option>
+                    <option value="PMS">PMS</option>
+                  </Select>
+                </FormControl>
+              </GridItem>
+
+              <GridItem>
                 <FormControl id="css_pms_roll_no">
                   <FormLabel fontSize={14}>CSS/PMS Roll No</FormLabel>
                   <Input
@@ -471,6 +541,13 @@ function AddQualifierModal({ isOpen, onClose }) {
                   ) : null}
                 </FormControl>
               </GridItem>
+
+              <QualifierProfileDetailsFields
+                formik={formik}
+                customSubject={customSubject}
+                setCustomSubject={setCustomSubject}
+                showEmail
+              />
 
               <GridItem colSpan={{ base: 1, md: 2 }}>
                 <CameraCapture
