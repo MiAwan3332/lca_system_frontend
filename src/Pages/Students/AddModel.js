@@ -384,14 +384,24 @@ function AddStudnet({ isOpen, onClose }) {
           addStudent({ authToken, formData })
         ).unwrap();
         dispatch(fetchStudents({ authToken }));
-        let studentRecord = created;
+        // Normalize API shape (student may be nested or use `id`)
+        const raw = created?.student || created?.data || created || {};
+        let studentRecord = {
+          ...raw,
+          _id: raw._id || raw.id || created?._id || created?.id,
+          roll_number:
+            raw.roll_number ||
+            created?.roll_number ||
+            "",
+        };
+        const studentId = studentRecord._id || studentRecord.id;
         if (
-          studentRecord?._id &&
+          studentId &&
           !String(studentRecord.roll_number || "").trim()
         ) {
           try {
             const ensureResponse = await axios.post(
-              `${config.BASE_URL}/students/ensure-roll/${studentRecord._id}`,
+              `${config.BASE_URL}/students/ensure-roll/${studentId}`,
               {},
               { headers: { Authorization: `Bearer ${authToken}` } }
             );
@@ -637,7 +647,14 @@ function AddStudnet({ isOpen, onClose }) {
   ]);
 
   const handlePrintFeeSlip = async (studentOverride = null) => {
-    const studentForSlip = studentOverride || createdStudent;
+    // Ignore React click events — only accept a real student object
+    const overrideStudent =
+      studentOverride &&
+      typeof studentOverride === "object" &&
+      (studentOverride._id || studentOverride.id || studentOverride.roll_number)
+        ? studentOverride
+        : null;
+    const studentForSlip = overrideStudent || createdStudent;
     if (!studentForSlip) {
       toast({
         title: "Add the student first",
@@ -649,25 +666,26 @@ function AddStudnet({ isOpen, onClose }) {
       return;
     }
 
+    const studentId = studentForSlip._id || studentForSlip.id;
     setIsPrintingSlip(true);
     try {
-      if (!studentForSlip._id) {
-        toast({
-          title: "Roll number required",
-          description: "Student record is incomplete. Save the student again.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        return;
-      }
-
       // Prefer existing roll; only call ensure-roll when missing
       let rollNumber = String(studentForSlip.roll_number || "").trim();
       if (!rollNumber || /^n\/?a$/i.test(rollNumber)) {
+        if (!studentId) {
+          toast({
+            title: "Student record incomplete",
+            description:
+              "Save the student again, then print the admission slip.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        }
         try {
           const ensureResponse = await axios.post(
-            `${config.BASE_URL}/students/ensure-roll/${studentForSlip._id}`,
+            `${config.BASE_URL}/students/ensure-roll/${studentId}`,
             {},
             { headers: { Authorization: `Bearer ${authToken}` } }
           );
@@ -678,7 +696,8 @@ function AddStudnet({ isOpen, onClose }) {
           ).trim();
           if (rollNumber) {
             setCreatedStudent((prev) =>
-              prev && String(prev._id) === String(studentForSlip._id)
+              prev &&
+              String(prev._id || prev.id) === String(studentId)
                 ? { ...prev, roll_number: rollNumber }
                 : prev
             );
@@ -1486,7 +1505,7 @@ function AddStudnet({ isOpen, onClose }) {
             variant="outline"
             borderRadius="0.75rem"
             borderColor="#E0E8EC"
-            onClick={handlePrintFeeSlip}
+            onClick={() => handlePrintFeeSlip()}
             isLoading={isPrintingSlip}
             loadingText="Preparing"
             isDisabled={!createdStudent}
