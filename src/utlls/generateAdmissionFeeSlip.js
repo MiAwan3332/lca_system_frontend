@@ -174,6 +174,11 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   }
 
   const rollValue = String(rollNumber || roll_number || "").trim();
+  if (!rollValue || /^n\/?a$/i.test(rollValue)) {
+    throw new Error(
+      "Roll number is required on the admission slip. Assign a roll number first."
+    );
+  }
 
   const discount = Math.max(Number(discountAmount) || 0, 0);
   const grossFee = Math.max(Number(batchFee) || 0, 0);
@@ -307,11 +312,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.ink);
-  doc.text(
-    `Roll No: ${rollValue || "N/A"}`,
-    infoX,
-    identityTop + nameBlockH + 3.2
-  );
+  doc.text(`Roll No: ${rollValue}`, infoX, identityTop + nameBlockH + 3.2);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
@@ -347,7 +348,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     return rowY + rowH + 0.4;
   };
 
-  y = drawRow("Roll No", rollValue || "N/A", y, false, { required: true });
+  y = drawRow("Roll No", rollValue, y, false, { required: true });
   y = drawRow("Batch", batchName, y, true);
   y = drawRow("CNIC", cnicValue, y);
   y = drawRow("Class Time", classTimeLabel, y, true);

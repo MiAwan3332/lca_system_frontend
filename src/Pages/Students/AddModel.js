@@ -651,58 +651,56 @@ function AddStudnet({ isOpen, onClose }) {
 
     setIsPrintingSlip(true);
     try {
+      if (!studentForSlip._id) {
+        toast({
+          title: "Roll number required",
+          description: "Student record is incomplete. Save the student again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      // Always ensure a real roll from the server before printing (never print N/A)
       let rollNumber = String(studentForSlip.roll_number || "").trim();
-      if ((!rollNumber || /^n\/?a$/i.test(rollNumber)) && studentForSlip._id) {
-        try {
-          const ensureResponse = await axios.post(
-            `${config.BASE_URL}/students/ensure-roll/${studentForSlip._id}`,
-            {},
-            { headers: { Authorization: `Bearer ${authToken}` } }
+      try {
+        const ensureResponse = await axios.post(
+          `${config.BASE_URL}/students/ensure-roll/${studentForSlip._id}`,
+          {},
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        rollNumber = String(
+          ensureResponse.data?.roll_number ||
+            ensureResponse.data?.student?.roll_number ||
+            rollNumber ||
+            ""
+        ).trim();
+        if (rollNumber) {
+          setCreatedStudent((prev) =>
+            prev && String(prev._id) === String(studentForSlip._id)
+              ? { ...prev, roll_number: rollNumber }
+              : prev
           );
-          rollNumber = String(
-            ensureResponse.data?.roll_number ||
-              ensureResponse.data?.student?.roll_number ||
-              ""
-          ).trim();
-          if (rollNumber) {
-            setCreatedStudent((prev) =>
-              prev && String(prev._id) === String(studentForSlip._id)
-                ? { ...prev, roll_number: rollNumber }
-                : prev
-            );
-          }
-        } catch (ensureError) {
-          try {
-            const profileResponse = await axios.get(
-              `${config.BASE_URL}/students/history/${studentForSlip._id}`,
-              { headers: { Authorization: `Bearer ${authToken}` } }
-            );
-            rollNumber = String(
-              profileResponse.data?.student?.roll_number || ""
-            ).trim();
-          } catch {
-            // fall through
-          }
-          if (!rollNumber) {
-            toast({
-              title: "Roll number required",
-              description:
-                ensureError?.response?.data?.message ||
-                "Could not assign a roll number. Set the batch type (Online / On Campus) and roll nickname, then try again.",
-              status: "error",
-              duration: 6000,
-              isClosable: true,
-            });
-            return;
-          }
         }
+      } catch (ensureError) {
+        toast({
+          title: "Roll number required",
+          description:
+            ensureError?.response?.data?.message ||
+            "Could not assign a roll number. Set batch type to Online or On Campus (or put it in the batch name), then try again.",
+          status: "error",
+          duration: 7000,
+          isClosable: true,
+        });
+        return;
       }
 
       if (!rollNumber || /^n\/?a$/i.test(rollNumber)) {
         toast({
           title: "Roll number required",
           description:
-            "Admission slip cannot print without a roll number. Check the batch roll nickname / type.",
+            "Admission slip cannot print without a roll number.",
           status: "error",
           duration: 6000,
           isClosable: true,
