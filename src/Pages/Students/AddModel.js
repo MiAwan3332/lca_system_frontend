@@ -662,38 +662,39 @@ function AddStudnet({ isOpen, onClose }) {
         return;
       }
 
-      // Always ensure a real roll from the server before printing (never print N/A)
+      // Prefer existing roll; only call ensure-roll when missing
       let rollNumber = String(studentForSlip.roll_number || "").trim();
-      try {
-        const ensureResponse = await axios.post(
-          `${config.BASE_URL}/students/ensure-roll/${studentForSlip._id}`,
-          {},
-          { headers: { Authorization: `Bearer ${authToken}` } }
-        );
-        rollNumber = String(
-          ensureResponse.data?.roll_number ||
-            ensureResponse.data?.student?.roll_number ||
-            rollNumber ||
-            ""
-        ).trim();
-        if (rollNumber) {
-          setCreatedStudent((prev) =>
-            prev && String(prev._id) === String(studentForSlip._id)
-              ? { ...prev, roll_number: rollNumber }
-              : prev
+      if (!rollNumber || /^n\/?a$/i.test(rollNumber)) {
+        try {
+          const ensureResponse = await axios.post(
+            `${config.BASE_URL}/students/ensure-roll/${studentForSlip._id}`,
+            {},
+            { headers: { Authorization: `Bearer ${authToken}` } }
           );
+          rollNumber = String(
+            ensureResponse.data?.roll_number ||
+              ensureResponse.data?.student?.roll_number ||
+              ""
+          ).trim();
+          if (rollNumber) {
+            setCreatedStudent((prev) =>
+              prev && String(prev._id) === String(studentForSlip._id)
+                ? { ...prev, roll_number: rollNumber }
+                : prev
+            );
+          }
+        } catch (ensureError) {
+          toast({
+            title: "Roll number required",
+            description:
+              ensureError?.response?.data?.message ||
+              "Could not assign a roll number. Set batch type to Online or On Campus (or put it in the batch name), then try again.",
+            status: "error",
+            duration: 7000,
+            isClosable: true,
+          });
+          return;
         }
-      } catch (ensureError) {
-        toast({
-          title: "Roll number required",
-          description:
-            ensureError?.response?.data?.message ||
-            "Could not assign a roll number. Set batch type to Online or On Campus (or put it in the batch name), then try again.",
-          status: "error",
-          duration: 7000,
-          isClosable: true,
-        });
-        return;
       }
 
       if (!rollNumber || /^n\/?a$/i.test(rollNumber)) {
