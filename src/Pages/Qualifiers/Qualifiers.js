@@ -16,12 +16,16 @@ import {
   Tooltip,
   HStack,
   Switch,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
-import { FileX, FilterX, FileUp, Plus, Download } from "lucide-react";
+import { FileX, FilterX, FileUp, Plus, Download, FormInput } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchQualifiers,
   selectAllQualifiers,
+  selectQualifierStatusCounts,
+  selectQualifierExamTypeCounts,
   setLimitFilter,
   setPageFilter,
   setQueryFilter,
@@ -29,6 +33,7 @@ import {
   setIsActiveFilter,
   setCityFilter,
   setClassTypeFilter,
+  setExamTypeFilter,
   setProfileUpdatedFilter,
   clearQualifierFilters,
   toggleQualifierStatus,
@@ -51,6 +56,7 @@ import {
 import AddQualifierModal from "./AddQualifierModal";
 import QualifierImportModal from "./QualifierImportModal";
 import QualifierExportModal from "./QualifierExportModal";
+import QualifierFillNullFieldModal from "./QualifierFillNullFieldModal";
 import UpdateQualifierModal from "./UpdateQualifierModal";
 import DeleteQualifierModal from "./DeleteQualifierModal";
 import ViewQualifierModal from "./ViewQualifierModal";
@@ -68,9 +74,12 @@ function Qualifiers() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isFillNullOpen, setIsFillNullOpen] = useState(false);
   const [authToken] = useState(Cookies.get("authToken"));
 
   const qualifiers = useSelector(selectAllQualifiers);
+  const statusCounts = useSelector(selectQualifierStatusCounts);
+  const examTypeCounts = useSelector(selectQualifierExamTypeCounts);
   const { fetchStatus, pagination, filters } = useSelector(
     (state) => state.qualifiers
   );
@@ -100,9 +109,17 @@ function Qualifiers() {
     }
   };
 
-  const handleStatusFilterChange = (e) => {
-    dispatch(setIsActiveFilter(e.target.value));
-    loadQualifiers();
+  const handleStatusFilterChange = (value) => {
+    const next = value == null ? "" : String(value);
+    dispatch(setIsActiveFilter(next));
+    // Defer fetch so Redux filter state is applied before params are read.
+    setTimeout(() => {
+      dispatch(fetchQualifiers({ authToken }));
+    }, 0);
+  };
+
+  const handleStatusSelectChange = (e) => {
+    handleStatusFilterChange(e.target.value);
   };
 
   const handleCityFilterChange = (e) => {
@@ -111,12 +128,23 @@ function Qualifiers() {
 
   const handleClassTypeFilterChange = (e) => {
     dispatch(setClassTypeFilter(e.target.value));
-    loadQualifiers();
+    setTimeout(() => {
+      dispatch(fetchQualifiers({ authToken }));
+    }, 0);
+  };
+
+  const handleExamTypeFilterChange = (e) => {
+    dispatch(setExamTypeFilter(e.target.value));
+    setTimeout(() => {
+      dispatch(fetchQualifiers({ authToken }));
+    }, 0);
   };
 
   const handleProfileUpdatedFilterChange = (e) => {
     dispatch(setProfileUpdatedFilter(e.target.value));
-    loadQualifiers();
+    setTimeout(() => {
+      dispatch(fetchQualifiers({ authToken }));
+    }, 0);
   };
 
   const handleToggleQualifierStatus = (qualifier) => {
@@ -147,6 +175,79 @@ function Qualifiers() {
     loadQualifiers();
   };
 
+  const STATUS_COUNT_OPTIONS = [
+    { value: "", label: "Total", count: statusCounts.total },
+    { value: "true", label: "Active", count: statusCounts.active },
+    { value: "false", label: "Inactive", count: statusCounts.inactive },
+  ];
+
+  const EXAM_TYPE_COUNT_OPTIONS = [
+    { value: "", label: "All CSS/PMS", count: examTypeCounts.total },
+    { value: "CSS", label: "CSS", count: examTypeCounts.css },
+    { value: "PMS", label: "PMS", count: examTypeCounts.pms },
+  ];
+
+  const renderCountFilterRow = (title, options, selectedValue, onSelect) => (
+    <div className="w-full min-w-0">
+      <Text fontSize="xs" color="gray.500" mb={1} fontWeight="medium">
+        {title}
+      </Text>
+      <div className="grid grid-cols-3 gap-2 w-full">
+        {options.map((option) => {
+          const isSelected = String(selectedValue || "") === option.value;
+          return (
+            <Button
+              key={option.label}
+              type="button"
+              size="md"
+              w="full"
+              h="auto"
+              py={2.5}
+              px={3}
+              borderRadius="xl"
+              border="1px solid"
+              borderColor={isSelected ? "#E3B574" : "#E0E8EC"}
+              bg={isSelected ? "#FFCB82" : "white"}
+              color={isSelected ? "#654E26" : "#4A5568"}
+              _hover={{ bg: isSelected ? "#E3B574" : "#FFFBF5" }}
+              onClick={() => onSelect(option.value)}
+            >
+              <VStack spacing={0} w="full">
+                <Text as="span" fontWeight="600" fontSize="sm">
+                  {option.label}
+                </Text>
+                <Text as="span" fontWeight="700" fontSize="md" lineHeight="1.2">
+                  {Number(option.count) || 0}
+                </Text>
+              </VStack>
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderStatusCountFilters = () =>
+    renderCountFilterRow(
+      "Qualifier counts",
+      STATUS_COUNT_OPTIONS,
+      filters.is_active,
+      handleStatusFilterChange
+    );
+
+  const renderExamTypeCountFilters = () =>
+    renderCountFilterRow(
+      "CSS / PMS counts",
+      EXAM_TYPE_COUNT_OPTIONS,
+      filters.exam_type,
+      (value) => {
+        dispatch(setExamTypeFilter(value));
+        setTimeout(() => {
+          dispatch(fetchQualifiers({ authToken }));
+        }, 0);
+      }
+    );
+
   const searchPlaceholder =
     filters.search_field === "name"
       ? "Search by name..."
@@ -169,6 +270,7 @@ function Qualifiers() {
     filters.is_active === "false" ||
     Boolean(filters.city) ||
     Boolean(filters.class_type) ||
+    Boolean(filters.exam_type) ||
     Boolean(filters.profile_updated);
 
   return (
@@ -193,6 +295,14 @@ function Qualifiers() {
               Import Excel
             </button>
             <button
+              type="button"
+              className="table-action-btn"
+              onClick={() => setIsFillNullOpen(true)}
+            >
+              <FormInput size={18} />
+              Fill Empty Field
+            </button>
+            <button
               className="table-action-btn"
               onClick={() => setIsAddOpen(true)}
             >
@@ -203,104 +313,126 @@ function Qualifiers() {
         )}
       </PageHeader>
 
-      <FilterStack className="filter-stack--panel filter-stack--table mt-3">
-        <FormControl
-          className="responsive-input"
-          w={{ base: "full", sm: "10rem" }}
-        >
-          <Select
-            size="lg"
-            borderRadius="xl"
-            value={filters.search_field}
-            onChange={handleSearchFieldChange}
-          >
-            <option value="all">All Fields</option>
-            <option value="name">Name</option>
-            <option value="phone">Phone</option>
-            <option value="email">Email</option>
-            <option value="cnic">CNIC</option>
-            <option value="css_pms_roll_no">CSS/PMS Roll No</option>
-            <option value="city">City</option>
-          </Select>
-        </FormControl>
-        <div className="w-full sm:max-w-xs">
-          <TableSearch
-            ref={tableSearchRef}
-            setQueryFilter={setQueryFilter}
-            method={fetchQualifiers}
-            placeholder={searchPlaceholder}
-          />
+      <div className="filter-stack filter-stack--panel mt-3 mb-2 flex-col items-stretch gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+          {renderStatusCountFilters()}
+          {renderExamTypeCountFilters()}
         </div>
-        <FormControl
-          className="responsive-input"
-          w={{ base: "full", sm: "10rem" }}
-        >
-          <Input
-            size="lg"
-            borderRadius="xl"
-            placeholder="Filter by city"
-            value={filters.city}
-            onChange={handleCityFilterChange}
-            onBlur={handleCityFilterBlur}
-            onKeyDown={handleCityKeyDown}
-          />
-        </FormControl>
-        <FormControl
-          className="responsive-input"
-          w={{ base: "full", sm: "10rem" }}
-        >
-          <Select
-            size="lg"
-            borderRadius="xl"
-            value={filters.is_active}
-            onChange={handleStatusFilterChange}
+
+        <FilterStack className="filter-stack--table w-full">
+          <FormControl
+            className="responsive-input"
+            w={{ base: "full", sm: "10rem" }}
           >
-            <option value="">All Status</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </Select>
-        </FormControl>
-        <FormControl
-          className="responsive-input"
-          w={{ base: "full", sm: "11rem" }}
-        >
-          <Select
-            size="lg"
-            borderRadius="xl"
-            value={filters.class_type || ""}
-            onChange={handleClassTypeFilterChange}
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.search_field}
+              onChange={handleSearchFieldChange}
+            >
+              <option value="all">All Fields</option>
+              <option value="name">Name</option>
+              <option value="phone">Phone</option>
+              <option value="email">Email</option>
+              <option value="cnic">CNIC</option>
+              <option value="css_pms_roll_no">CSS/PMS Roll No</option>
+              <option value="city">City</option>
+            </Select>
+          </FormControl>
+          <div className="w-full sm:max-w-xs">
+            <TableSearch
+              ref={tableSearchRef}
+              setQueryFilter={setQueryFilter}
+              method={fetchQualifiers}
+              placeholder={searchPlaceholder}
+            />
+          </div>
+          <FormControl
+            className="responsive-input"
+            w={{ base: "full", sm: "10rem" }}
           >
-            <option value="">All Modes</option>
-            <option value="Online">Online</option>
-            <option value="On Campus">On Campus</option>
-          </Select>
-        </FormControl>
-        <FormControl
-          className="responsive-input"
-          w={{ base: "full", sm: "12rem" }}
-        >
-          <Select
-            size="lg"
-            borderRadius="xl"
-            value={filters.profile_updated || ""}
-            onChange={handleProfileUpdatedFilterChange}
+            <Input
+              size="lg"
+              borderRadius="xl"
+              placeholder="Filter by city"
+              value={filters.city}
+              onChange={handleCityFilterChange}
+              onBlur={handleCityFilterBlur}
+              onKeyDown={handleCityKeyDown}
+            />
+          </FormControl>
+          <FormControl
+            className="responsive-input"
+            w={{ base: "full", sm: "10rem" }}
           >
-            <option value="">All Profiles</option>
-            <option value="true">Profile Updated</option>
-            <option value="false">Profile Not Updated</option>
-          </Select>
-        </FormControl>
-        {hasFilters && (
-          <Button
-            size="icon"
-            p={4}
-            borderRadius="xl"
-            onClick={handleClearFilters}
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.is_active}
+              onChange={handleStatusSelectChange}
+            >
+              <option value="">All Status</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </Select>
+          </FormControl>
+          <FormControl
+            className="responsive-input"
+            w={{ base: "full", sm: "10rem" }}
           >
-            <FilterX className="h-4 w-4" />
-          </Button>
-        )}
-      </FilterStack>
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.exam_type || ""}
+              onChange={handleExamTypeFilterChange}
+            >
+              <option value="">All CSS/PMS</option>
+              <option value="CSS">CSS</option>
+              <option value="PMS">PMS</option>
+            </Select>
+          </FormControl>
+          <FormControl
+            className="responsive-input"
+            w={{ base: "full", sm: "11rem" }}
+          >
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.class_type || ""}
+              onChange={handleClassTypeFilterChange}
+            >
+              <option value="">All Modes</option>
+              <option value="Online">Online</option>
+              <option value="On Campus">On Campus</option>
+            </Select>
+          </FormControl>
+          <FormControl
+            className="responsive-input"
+            w={{ base: "full", sm: "12rem" }}
+          >
+            <Select
+              size="lg"
+              borderRadius="xl"
+              value={filters.profile_updated || ""}
+              onChange={handleProfileUpdatedFilterChange}
+            >
+              <option value="">All Profiles</option>
+              <option value="true">Profile Updated</option>
+              <option value="false">Profile Not Updated</option>
+            </Select>
+          </FormControl>
+          {hasFilters && (
+            <Button
+              size="icon"
+              p={4}
+              borderRadius="xl"
+              onClick={handleClearFilters}
+            >
+              <FilterX className="h-4 w-4" />
+            </Button>
+          )}
+        </FilterStack>
+      </div>
 
       <DataTableShell>
         <TableContainer>
@@ -462,6 +594,10 @@ function Qualifiers() {
           <QualifierExportModal
             isOpen={isExportOpen}
             onClose={() => setIsExportOpen(false)}
+          />
+          <QualifierFillNullFieldModal
+            isOpen={isFillNullOpen}
+            onClose={() => setIsFillNullOpen(false)}
           />
         </>
       )}

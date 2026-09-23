@@ -62,6 +62,7 @@ const initialState = {
     deleteStatus: 'idle',
     changePasswordStatus: 'idle',
     importStatus: 'idle',
+    fillNullFieldStatus: 'idle',
     transferBatchStatus: 'idle',
     pendingFeeSlipStatus: 'idle',
     studentHistory: null,
@@ -204,6 +205,32 @@ const bulkImportStudents = createAsyncThunk(
         } catch (error) {
             return rejectWithValue(
                 error.response?.data?.message || error.message || 'Failed to import students'
+            );
+        }
+    }
+);
+
+const fillNullStudentField = createAsyncThunk(
+    'students/fillNullStudentField',
+    async ({ authToken, field, value, batch_id, preview = false }, { rejectWithValue }) => {
+        try {
+            const body = { field, value, preview: Boolean(preview) };
+            if (batch_id) body.batch_id = batch_id;
+            const response = await axios.post(
+                `${BASE_URL}/students/fill-null-field`,
+                body,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    error.message ||
+                    'Failed to fill empty student field'
             );
         }
     }
@@ -894,6 +921,39 @@ const studentSlice = createSlice({
                     isClosable: true,
                 });
             })
+            .addCase(fillNullStudentField.pending, (state, action) => {
+                if (!action.meta?.arg?.preview) {
+                    state.fillNullFieldStatus = 'loading';
+                }
+            })
+            .addCase(fillNullStudentField.fulfilled, (state, action) => {
+                if (action.payload?.preview) {
+                    return;
+                }
+                state.fillNullFieldStatus = 'succeeded';
+                toast({
+                    title: "Empty fields updated",
+                    description:
+                        action.payload?.message ||
+                        `Updated ${action.payload?.modified_count || 0} student(s)`,
+                    status: "success",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
+            .addCase(fillNullStudentField.rejected, (state, action) => {
+                if (action.meta?.arg?.preview) {
+                    return;
+                }
+                state.fillNullFieldStatus = 'failed';
+                toast({
+                    title: "Could not update empty fields",
+                    description: action.payload || action.error.message,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
+            })
 
             .addCase(transferStudentBatch.pending, (state) => {
                 state.transferBatchStatus = 'loading';
@@ -1065,6 +1125,7 @@ export {
     fetchStudentsByBatch,
     addStudent,
     bulkImportStudents,
+    fillNullStudentField,
     updateStudent,
     basicUpdate,
     updateStudentInfo,

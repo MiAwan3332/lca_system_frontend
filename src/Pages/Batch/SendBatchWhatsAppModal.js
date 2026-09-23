@@ -96,6 +96,41 @@ Clear your pending dues immediately. Late payment may result in your LCA account
 
 — {{academy_name}} Accounts`;
 
+const OVERDUE_TAG_KEYS = new Set([
+  "name",
+  "phone",
+  "cnic",
+  "roll_number",
+  "batch",
+  "class_time",
+  "total_fee",
+  "paid_fee",
+  "pending_fee",
+  "pending_dues",
+  "due_date",
+  "overdue_days",
+  "overdue_amount",
+  "overdue_message",
+  "next_installment_date",
+  "nextInstallmentDate",
+  "academy_name",
+  "portal_url",
+]);
+
+const OVERDUE_DEFAULT_BODY = `Assalam o Alaikum {{name}}!
+
+*Fee Overdue*
+
+{{name}} ({{batch}}) — Rs. {{overdue_amount}} is overdue by {{overdue_days}} day(s). Due date: {{due_date}}.
+
+Due date: {{due_date}} · {{overdue_message}}
+
+Please clear this overdue amount as soon as possible. Late payment may result in your LCA account being stuck/blocked from academy activities until dues are cleared.
+
+If you have already paid, please share the payment proof with Accounts.
+
+— {{academy_name}} Accounts`;
+
 const tagKey = (tag) =>
   String(tag || "")
     .replace(/^\{\{|\}\}$/g, "")
@@ -126,15 +161,18 @@ const SendBatchWhatsAppModal = ({ batch }) => {
   );
 
   const isPendingDuesAudience = audience === "pending_dues_students";
+  const isOverdueAudience = audience === "overdue_students";
 
   const visibleTags = useMemo(() => {
-    const allowed = isPendingDuesAudience
-      ? PENDING_DUES_TAG_KEYS
-      : audience === "qualifiers"
-        ? QUALIFIER_TAG_KEYS
-        : STUDENT_TAG_KEYS;
+    const allowed = isOverdueAudience
+      ? OVERDUE_TAG_KEYS
+      : isPendingDuesAudience
+        ? PENDING_DUES_TAG_KEYS
+        : audience === "qualifiers"
+          ? QUALIFIER_TAG_KEYS
+          : STUDENT_TAG_KEYS;
     return tags.filter((item) => allowed.has(tagKey(item.tag)));
-  }, [audience, isPendingDuesAudience, tags]);
+  }, [audience, isOverdueAudience, isPendingDuesAudience, tags]);
 
   const onOpen = () => {
     setAudience(batch?.is_interview_batch ? "qualifiers" : "students");
@@ -154,6 +192,13 @@ const SendBatchWhatsAppModal = ({ batch }) => {
       setShowTags(true);
       const feeReminder = templates.find((t) => t.process === "fee_reminder");
       if (feeReminder?.key) setTemplateKey(feeReminder.key);
+    } else if (nextAudience === "overdue_students") {
+      setCustomBody((prev) => prev.trim() || OVERDUE_DEFAULT_BODY);
+      setShowTags(true);
+      const overdueTpl = templates.find(
+        (t) => t.process === "fee_overdue" || t.key === "fee_overdue_reminder"
+      );
+      if (overdueTpl?.key) setTemplateKey(overdueTpl.key);
     }
   };
 
@@ -232,7 +277,11 @@ const SendBatchWhatsAppModal = ({ batch }) => {
       const payload = {
         audience,
         batch_id: batch._id,
-        source: isPendingDuesAudience ? "batch_pending_dues" : "batch_page",
+        source: isOverdueAudience
+          ? "batch_overdue"
+          : isPendingDuesAudience
+            ? "batch_pending_dues"
+            : "batch_page",
       };
       if (customBody.trim()) {
         payload.body = customBody.trim();
@@ -270,7 +319,11 @@ const SendBatchWhatsAppModal = ({ batch }) => {
     }
   };
 
-  const tagsVisible = showTags || Boolean(customBody.trim()) || isPendingDuesAudience;
+  const tagsVisible =
+    showTags ||
+    Boolean(customBody.trim()) ||
+    isPendingDuesAudience ||
+    isOverdueAudience;
 
   return (
     <>
@@ -294,9 +347,11 @@ const SendBatchWhatsAppModal = ({ batch }) => {
             <VStack align="stretch" spacing={4}>
               <Text fontSize="sm" color="gray.600">
                 Queue WhatsApp messages for{" "}
-                {isPendingDuesAudience
-                  ? "students with pending dues in"
-                  : "everyone in"}{" "}
+                {isOverdueAudience
+                  ? "students with overdue fees in"
+                  : isPendingDuesAudience
+                    ? "students with pending dues in"
+                    : "everyone in"}{" "}
                 <Text as="span" fontWeight="semibold" color="gray.800">
                   {batch?.name || "this batch"}
                 </Text>
@@ -314,6 +369,9 @@ const SendBatchWhatsAppModal = ({ batch }) => {
                   <option value="pending_dues_students">
                     Pending dues holders (students)
                   </option>
+                  <option value="overdue_students">
+                    Overdue students
+                  </option>
                   <option value="qualifiers">Qualifiers</option>
                 </Select>
               </FormControl>
@@ -323,6 +381,14 @@ const SendBatchWhatsAppModal = ({ batch }) => {
                   Only active students with pending dues &gt; 0 will be queued.
                   Use tags for total fee, paid fee, pending dues, and next
                   installment date.
+                </Text>
+              ) : null}
+
+              {isOverdueAudience ? (
+                <Text fontSize="xs" color="red.700">
+                  Only students with pending installments past their due date
+                  will be queued. Message matches Fee Overdue notifications
+                  (amount, due date, days overdue).
                 </Text>
               ) : null}
 
@@ -355,7 +421,9 @@ const SendBatchWhatsAppModal = ({ batch }) => {
                   onChange={(e) => setCustomBody(e.target.value)}
                   onFocus={() => setShowTags(true)}
                   placeholder="Assalam o Alaikum {{name}}! ..."
-                  rows={isPendingDuesAudience ? 10 : 4}
+                  rows={
+                    isOverdueAudience || isPendingDuesAudience ? 10 : 4
+                  }
                   borderRadius="xl"
                   fontFamily="mono"
                   fontSize="sm"

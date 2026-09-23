@@ -18,15 +18,27 @@ const initialState = {
     is_active: "",
     city: "",
     class_type: "",
+    exam_type: "",
     profile_updated: "",
   },
   pagination: TABLE_PAGINATION,
+  status_counts: {
+    total: 0,
+    active: 0,
+    inactive: 0,
+  },
+  exam_type_counts: {
+    total: 0,
+    css: 0,
+    pms: 0,
+  },
   fetchStatus: "idle",
   addStatus: "idle",
   updateStatus: "idle",
   deleteStatus: "idle",
   changePasswordStatus: "idle",
   importStatus: "idle",
+  fillNullFieldStatus: "idle",
   error: null,
 };
 
@@ -172,6 +184,61 @@ const toggleQualifierStatus = createAsyncThunk(
   }
 );
 
+const updateQualifierExamType = createAsyncThunk(
+  "qualifiers/updateQualifierExamType",
+  async ({ authToken, id, exam_type }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("exam_type", exam_type == null ? "" : String(exam_type));
+      const response = await axios.post(
+        `${BASE_URL}/qualifiers/update/${id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update CSS/PMS"
+      );
+    }
+  }
+);
+
+const fillNullQualifierField = createAsyncThunk(
+  "qualifiers/fillNullQualifierField",
+  async (
+    { authToken, field, value, batch_id, preview = false },
+    { rejectWithValue }
+  ) => {
+    try {
+      const body = { field, value, preview: Boolean(preview) };
+      if (batch_id) body.batch_id = batch_id;
+      const response = await axios.post(
+        `${BASE_URL}/qualifiers/fill-null-field`,
+        body,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to fill empty qualifier field"
+      );
+    }
+  }
+);
+
 const qualifierSlice = createSlice({
   name: "qualifiers",
   initialState,
@@ -202,6 +269,10 @@ const qualifierSlice = createSlice({
       state.filters.page = 1;
       state.filters.class_type = action.payload;
     },
+    setExamTypeFilter(state, action) {
+      state.filters.page = 1;
+      state.filters.exam_type = action.payload;
+    },
     setProfileUpdatedFilter(state, action) {
       state.filters.page = 1;
       state.filters.profile_updated = action.payload;
@@ -213,6 +284,7 @@ const qualifierSlice = createSlice({
       state.filters.is_active = "";
       state.filters.city = "";
       state.filters.class_type = "";
+      state.filters.exam_type = "";
       state.filters.profile_updated = "";
     },
   },
@@ -234,6 +306,16 @@ const qualifierSlice = createSlice({
           hasNextPage: action.payload.hasNextPage,
           prevPage: action.payload.prevPage,
           nextPage: action.payload.nextPage,
+        };
+        state.status_counts = {
+          total: Number(action.payload?.status_counts?.total) || 0,
+          active: Number(action.payload?.status_counts?.active) || 0,
+          inactive: Number(action.payload?.status_counts?.inactive) || 0,
+        };
+        state.exam_type_counts = {
+          total: Number(action.payload?.exam_type_counts?.total) || 0,
+          css: Number(action.payload?.exam_type_counts?.css) || 0,
+          pms: Number(action.payload?.exam_type_counts?.pms) || 0,
         };
       })
       .addCase(fetchQualifiers.rejected, (state, action) => {
@@ -376,8 +458,32 @@ const qualifierSlice = createSlice({
         const idx = state.qualifiers.findIndex(
           (q) => q._id === action.payload._id
         );
+        const previous = idx !== -1 ? state.qualifiers[idx] : null;
+        const wasActive = previous ? previous.is_active !== false : null;
+        const nowActive = action.payload.is_active !== false;
         if (idx !== -1) {
           state.qualifiers[idx] = action.payload;
+        }
+        if (
+          wasActive !== null &&
+          wasActive !== nowActive &&
+          state.status_counts
+        ) {
+          if (nowActive) {
+            state.status_counts.active =
+              Math.max(0, Number(state.status_counts.active) || 0) + 1;
+            state.status_counts.inactive = Math.max(
+              0,
+              (Number(state.status_counts.inactive) || 0) - 1
+            );
+          } else {
+            state.status_counts.inactive =
+              Math.max(0, Number(state.status_counts.inactive) || 0) + 1;
+            state.status_counts.active = Math.max(
+              0,
+              (Number(state.status_counts.active) || 0) - 1
+            );
+          }
         }
         toast({
           title:
@@ -401,11 +507,104 @@ const qualifierSlice = createSlice({
           duration: 4000,
           isClosable: true,
         });
+      })
+      .addCase(updateQualifierExamType.fulfilled, (state, action) => {
+        const updated = action.payload?.qualifier || action.payload;
+        const previous = String(
+          action.meta?.arg?.previous_exam_type || ""
+        ).trim();
+        const exam = String(updated?.exam_type || "").trim();
+        const idx = state.qualifiers.findIndex((q) => q._id === updated?._id);
+        if (idx !== -1 && updated) {
+          const activeExamFilter = String(state.filters.exam_type || "").trim();
+          if (activeExamFilter && activeExamFilter !== exam) {
+            state.qualifiers.splice(idx, 1);
+          } else {
+            state.qualifiers[idx] = {
+              ...state.qualifiers[idx],
+              ...updated,
+              exam_type: updated.exam_type || "",
+            };
+          }
+        }
+        if (!state.exam_type_counts) {
+          state.exam_type_counts = { total: 0, css: 0, pms: 0 };
+        }
+        if (previous === "CSS") {
+          state.exam_type_counts.css = Math.max(
+            0,
+            (Number(state.exam_type_counts.css) || 0) - 1
+          );
+        } else if (previous === "PMS") {
+          state.exam_type_counts.pms = Math.max(
+            0,
+            (Number(state.exam_type_counts.pms) || 0) - 1
+          );
+        }
+        if (exam === "CSS") {
+          state.exam_type_counts.css =
+            Math.max(0, Number(state.exam_type_counts.css) || 0) + 1;
+        } else if (exam === "PMS") {
+          state.exam_type_counts.pms =
+            Math.max(0, Number(state.exam_type_counts.pms) || 0) + 1;
+        }
+        toast({
+          title: exam ? `CSS/PMS set to ${exam}` : "CSS/PMS cleared",
+          status: "success",
+          duration: 2500,
+          isClosable: true,
+        });
+      })
+      .addCase(updateQualifierExamType.rejected, (state, action) => {
+        toast({
+          title: "Failed to update CSS/PMS",
+          description: action.payload || action.error.message,
+          status: "error",
+          duration: 4000,
+          isClosable: true,
+        });
+      })
+      .addCase(fillNullQualifierField.pending, (state, action) => {
+        if (!action.meta?.arg?.preview) {
+          state.fillNullFieldStatus = "loading";
+        }
+      })
+      .addCase(fillNullQualifierField.fulfilled, (state, action) => {
+        if (action.payload?.preview) {
+          return;
+        }
+        state.fillNullFieldStatus = "success";
+        toast({
+          title: "Empty fields updated",
+          description:
+            action.payload?.message ||
+            `Updated ${action.payload?.modified_count || 0} qualifier(s)`,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      })
+      .addCase(fillNullQualifierField.rejected, (state, action) => {
+        if (action.meta?.arg?.preview) {
+          return;
+        }
+        state.fillNullFieldStatus = "failure";
+        toast({
+          title: "Could not update empty fields",
+          description: action.payload || action.error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       });
   },
 });
 
 export const selectAllQualifiers = (state) => state.qualifiers.qualifiers;
+export const selectQualifierStatusCounts = (state) =>
+  state.qualifiers.status_counts || { total: 0, active: 0, inactive: 0 };
+export const selectQualifierExamTypeCounts = (state) =>
+  state.qualifiers.exam_type_counts || { total: 0, css: 0, pms: 0 };
 export const {
   setQueryFilter,
   setPageFilter,
@@ -414,6 +613,7 @@ export const {
   setIsActiveFilter,
   setCityFilter,
   setClassTypeFilter,
+  setExamTypeFilter,
   setProfileUpdatedFilter,
   clearQualifierFilters,
 } = qualifierSlice.actions;
@@ -426,6 +626,8 @@ export {
   changeQualifierPassword,
   bulkImportQualifiers,
   toggleQualifierStatus,
+  updateQualifierExamType,
+  fillNullQualifierField,
 };
 
 export default qualifierSlice.reducer;

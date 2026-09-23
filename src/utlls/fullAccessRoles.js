@@ -113,6 +113,33 @@ export const isPlatformSuperAdminRoleName = (role) => {
   );
 };
 
+/** Only Super Admin, Super Admin Development, Secrate Super Admin, or Secrate Admin. */
+export const isStrictSuperAdminRoleName = (role) => {
+  const normalized = normalizeRole(role);
+  if (!normalized) return false;
+  const compact = normalized.replace(/\s+/g, "");
+  if (
+    compact === "superadmin" ||
+    compact === "superadmindevelopment" ||
+    compact === "superadmindev" ||
+    compact === "secratesuperadmin" ||
+    compact === "secrateadmin"
+  ) {
+    return true;
+  }
+  // Tolerate role labels like "Super-Admin Development", "Secrate Super Admin"
+  if (compact.includes("superadmin") && compact.includes("development")) {
+    return true;
+  }
+  if (compact.includes("secrate") && compact.includes("superadmin")) {
+    return true;
+  }
+  if (compact.includes("secrate") && compact.includes("admin")) {
+    return true;
+  }
+  return compact === "superadmin";
+};
+
 export const canDeleteStudentRoleName = (role) => {
   const normalized = normalizeRole(role);
   if (!normalized) return false;

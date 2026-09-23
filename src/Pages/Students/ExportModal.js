@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -34,6 +34,20 @@ import { fetchBatches } from "../../Features/batchSlice";
 import { Select, FormControl } from "@chakra-ui/react";
 import { selectActiveBatches } from "../../Features/batchSlice";
 import { fetchStudentsByBatch } from "../../Features/studentSlice";
+
+const compareStudentsAscending = (a, b) => {
+  const nameA = String(a?.name || "").trim().toLowerCase();
+  const nameB = String(b?.name || "").trim().toLowerCase();
+  if (nameA !== nameB) {
+    return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+  }
+  const rollA = String(a?.roll_number || "").trim().toLowerCase();
+  const rollB = String(b?.roll_number || "").trim().toLowerCase();
+  if (rollA !== rollB) {
+    return rollA.localeCompare(rollB, undefined, { numeric: true });
+  }
+  return String(a?._id || "").localeCompare(String(b?._id || ""));
+};
 
 const ExportModal = () => {
   const fileHeaders = [
@@ -79,6 +93,11 @@ const ExportModal = () => {
   const students = useSelector(selectAllStudents);
   const dispatch = useDispatch();
 
+  const sortedStudents = useMemo(
+    () => [...(students || [])].sort(compareStudentsAscending),
+    [students]
+  );
+
   const handleModalOpen = () => {
     dispatch(fetchStudents({ authToken }));
     dispatch(fetchBatches({ authToken }))
@@ -118,14 +137,16 @@ const ExportModal = () => {
     dispatch(fetchStudentsByBatch({ authToken, batchId: formBatch }))
       .unwrap()
       .then((data) => {
-        const students = data.docs;
+        const exportStudents = [...(data.docs || [])].sort(
+          compareStudentsAscending
+        );
         downloadExcel({
           fileName: "StudentsSheet[" + moment().format("DD/MM/YYYY") + "]",
           sheet: "Students Sheet",
           tablePayload: {
             header: fileHeaders,
-            body: students.map((student) => [
-              students.indexOf(student) + 1,
+            body: exportStudents.map((student, index) => [
+              index + 1,
               student.name,
               student.roll_number || "",
               formatStudentEmail(student.email),
@@ -151,33 +172,29 @@ const ExportModal = () => {
               student.image,
               student.latest_degree_image,
               student.qr_code || student.qrcode,
-            ])
+            ]),
           },
         });
         setLoading(false);
         onClose();
-        // setTimeout(() => {
-        //   dispatch(setQueryFilter(""));
         dispatch(setPageFilter(1));
         dispatch(setLimitFilter(tempLimit));
-        // setTimeout(() => {
         dispatch(fetchStudents({ authToken }));
-        // }, 1000);
-        // }, 1000);
       });
   }
 
   return (
     <>
-      <button
-        className="table-action-btn"
-        onClick={handleModalOpen}
-      >
+      <button className="table-action-btn" onClick={handleModalOpen}>
         <Download size={18} />
         Excel File
       </button>
 
-      <Modal isOpen={isOpen} onClose={handleModalClose} {...getResponsiveModalSize("6xl")}>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleModalClose}
+        {...getResponsiveModalSize("6xl")}
+      >
         <ModalOverlay />
         <ModalContent {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
@@ -209,7 +226,7 @@ const ExportModal = () => {
             ) : (
               <>
                 <div className="w-full bg-white rounded-xl border border-[#E0E8EC] overflow-auto max-h-[50vh]">
-                  {students.length === 0 ? (
+                  {sortedStudents.length === 0 ? (
                     <div className="p-4 text-center">No students found</div>
                   ) : (
                     <TableContainer>
@@ -244,7 +261,7 @@ const ExportModal = () => {
                           </Tr>
                         </Thead>
                         <Tbody>
-                          {students.map((student, index) => (
+                          {sortedStudents.map((student, index) => (
                             <Tr key={student._id}>
                               <Td>{index + 1}</Td>
                               <Td>{student.name}</Td>
@@ -252,8 +269,16 @@ const ExportModal = () => {
                               <Td>{formatStudentEmail(student.email)}</Td>
                               <Td>{student.phone}</Td>
                               <Td>{student.cnic}</Td>
-                              <Td>{moment(student.admission_date).format("DD/MM/YYYY")}</Td>
-                              <Td>{moment(student.dob || student.date_of_birth).format("DD/MM/YYYY")}</Td>
+                              <Td>
+                                {moment(student.admission_date).format(
+                                  "DD/MM/YYYY"
+                                )}
+                              </Td>
+                              <Td>
+                                {moment(
+                                  student.dob || student.date_of_birth
+                                ).format("DD/MM/YYYY")}
+                              </Td>
                               <Td>{student.father_name}</Td>
                               <Td>{student.father_phone}</Td>
                               <Td>{student.latest_degree}</Td>
