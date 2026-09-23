@@ -35,16 +35,22 @@ import { Select, FormControl } from "@chakra-ui/react";
 import { selectActiveBatches } from "../../Features/batchSlice";
 import { fetchStudentsByBatch } from "../../Features/studentSlice";
 
+/** Ascending by roll no (OC-MARATHON-1, OC-MARATHON-2, …), then name. */
 const compareStudentsAscending = (a, b) => {
+  const rollA = String(a?.roll_number || "").trim();
+  const rollB = String(b?.roll_number || "").trim();
+  if (!rollA && rollB) return 1;
+  if (rollA && !rollB) return -1;
+  if (rollA !== rollB) {
+    return rollA.localeCompare(rollB, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+  }
   const nameA = String(a?.name || "").trim().toLowerCase();
   const nameB = String(b?.name || "").trim().toLowerCase();
   if (nameA !== nameB) {
     return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
-  }
-  const rollA = String(a?.roll_number || "").trim().toLowerCase();
-  const rollB = String(b?.roll_number || "").trim().toLowerCase();
-  if (rollA !== rollB) {
-    return rollA.localeCompare(rollB, undefined, { numeric: true });
   }
   return String(a?._id || "").localeCompare(String(b?._id || ""));
 };
