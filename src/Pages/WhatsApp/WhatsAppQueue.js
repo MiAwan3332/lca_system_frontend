@@ -95,6 +95,27 @@ const PENDING_DUES_TAG_KEYS = new Set([
   "academy_name",
 ]);
 
+const OVERDUE_TAG_KEYS = new Set([
+  "name",
+  "phone",
+  "cnic",
+  "roll_number",
+  "batch",
+  "class_time",
+  "total_fee",
+  "paid_fee",
+  "pending_fee",
+  "pending_dues",
+  "due_date",
+  "overdue_days",
+  "overdue_amount",
+  "overdue_message",
+  "next_installment_date",
+  "nextInstallmentDate",
+  "academy_name",
+  "portal_url",
+]);
+
 const QUALIFIER_TAG_KEYS = new Set([
   "name",
   "phone",
@@ -128,6 +149,20 @@ This is a reminder from {{academy_name}} Accounts regarding your pending dues.
 • Next Installment Date: {{nextInstallmentDate}}
 
 Clear your pending dues immediately. Late payment may result in your LCA account being stuck/blocked from all academy activities until dues are cleared.
+
+— {{academy_name}} Accounts`;
+
+const OVERDUE_DEFAULT_BODY = `Assalam o Alaikum {{name}}!
+
+*Fee Overdue*
+
+{{name}} ({{batch}}) — Rs. {{overdue_amount}} is overdue by {{overdue_days}} day(s). Due date: {{due_date}}.
+
+Due date: {{due_date}} · {{overdue_message}}
+
+Please clear this overdue amount as soon as possible. Late payment may result in your LCA account being stuck/blocked from academy activities until dues are cleared.
+
+If you have already paid, please share the payment proof with Accounts.
 
 — {{academy_name}} Accounts`;
 
@@ -199,13 +234,19 @@ function WhatsAppQueue() {
   const batchOptions =
     audience === "qualifiers" ? interviewBatches : activeBatches;
 
+  const isOverdueAudience = audience === "overdue_students";
+  const isPendingDuesAudience = audience === "pending_dues_students";
+  const batchRequired = !isOverdueAudience;
+
   const visibleTags = useMemo(() => {
     const allowed =
       audience === "qualifiers"
         ? QUALIFIER_TAG_KEYS
-        : audience === "pending_dues_students"
-          ? PENDING_DUES_TAG_KEYS
-          : STUDENT_TAG_KEYS;
+        : audience === "overdue_students"
+          ? OVERDUE_TAG_KEYS
+          : audience === "pending_dues_students"
+            ? PENDING_DUES_TAG_KEYS
+            : STUDENT_TAG_KEYS;
     return tags.filter((item) => allowed.has(tagKey(item.tag)));
   }, [audience, tags]);
 
@@ -409,7 +450,7 @@ function WhatsAppQueue() {
   }
 
   const handleEnqueue = async () => {
-    if (!batchId) {
+    if (batchRequired && !batchId) {
       toast({
         title: "Select a batch",
         status: "warning",
@@ -432,12 +473,15 @@ function WhatsAppQueue() {
     try {
       const payload = {
         audience,
-        batch_id: batchId,
-        source:
-          audience === "pending_dues_students"
+        source: isOverdueAudience
+          ? "bulk_overdue"
+          : isPendingDuesAudience
             ? "bulk_pending_dues"
             : "bulk_page",
       };
+      if (batchId) {
+        payload.batch_id = batchId;
+      }
       if (customBody.trim()) {
         payload.body = customBody.trim();
       } else {
@@ -586,13 +630,13 @@ function WhatsAppQueue() {
             Queue bulk messages
           </Text>
           <Text fontSize="sm" color="gray.600">
-            Choose students, pending-dues holders, or qualifiers in a batch, pick
+            Choose students, overdue / pending-dues holders, or qualifiers, pick
             a template (or custom text), then queue. Messages appear below as
             In-Queue and send every {delaySeconds}s.
           </Text>
 
           <HStack align="end" flexWrap="wrap" gap={3}>
-            <FormControl maxW="260px">
+            <FormControl maxW="280px">
               <FormLabel fontSize="sm">Audience</FormLabel>
               <Select
                 value={audience}
@@ -603,6 +647,19 @@ function WhatsAppQueue() {
                   if (next === "pending_dues_students") {
                     setCustomBody((prev) => prev.trim() || PENDING_DUES_DEFAULT_BODY);
                     setShowTags(true);
+                    const feeReminder = templates.find(
+                      (t) => t.process === "fee_reminder"
+                    );
+                    if (feeReminder?.key) setTemplateKey(feeReminder.key);
+                  } else if (next === "overdue_students") {
+                    setCustomBody((prev) => prev.trim() || OVERDUE_DEFAULT_BODY);
+                    setShowTags(true);
+                    const overdueTpl = templates.find(
+                      (t) =>
+                        t.process === "fee_overdue" ||
+                        t.key === "fee_overdue_reminder"
+                    );
+                    if (overdueTpl?.key) setTemplateKey(overdueTpl.key);
                   }
                 }}
               >
@@ -611,18 +668,29 @@ function WhatsAppQueue() {
                 <option value="pending_dues_students">
                   Pending dues holders (students)
                 </option>
+                <option value="overdue_students">
+                  Overdue students (all / by batch)
+                </option>
               </Select>
             </FormControl>
 
-            <FormControl maxW="320px" isRequired>
+            <FormControl maxW="320px" isRequired={batchRequired}>
               <FormLabel fontSize="sm">
-                {audience === "qualifiers" ? "Interview batch" : "Batch"}
+                {audience === "qualifiers"
+                  ? "Interview batch"
+                  : isOverdueAudience
+                    ? "Batch (optional)"
+                    : "Batch"}
               </FormLabel>
               <SearchableBatchSelect
                 batches={batchOptions}
                 value={batchId}
                 onChange={setBatchId}
-                placeholder="Select batch"
+                placeholder={
+                  isOverdueAudience
+                    ? "All overdue students (or pick a batch)"
+                    : "Select batch"
+                }
                 width="100%"
               />
             </FormControl>
@@ -644,6 +712,21 @@ function WhatsAppQueue() {
             </FormControl>
           </HStack>
 
+          {isOverdueAudience ? (
+            <Text fontSize="xs" color="red.700">
+              Queues every active student with at least one pending installment
+              past its due date. Leave batch empty to message all overdue
+              students academy-wide. Message matches Fee Overdue notifications.
+            </Text>
+          ) : null}
+
+          {isPendingDuesAudience ? (
+            <Text fontSize="xs" color="orange.700">
+              Only active students with pending dues &gt; 0 in the selected batch
+              will be queued.
+            </Text>
+          ) : null}
+
           <FormControl>
             <FormLabel fontSize="sm">
               Custom message (optional — overrides template)
@@ -654,13 +737,17 @@ function WhatsAppQueue() {
               onChange={(e) => setCustomBody(e.target.value)}
               onFocus={() => setShowTags(true)}
               placeholder="Assalam o Alaikum {{name}}! ..."
-              rows={4}
+              rows={isOverdueAudience || isPendingDuesAudience ? 10 : 4}
               fontFamily="mono"
               fontSize="sm"
             />
           </FormControl>
 
-          {(showTags || Boolean(customBody.trim())) && visibleTags.length > 0 && (
+          {(showTags ||
+            Boolean(customBody.trim()) ||
+            isOverdueAudience ||
+            isPendingDuesAudience) &&
+            visibleTags.length > 0 && (
             <Box>
               <Text fontSize="sm" fontWeight="semibold" mb={2}>
                 Insert tags

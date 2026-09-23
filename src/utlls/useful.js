@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import {
   isFullAccessRoleName,
   isPlatformSuperAdminRoleName,
+  isStrictSuperAdminRoleName,
   canDeleteStudentRoleName,
 } from "./fullAccessRoles.js";
 
@@ -125,6 +126,9 @@ const isFullAccessRole = () => hasFullAccess();
 
 const isPlatformSuperAdminRole = () =>
   isPlatformSuperAdminRoleName(getCurrentRoleName());
+
+const isStrictSuperAdminRole = () =>
+  isStrictSuperAdminRoleName(getCurrentRoleName());
 
 /** Delete student — VP, Principal, CEO, Super Admin, Secrate Super Admin, Accounts. */
 const canDeleteStudent = () => canDeleteStudentRoleName(getCurrentRoleName());
@@ -250,6 +254,7 @@ export {
   hasFullAccess,
   isFullAccessRole,
   isPlatformSuperAdminRole,
+  isStrictSuperAdminRole,
   canDeleteStudent,
   canShiftStudentBatch,
   storeAuthSession,
