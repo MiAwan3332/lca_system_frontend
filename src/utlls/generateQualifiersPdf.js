@@ -176,6 +176,7 @@ export const exportQualifiersPdf = async ({
   batchName = "",
   profileFilterLabel = "All Profiles",
   classTypeLabel = "All Modes",
+  examTypeLabel = "All CSS/PMS",
 } = {}) => {
   const list = Array.isArray(qualifiers) ? qualifiers : [];
   const stamp = moment().format("DD MMM YYYY, hh:mm A");
@@ -272,7 +273,7 @@ export const exportQualifiersPdf = async ({
     doc.text(`Batch: ${batchLabel}`, margin + 3, y + 4.2);
     doc.setFont("helvetica", "normal");
     doc.text(
-      `Profile: ${profileFilterLabel}   ·   Mode: ${classTypeLabel}   ·   Records: ${list.length}`,
+      `Profile: ${profileFilterLabel}   ·   Mode: ${classTypeLabel}   ·   CSS/PMS: ${examTypeLabel}   ·   Records: ${list.length}`,
       margin + 3,
       y + 7.8
     );
