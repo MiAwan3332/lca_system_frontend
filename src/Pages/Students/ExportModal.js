@@ -32,8 +32,11 @@ import { formatStudentEmail } from "../../utlls/studentEmail";
 import TablePagination from "../../Components/TablePagination";
 import { fetchBatches } from "../../Features/batchSlice";
 import { Select, FormControl } from "@chakra-ui/react";
-import { selectActiveBatches } from "../../Features/batchSlice";
+import { selectActiveStudentBatches } from "../../Features/batchSlice";
 import { fetchStudentsByBatch } from "../../Features/studentSlice";
+
+const isStudentBatch = (batch) =>
+  batch && batch.is_active !== false && batch.is_interview_batch !== true;
 
 /** Ascending by roll no (OC-MARATHON-1, OC-MARATHON-2, …), then name. */
 const compareStudentsAscending = (a, b) => {
@@ -95,7 +98,7 @@ const ExportModal = () => {
   const [loading, setLoading] = useState(false);
 
   const { fetchStatus, pagination } = useSelector((state) => state.students);
-  const batches = useSelector(selectActiveBatches);
+  const batches = useSelector(selectActiveStudentBatches);
   const students = useSelector(selectAllStudents);
   const dispatch = useDispatch();
 
@@ -109,10 +112,16 @@ const ExportModal = () => {
     dispatch(fetchBatches({ authToken }))
       .unwrap()
       .then((data) => {
-        console.log(data.docs);
-        setFormBatch(data.docs[0]._id);
-        setSelectedBatch(data.docs[0]);
-        dispatch(fetchStudentsByBatch({ authToken, batchId: data.docs[0]._id }));
+        const studentBatches = (data.docs || []).filter(isStudentBatch);
+        const first = studentBatches[0];
+        if (!first) {
+          setFormBatch("");
+          setSelectedBatch("");
+          return;
+        }
+        setFormBatch(first._id);
+        setSelectedBatch(first);
+        dispatch(fetchStudentsByBatch({ authToken, batchId: first._id }));
       });
     onOpen();
   };

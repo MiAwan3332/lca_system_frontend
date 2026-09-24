@@ -58,10 +58,16 @@ function QualifierExportModal({ isOpen, onClose }) {
   const [batchId, setBatchId] = useState("");
   const [profileUpdated, setProfileUpdated] = useState("");
   const [classType, setClassType] = useState("");
+  const [examType, setExamType] = useState("");
   const [isActive, setIsActive] = useState("");
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState("");
   const [preview, setPreview] = useState([]);
+  const [examTypeCounts, setExamTypeCounts] = useState({
+    total: 0,
+    css: 0,
+    pms: 0,
+  });
 
   const headers = useMemo(
     () => ({ Authorization: `Bearer ${authToken}` }),
@@ -85,8 +91,10 @@ function QualifierExportModal({ isOpen, onClose }) {
       setBatchId("");
       setProfileUpdated("");
       setClassType("");
+      setExamType("");
       setIsActive("");
       setPreview([]);
+      setExamTypeCounts({ total: 0, css: 0, pms: 0 });
       setExporting("");
       setLoading(false);
     }
@@ -103,10 +111,16 @@ function QualifierExportModal({ isOpen, onClose }) {
           batch: batchId || undefined,
           profile_updated: profileUpdated || undefined,
           class_type: classType || undefined,
+          exam_type: examType || undefined,
           is_active: isActive || undefined,
         },
       });
       setPreview(Array.isArray(data.docs) ? data.docs : []);
+      setExamTypeCounts({
+        total: Number(data?.exam_type_counts?.total) || 0,
+        css: Number(data?.exam_type_counts?.css) || 0,
+        pms: Number(data?.exam_type_counts?.pms) || 0,
+      });
     } catch (error) {
       toast({
         title: "Could not load qualifiers",
@@ -117,10 +131,11 @@ function QualifierExportModal({ isOpen, onClose }) {
         isClosable: true,
       });
       setPreview([]);
+      setExamTypeCounts({ total: 0, css: 0, pms: 0 });
     } finally {
       setLoading(false);
     }
-  }, [headers, batchId, profileUpdated, classType, isActive, toast]);
+  }, [headers, batchId, profileUpdated, classType, examType, isActive, toast]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -140,6 +155,9 @@ function QualifierExportModal({ isOpen, onClose }) {
       : classType === "On Campus"
         ? "On Campus"
         : "All Modes";
+
+  const examTypeLabel =
+    examType === "CSS" ? "CSS" : examType === "PMS" ? "PMS" : "All CSS/PMS";
 
   const handleExcel = async () => {
     if (!preview.length) {
@@ -196,6 +214,7 @@ function QualifierExportModal({ isOpen, onClose }) {
         batchName: selectedBatch?.name || "",
         profileFilterLabel,
         classTypeLabel,
+        examTypeLabel,
       });
       toast({
         title: "PDF exported",
@@ -243,7 +262,7 @@ function QualifierExportModal({ isOpen, onClose }) {
             PDF.
           </Text>
 
-          <HStack align="end" flexWrap="wrap" gap={3} mb={4}>
+          <HStack align="end" flexWrap="wrap" gap={3} mb={3}>
             <FormControl maxW="280px">
               <FormLabel fontSize="sm">Interview Batch</FormLabel>
               <SearchableBatchSelect
@@ -292,6 +311,44 @@ function QualifierExportModal({ isOpen, onClose }) {
             </FormControl>
           </HStack>
 
+          <Box mb={4}>
+            <Text fontSize="sm" fontWeight="medium" mb={2}>
+              CSS/PMS
+            </Text>
+            <HStack spacing={2} flexWrap="wrap">
+              {[
+                { value: "", label: "All CSS/PMS", count: examTypeCounts.total },
+                { value: "CSS", label: "CSS", count: examTypeCounts.css },
+                { value: "PMS", label: "PMS", count: examTypeCounts.pms },
+              ].map((option) => {
+                const isSelected = examType === option.value;
+                return (
+                  <Button
+                    key={option.label}
+                    type="button"
+                    size="sm"
+                    borderRadius="xl"
+                    border="1px solid"
+                    borderColor={isSelected ? "#E3B574" : "#E0E8EC"}
+                    bg={isSelected ? "#FFCB82" : "white"}
+                    color={isSelected ? "#654E26" : "#4A5568"}
+                    _hover={{ bg: isSelected ? "#E3B574" : "#FFFBF5" }}
+                    onClick={() => setExamType(option.value)}
+                  >
+                    {option.label}
+                    <Badge
+                      ml={2}
+                      borderRadius="md"
+                      colorScheme={isSelected ? "orange" : "gray"}
+                    >
+                      {loading ? "…" : option.count}
+                    </Badge>
+                  </Button>
+                );
+              })}
+            </HStack>
+          </Box>
+
           <HStack spacing={3} flexWrap="wrap" mb={3}>
             <Badge colorScheme="purple" borderRadius="md" px={3} py={1}>
               Ready: {loading ? "…" : preview.length}
@@ -302,6 +359,11 @@ function QualifierExportModal({ isOpen, onClose }) {
             <Badge colorScheme="orange" borderRadius="md" px={3} py={1}>
               Not Updated: {loading ? "…" : preview.length - updatedCount}
             </Badge>
+            {examType ? (
+              <Badge colorScheme="teal" borderRadius="md" px={3} py={1}>
+                {examType}
+              </Badge>
+            ) : null}
             {selectedBatch?.name ? (
               <Badge colorScheme="blue" borderRadius="md" px={3} py={1}>
                 {selectedBatch.name}
@@ -330,6 +392,7 @@ function QualifierExportModal({ isOpen, onClose }) {
                       <Th>No</Th>
                       <Th>Photo / Name</Th>
                       <Th>Batch</Th>
+                      <Th>CSS/PMS</Th>
                       <Th>CSS/PMS Roll No</Th>
                       <Th>Mode</Th>
                       <Th>Phone</Th>
@@ -341,7 +404,7 @@ function QualifierExportModal({ isOpen, onClose }) {
                   <Tbody>
                     {preview.length === 0 ? (
                       <Tr>
-                        <Td colSpan={9}>
+                        <Td colSpan={10}>
                           <span className="flex justify-center items-center gap-2 text-[#A1A1A1] py-6">
                             <FileX size={18} />
                             No qualifier profiles match these filters
@@ -370,6 +433,7 @@ function QualifierExportModal({ isOpen, onClose }) {
                               </HStack>
                             </Td>
                             <Td>{qualifier.batch?.name || "—"}</Td>
+                            <Td>{qualifier.exam_type || "—"}</Td>
                             <Td>{qualifier.css_pms_roll_no || "—"}</Td>
                             <Td>{qualifier.class_type || "—"}</Td>
                             <Td>{qualifier.phone || "—"}</Td>
