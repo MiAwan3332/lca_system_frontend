@@ -39,6 +39,7 @@ const PROCESS_COLORS = {
   qualifier_welcome: "cyan",
   fee_payment: "blue",
   fee_reminder: "orange",
+  fee_overdue: "red",
   custom: "gray",
 };
 
