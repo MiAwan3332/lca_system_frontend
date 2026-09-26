@@ -1,22 +1,11 @@
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  VStack,
-  Spinner,
-  IconButton,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, IconButton } from "@chakra-ui/react";
 import { useDisclosure } from "@chakra-ui/react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { QrCode } from "lucide-react";
 import { config } from "../../../utlls/config";
+import LcaLogoLoading from "../../LcaLogoLoading";
 
 function QrCodeModal({ student }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -60,7 +49,7 @@ function QrCodeModal({ student }) {
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
-              {isLoading && <Spinner />}
+              {isLoading && <LcaLogoLoading size="sm" />}
               {!isLoading && (
                 <img
                   src={`data:image/svg+xml;utf8,${encodeURIComponent(qrCode)}`}

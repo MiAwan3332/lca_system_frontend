@@ -1,6 +1,11 @@
 import Cookies from "js-cookie";
 import axios from "axios";
 import { createStandaloneToast } from "@chakra-ui/react";
+import {
+  beginGlobalLoading,
+  endGlobalLoading,
+  shouldTrackAxiosLoading,
+} from "./globalLoading";
 
 const { toast } = createStandaloneToast();
 
@@ -108,9 +113,27 @@ export const setupAxiosSessionInterceptor = () => {
   if (axiosInterceptorInstalled) return;
   axiosInterceptorInstalled = true;
 
-  axios.interceptors.response.use(
-    (response) => response,
+  axios.interceptors.request.use(
+    (config) => {
+      if (shouldTrackAxiosLoading(config)) {
+        beginGlobalLoading();
+        config.__lcaTrackedLoading = true;
+      }
+      return config;
+    },
     (error) => {
+      if (error?.config?.__lcaTrackedLoading) endGlobalLoading();
+      return Promise.reject(error);
+    }
+  );
+
+  axios.interceptors.response.use(
+    (response) => {
+      if (response?.config?.__lcaTrackedLoading) endGlobalLoading();
+      return response;
+    },
+    (error) => {
+      if (error?.config?.__lcaTrackedLoading) endGlobalLoading();
       const requestUrl = String(error.config?.url || "");
       const isPublicSlipVerify = requestUrl.includes("/admission-slips/verify/");
       if (error.response?.status === 401 && !isPublicSlipVerify) {

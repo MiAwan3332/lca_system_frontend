@@ -1,27 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Box,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Badge,
-  Button,
-  Spinner,
-  Text,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  VStack,
-  useDisclosure,
-} from "@chakra-ui/react";
+import { Box, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Badge, Button, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, VStack, useDisclosure } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchQuizAttempts,
@@ -31,6 +10,7 @@ import { FileX, Eye } from "lucide-react";
 import { DataTableShell } from "../../Components/PageHeader";
 import { getResponsiveModalSize, responsiveModalContentProps } from "../../utlls/responsiveModal";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const PATTERN_LABELS = {
   sequential: "Sequential",
@@ -68,7 +48,7 @@ function QuizHistory() {
   if (historyStatus === "loading") {
     return (
       <Box className="flex justify-center py-16">
-        <Spinner size="lg" />
+        <LcaLogoLoading size="sm" />
       </Box>
     );
   }

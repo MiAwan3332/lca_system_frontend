@@ -1,29 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Badge,
-  Box,
-  Button,
-  Checkbox,
-  FormControl,
-  FormLabel,
-  Image,
-  Input,
-  Text,
-  Textarea,
-  VStack,
-  SimpleGrid,
-  Spinner,
-  Center,
-  Wrap,
-  WrapItem,
-  Tag,
-  TagLabel,
-  TagCloseButton,
-  Flex,
-  Select,
-  IconButton,
-  Divider,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, Checkbox, FormControl, FormLabel, Image, Input, Text, Textarea, VStack, SimpleGrid, Center, Wrap, WrapItem, Tag, TagLabel, TagCloseButton, Flex, Select, IconButton, Divider } from "@chakra-ui/react";
 import { Plus, Trash2 } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -39,6 +15,7 @@ import {
   updateQualifier,
   fetchQualifiers,
 } from "../../Features/qualifierSlice";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   QUALIFICATION_OPTIONS,
   createEmptyEducationEntry,
@@ -299,7 +276,7 @@ function QualifierSelfProfile({ qualifier, loading }) {
   if (loading) {
     return (
       <Center py={16}>
-        <Spinner size="lg" color="#85652D" />
+        <LcaLogoLoading size="md" />
       </Center>
     );
   }

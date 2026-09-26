@@ -13,6 +13,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { config } from "../../utlls/config";
+import LcaLogoLoading from "../LcaLogoLoading";
 
 const buildChartParams = (filters = {}) => {
   const params = new URLSearchParams();
@@ -118,9 +119,7 @@ function BatchStudentStatusSection({ filters = {} }) {
       </div>
 
       {loading ? (
-        <Text className="dash-text-muted" py={8} textAlign="center">
-          Loading batch student counts...
-        </Text>
+        <LcaLogoLoading size="sm" label="Loading" />
       ) : error ? (
         <Text color="red.500" py={8} textAlign="center">
           {error}

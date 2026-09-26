@@ -171,7 +171,7 @@ function QualifierProfileDetailsFields({
             name="city"
             placeholder={
               formik.values.province
-                ? "Type to search city"
+                ? "Type to search or add city"
                 : "Select province first"
             }
             emptyMessage="No city found"
@@ -182,7 +182,13 @@ function QualifierProfileDetailsFields({
             value={formik.values.city}
             onChange={(nextCity) => formik.setFieldValue("city", nextCity)}
             isDisabled={!formik.values.province}
+            allowCustom
           />
+          {formik.values.province ? (
+            <Text fontSize="xs" color="gray.500" mt={1}>
+              If the city is not listed, type the name and choose Add.
+            </Text>
+          ) : null}
         </FormControl>
       </GridItem>
 

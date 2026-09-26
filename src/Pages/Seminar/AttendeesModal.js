@@ -1,15 +1,5 @@
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Spinner,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button } from "@chakra-ui/react";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import { TableContainer } from "@chakra-ui/react";
@@ -27,6 +17,7 @@ import moment from "moment";
 import { downloadExcel } from "react-export-table-to-excel";
 import TablePagination from "../../Components/TablePagination";
 import AddAttendeeModal from "./AddAttendeeModal";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -166,7 +157,7 @@ const AttendeesModal = ({ seminar }) => {
 
             {fetchStatus === "loading" || loading ? (
               <div className="flex justify-center items-center h-40 rounded-xl border border-[#E0E8EC]">
-                <Spinner />
+                <LcaLogoLoading size="sm" />
               </div>
             ) : (
               <>

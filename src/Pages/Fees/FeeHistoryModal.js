@@ -1,30 +1,5 @@
 import React, { useState } from "react";
-import {
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalHeader,
-    ModalFooter,
-    ModalBody,
-    ModalCloseButton,
-    Button,
-    VStack,
-    Spinner,
-    IconButton,
-    Text,
-    Badge,
-    useToast,
-    HStack,
-    Box,
-    Flex,
-    SimpleGrid,
-    Stat,
-    StatLabel,
-    StatNumber,
-    StatHelpText,
-    Image,
-    Link,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, IconButton, Text, Badge, useToast, HStack, Box, Flex, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, Image, Link } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import {
     Download,
@@ -50,6 +25,7 @@ import {
     responsiveModalProps,
 } from "../../utlls/responsiveModal";
 import PaymentEvidenceGallery from "../../Components/PaymentEvidenceGallery";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const ACTION_CONFIG = {
     Created: { label: "Fee Created", color: "blue", icon: Receipt, accent: "#2D4185" },
@@ -371,7 +347,7 @@ function FeeHistoryModal({ fee }) {
 
                                 {isLoading && (
                                     <Flex justify="center" py={8}>
-                                        <Spinner color="#85652D" />
+                                        <LcaLogoLoading size="sm" />
                                     </Flex>
                                 )}
 

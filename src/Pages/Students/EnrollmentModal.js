@@ -1,27 +1,7 @@
 import React, { useState, useEffect } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Spinner,
-  Checkbox,
-  VStack,
-  Input,
-  HStack,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Checkbox, VStack, Input, HStack } from "@chakra-ui/react";
 import { Box } from "@chakra-ui/react";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
-} from "@chakra-ui/react";
+import { Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -39,6 +19,7 @@ import {
 } from "../../Features/batchSlice";
 import { fetchStudents } from "../../Features/studentSlice";
 import { createFee } from "../../Features/feeSlice";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const EnrollmentModal = ({ studentId }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -180,7 +161,7 @@ const EnrollmentModal = ({ studentId }) => {
           <form onSubmit={formik.handleSubmit}>
             <ModalBody>
               {fetchStudentEnrollmentsStatus === "loading" ? (
-                <Spinner />
+                <LcaLogoLoading size="sm" />
               ) : (
                 <VStack
                   spacing={4}

@@ -1,28 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  IconButton,
-  Image,
-  Grid,
-  GridItem,
-  Flex,
-  Text,
-  Link,
-  Spinner,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, VStack, Box, IconButton, Image, Grid, GridItem, Flex, Text, Link, useToast } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
@@ -48,6 +25,7 @@ import {
 import { formatStudentEmail } from "../../utlls/studentEmail";
 import { provinceSelectOptions, citySelectOptions, getCitiesForProvince } from "../../utlls/pakistanProvinces";
 import SearchableTextSelect from "../../Components/SearchableTextSelect";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 function ViewModal({ student, forced = false, onComplete }) {
   const [isOpen, setIsOpen] = useState(forced);
@@ -490,7 +468,7 @@ function ViewModal({ student, forced = false, onComplete }) {
                       </FormLabel>
                       {fetchStudentHistoryStatus === "loading" && !historyReady ? (
                         <Flex align="center" gap={2} py={2}>
-                          <Spinner size="sm" color="#2D4185" />
+                          <LcaLogoLoading size="sm" />
                           <Text fontSize="sm" color="gray.500">
                             Loading attachments…
                           </Text>

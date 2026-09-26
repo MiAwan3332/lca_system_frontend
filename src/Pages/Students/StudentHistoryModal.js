@@ -1,31 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Box,
-  Flex,
-  Text,
-  Badge,
-  SimpleGrid,
-  Spinner,
-  VStack,
-  HStack,
-  Image,
-  Divider,
-  Link,
-  Progress,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Tabs, TabList, TabPanels, Tab, TabPanel, Box, Flex, Text, Badge, SimpleGrid, VStack, HStack, Image, Divider, Link, Progress } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import moment from "moment";
 import { formatStudentEmail } from "../../utlls/studentEmail";
@@ -57,6 +31,7 @@ import {
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
 import ActionButton from "../../Components/ActionButton";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const formatRs = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-PK", {
@@ -381,7 +356,7 @@ function StudentHistoryModal({ student }) {
           <ModalBody flex="1" overflowY="auto" px={{ base: 3, md: 6 }} py={5}>
             {isLoading ? (
               <Flex py={16} align="center" justify="center" direction="column" gap={3}>
-                <Spinner size="lg" color="#85652D" thickness="3px" />
+                <LcaLogoLoading size="sm" />
                 <Text color="gray.500" fontSize="sm">
                   Loading full student history...
                 </Text>

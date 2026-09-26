@@ -4,6 +4,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { useColorModeValue } from "@chakra-ui/react";
 import { config } from "../utlls/config";
+import LcaLogoLoading from "./LcaLogoLoading";
 
 const buildChartParams = (filters = {}) => {
   const params = new URLSearchParams();
@@ -158,7 +159,7 @@ const BatchChart = ({ chartTitle, filters = {} }) => {
   }, [filters.batch_id, filters.start_date, filters.end_date, chartTitle]);
 
   if (loading) {
-    return <div className="my-8 text-center dash-text-muted">Loading...</div>;
+    return <LcaLogoLoading size="sm" />;
   }
 
   if (!chartSeries[0]?.data?.length) {

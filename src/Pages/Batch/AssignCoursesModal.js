@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Spinner,
-  Checkbox,
-  VStack,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Checkbox, VStack } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -24,6 +12,7 @@ import {
   selectBatchCourses,
 } from "../../Features/batchSlice";
 import { fetchCourses, selectAllCourses, setLimitFilter } from "../../Features/courseSlice";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const AssignCoursesModal = ({ batchId }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -94,7 +83,7 @@ const AssignCoursesModal = ({ batchId }) => {
             <ModalBody>
               <div>
                 {fetchBatchCoursesStatus === "loading" ? (
-                  <Spinner />
+                  <LcaLogoLoading size="sm" />
                 ) : (
                   <VStack spacing={2} align="stretch" w="full" maxH="60vh" overflowY="auto">
                     {courses.map((course) => (

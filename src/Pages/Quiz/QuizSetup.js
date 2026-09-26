@@ -1,25 +1,13 @@
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Select,
-  Input,
-  Switch,
-  VStack,
-  Text,
-  SimpleGrid,
-  Badge,
-  Spinner,
-} from "@chakra-ui/react";
+import { Box, Button, FormControl, FormLabel, Select, Input, Switch, VStack, Text, SimpleGrid, Badge } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchQuizSubjects,
   startQuizAttempt,
 } from "../../Features/quizSlice";
 import { Play } from "lucide-react";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const PATTERN_OPTIONS = [
   {
@@ -82,7 +70,7 @@ function QuizSetup({ onStarted }) {
   if (subjectsStatus === "loading") {
     return (
       <Box className="flex justify-center py-16">
-        <Spinner size="lg" />
+        <LcaLogoLoading size="sm" />
       </Box>
     );
   }

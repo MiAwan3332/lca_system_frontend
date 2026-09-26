@@ -1,27 +1,7 @@
 import React, { useEffect } from "react";
 import Cookies from "js-cookie";
 import moment from "moment";
-import {
-  Badge,
-  Box,
-  Flex,
-  HStack,
-  SimpleGrid,
-  Spinner,
-  Stat,
-  StatHelpText,
-  StatLabel,
-  StatNumber,
-  Table,
-  Tbody,
-  Td,
-  Text,
-  Th,
-  Thead,
-  Tr,
-  TableContainer,
-  VStack,
-} from "@chakra-ui/react";
+import { Badge, Box, Flex, HStack, SimpleGrid, Stat, StatHelpText, StatLabel, StatNumber, Table, Tbody, Td, Text, Th, Thead, Tr, TableContainer, VStack } from "@chakra-ui/react";
 import { FileX, HandCoins, Receipt, Wallet } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchMyFinance, selectMyFinance } from "../../Features/studentSlice";
@@ -29,6 +9,7 @@ import { getStudentId } from "../../utlls/studentAccess";
 import FeesPageHero from "../../Components/FeesPageHero";
 import { DataTableShell } from "../../Components/PageHeader";
 import OverdueFeeAlert from "../../Components/OverdueFeeAlert";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const formatRs = (value) =>
   Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 });
@@ -174,7 +155,7 @@ function StudentFinanceLog() {
 
         {isLoading ? (
           <Flex justify="center" py={16}>
-            <Spinner size="lg" color="#FFCB82" />
+            <LcaLogoLoading size="sm" />
           </Flex>
         ) : !studentId ? (
           <Flex direction="column" align="center" py={16} gap={3} color="#A0AEC0">

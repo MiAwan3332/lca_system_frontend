@@ -1,21 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  useToast,
-  VStack,
-  Badge,
-  HStack,
-  Spinner,
-} from "@chakra-ui/react";
+import { Box, Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useToast, VStack, Badge, HStack } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import moment from "moment";
@@ -28,6 +12,7 @@ import { saveLastFeeSlipPayload } from "../../utlls/feeSlipStorage";
 import { issueSlipVerificationQr } from "../../utlls/slipVerification";
 import { formatClassTimeRange } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -265,7 +250,7 @@ function ReprintFeeSlipAction({ student }) {
           <ModalBody flex="1" overflowY="auto" py={4}>
             {isLoading ? (
               <HStack justify="center" py={10} spacing={3}>
-                <Spinner size="sm" color="#85652D" />
+                <LcaLogoLoading size="sm" />
                 <Text fontSize="sm" color="gray.500">
                   Loading paid transactions...
                 </Text>

@@ -1,31 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  VStack,
-  Text,
-  Box,
-  Flex,
-  HStack,
-  Badge,
-  Spinner,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-  useDisclosure,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, Textarea, VStack, Text, Box, Flex, HStack, Badge, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import moment from "moment";
 import {
@@ -61,6 +35,7 @@ import {
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
 import { useNavigate } from "react-router-dom";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 function BookInterviewModal({
   isOpen,
@@ -485,7 +460,7 @@ function BookInterviewModal({
 
                 {loadingUser ? (
                   <Flex py={6} justify="center" align="center" gap={2}>
-                    <Spinner size="sm" color="#85652D" />
+                    <LcaLogoLoading size="sm" />
                     <Text fontSize="sm" color="gray.500">
                       Loading your profile...
                     </Text>

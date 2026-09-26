@@ -9,29 +9,8 @@ import React, {
   useEffect,
 } from "react";
 import { Views } from "react-big-calendar";
-import {
-  Card,
-  Badge,
-  Checkbox,
-  Divider,
-  Heading,
-  HStack,
-  Link,
-  Spinner,
-  TabPanel,
-  createStandaloneToast,
-  useDisclosure,
-} from "@chakra-ui/react";
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-} from "@chakra-ui/react";
+import { Card, Badge, Checkbox, Divider, Heading, HStack, Link, TabPanel, createStandaloneToast, useDisclosure } from "@chakra-ui/react";
+import { Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay } from "@chakra-ui/react";
 import { Box, FormControl, FormLabel, Input, VStack } from "@chakra-ui/react";
 import { Select } from "@chakra-ui/react";
 import { useFormik } from "formik";
@@ -51,6 +30,7 @@ import TimeTableEventEditForm from "./TimeTableEventEditForm";
 import { isStudentViewOnly } from "../utlls/studentAccess";
 import { CalendarPlus, ExternalLink } from "lucide-react";
 import { config } from "../utlls/config";
+import LcaLogoLoading from "./LcaLogoLoading";
 
 const { toast } = createStandaloneToast();
 const BASE_URL = config.BASE_URL;
@@ -347,7 +327,7 @@ export default function TimetableCalendar({
     <>
       {fetchStatus === "loading" ? (
         <div className="w-full h-full flex justify-center items-center">
-          <Spinner />
+          <LcaLogoLoading size="sm" />
         </div>
       ) : (
         <div className="w-full h-full min-h-[300px]">

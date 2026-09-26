@@ -1,24 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import {
-  Badge,
-  Box,
-  Button,
-  FormControl,
-  FormHelperText,
-  FormLabel,
-  HStack,
-  Input,
-  Select,
-  Switch,
-  Text,
-  Textarea,
-  useToast,
-  VStack,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, FormControl, FormHelperText, FormLabel, HStack, Input, Select, Switch, Text, Textarea, useToast, VStack, Wrap, WrapItem } from "@chakra-ui/react";
 import {
   Eye,
   MessageSquareText,
@@ -31,6 +14,7 @@ import { Navigate } from "react-router-dom";
 import PageHeader, { DataTableShell } from "../../Components/PageHeader";
 import { config } from "../../utlls/config";
 import { isPlatformSuperAdminRole } from "../../utlls/useful";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const PROCESS_COLORS = {
   student_admission: "green",
@@ -397,9 +381,7 @@ function WhatsAppTemplates() {
               Templates
             </Text>
             {loading ? (
-              <Text fontSize="sm" className="dash-text-muted">
-                Loading…
-              </Text>
+              <LcaLogoLoading size="sm" />
             ) : templates.length === 0 ? (
               <Text fontSize="sm" className="dash-text-muted">
                 No templates yet.

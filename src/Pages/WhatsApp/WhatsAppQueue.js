@@ -1,31 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import {
-  Badge,
-  Box,
-  Button,
-  ButtonGroup,
-  FormControl,
-  FormLabel,
-  HStack,
-  Input,
-  Select,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Text,
-  Textarea,
-  useToast,
-  VStack,
-  Spinner,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, ButtonGroup, FormControl, FormLabel, HStack, Input, Select, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Text, Textarea, useToast, VStack, Wrap, WrapItem } from "@chakra-ui/react";
 import {
   Ban,
   ChevronFirst,
@@ -51,6 +27,7 @@ import {
 } from "../../Features/batchSlice";
 import { config } from "../../utlls/config";
 import { isPlatformSuperAdminRole } from "../../utlls/useful";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const STATUS_META = {
   in_queue: { label: "In-Queue", color: "orange" },
@@ -269,42 +246,60 @@ function WhatsAppQueue() {
     });
   };
 
-  const loadQueue = useCallback(async () => {
-    try {
-      const { data } = await axios.get(`${config.BASE_URL}/whatsapp/queue`, {
-        headers,
-        params: {
-          page,
-          limit,
-          status: statusFilter,
-          query: search.trim() || undefined,
-        },
-      });
-      setDocs(Array.isArray(data.docs) ? data.docs : []);
-      setPagination({
-        totalDocs: data.totalDocs || 0,
-        limit: data.limit || limit,
-        totalPages: data.totalPages || 1,
-        page: data.page || page,
-        hasPrevPage: Boolean(data.hasPrevPage),
-        hasNextPage: Boolean(data.hasNextPage),
-        prevPage: data.prevPage ?? null,
-        nextPage: data.nextPage ?? null,
-      });
-      if (data.stats) setStats(data.stats);
-    } catch (error) {
-      toast({
-        title: "Could not load WhatsApp queue",
-        description:
-          error?.response?.data?.message || error.message || "Please try again.",
-        status: "error",
-        duration: 4000,
-        isClosable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [headers, limit, page, search, statusFilter, toast]);
+  const loadQueue = useCallback(
+    async ({ silent = false, signal } = {}) => {
+      if (!silent) setLoading(true);
+      try {
+        const { data } = await axios.get(`${config.BASE_URL}/whatsapp/queue`, {
+          headers,
+          params: {
+            page,
+            limit,
+            status: statusFilter,
+            query: search.trim() || undefined,
+          },
+          signal,
+          skipLoading: silent,
+        });
+        setDocs(Array.isArray(data.docs) ? data.docs : []);
+        setPagination({
+          totalDocs: data.totalDocs || 0,
+          limit: data.limit || limit,
+          totalPages: data.totalPages || 1,
+          page: data.page || page,
+          hasPrevPage: Boolean(data.hasPrevPage),
+          hasNextPage: Boolean(data.hasNextPage),
+          prevPage: data.prevPage ?? null,
+          nextPage: data.nextPage ?? null,
+        });
+        if (data.stats) setStats(data.stats);
+      } catch (error) {
+        if (
+          axios.isCancel?.(error) ||
+          error?.code === "ERR_CANCELED" ||
+          error?.name === "CanceledError" ||
+          error?.name === "AbortError"
+        ) {
+          return;
+        }
+        if (!silent) {
+          toast({
+            title: "Could not load WhatsApp queue",
+            description:
+              error?.response?.data?.message ||
+              error.message ||
+              "Please try again.",
+            status: "error",
+            duration: 4000,
+            isClosable: true,
+          });
+        }
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [headers, limit, page, search, statusFilter, toast]
+  );
 
   const loadTemplates = useCallback(async () => {
     try {
@@ -337,19 +332,26 @@ function WhatsAppQueue() {
     loadTemplates();
   }, [authToken, canView, dispatch, loadTemplates]);
 
-  useEffect(() => {
-    if (!canView) return;
-    setLoading(true);
-    loadQueue();
-  }, [canView, loadQueue]);
-
+  // Load on open + whenever page / filters / search change.
   useEffect(() => {
     if (!canView) return undefined;
-    const timer = setInterval(() => {
-      loadQueue();
-    }, 5000);
-    return () => clearInterval(timer);
+    const controller = new AbortController();
+    loadQueue({ signal: controller.signal });
+    return () => controller.abort();
   }, [canView, loadQueue]);
+
+  // While messages are actively sending, refresh so status updates appear.
+  // Idle queue does not poll.
+  const hasActiveQueue =
+    (stats.in_queue || 0) > 0 || (stats.sending || 0) > 0;
+
+  useEffect(() => {
+    if (!canView || !hasActiveQueue) return undefined;
+    const timer = setInterval(() => {
+      loadQueue({ silent: true });
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [canView, hasActiveQueue, loadQueue]);
 
   useEffect(() => {
     setBatchId("");
@@ -583,7 +585,6 @@ function WhatsAppQueue() {
             leftIcon={<RefreshCw size={16} />}
             variant="outline"
             onClick={() => {
-              setLoading(true);
               loadQueue();
             }}
           >
@@ -819,7 +820,7 @@ function WhatsAppQueue() {
       <DataTableShell className="mt-3">
         {loading ? (
           <Box py={12} textAlign="center">
-            <Spinner size="lg" color="#85652D" />
+            <LcaLogoLoading size="md" />
           </Box>
         ) : (
           <TableContainer>

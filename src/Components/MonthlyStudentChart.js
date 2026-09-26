@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 import axios from 'axios';
-import { useColorModeValue } from '@chakra-ui/react';
+import { useColorModeValue } from "@chakra-ui/react";
 import { config } from '../utlls/config';
+import LcaLogoLoading from "./LcaLogoLoading";
 
 const buildChartParams = (filters = {}) => {
   const params = new URLSearchParams();
@@ -127,7 +128,7 @@ const MonthlyColumnChart = ({ chartTitle, filters = {} }) => {
   }, [filters.batch_id, filters.start_date, filters.end_date, chartTitle]);
 
   if (loading) {
-    return <div className="my-8 text-center dash-text-muted">Loading...</div>;
+    return <LcaLogoLoading size="sm" />;
   }
 
   return (

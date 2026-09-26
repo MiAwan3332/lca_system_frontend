@@ -1,32 +1,5 @@
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Spinner,
-  VStack,
-  FormControl,
-  FormLabel,
-  Select,
-  Text,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  IconButton,
-  Alert,
-  AlertIcon,
-  useToast,
-  Heading,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, Select, Text, Table, Thead, Tbody, Tr, Th, Td, TableContainer, IconButton, Alert, AlertIcon, useToast, Heading } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { UserPlus, Trash2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -38,6 +11,7 @@ import {
   fetchBatches,
   selectBatchCourses,
 } from "../../Features/batchSlice";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   responsiveModalProps,
   responsiveModalContentProps,
@@ -204,7 +178,7 @@ const AssignTeachersModal = ({ batchId }) => {
           <ModalCloseButton />
           <ModalBody>
             {isLoading ? (
-              <Spinner />
+              <LcaLogoLoading size="sm" />
             ) : (
               <VStack spacing={4} align="stretch">
                 {batchCourses.length === 0 ? (

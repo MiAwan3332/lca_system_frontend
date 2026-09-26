@@ -9,6 +9,7 @@ import { Provider } from "react-redux";
 import theme from "./chakraTheme";
 import { createStandaloneToast } from '@chakra-ui/react'
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import GlobalLoadingOverlay from "./Components/GlobalLoadingOverlay";
 
 const { ToastContainer } = createStandaloneToast()
 
@@ -19,6 +20,7 @@ root.render(
       <ColorModeScript initialColorMode={theme.config.initialColorMode} />
       <ChakraProvider theme={theme}>
         <App />
+        <GlobalLoadingOverlay />
         <ToastContainer />
       </ChakraProvider>
     </Provider>
