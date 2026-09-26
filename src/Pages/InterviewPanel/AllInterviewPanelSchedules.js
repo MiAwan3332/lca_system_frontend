@@ -1,26 +1,4 @@
-import {
-  Box,
-  Button,
-  SimpleGrid,
-  Text,
-  Badge,
-  HStack,
-  VStack,
-  Flex,
-  Spinner,
-  Center,
-  FormControl,
-  Select,
-  Input,
-  useDisclosure,
-  useToast,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-} from "@chakra-ui/react";
+import { Box, Button, SimpleGrid, Text, Badge, HStack, VStack, Flex, Center, FormControl, Select, Input, useDisclosure, useToast, AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay } from "@chakra-ui/react";
 import {
   CalendarCheck2,
   CalendarDays,
@@ -64,6 +42,7 @@ import {
   QUALIFIER_PROFILE_INCOMPLETE_MESSAGE,
 } from "../../utlls/qualifierProfile";
 import { getInterviewConductPath } from "../../utlls/interviewEvaluation";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const INTERVIEW_PROGRESS_OPTIONS = [
   { value: "", label: "All" },
@@ -574,7 +553,7 @@ function AllInterviewPanelSchedules() {
       <Box mt={{ base: 3, md: 4 }} w="full" minW={0}>
         {fetchScheduleBoardStatus === "loading" ? (
           <Center py={{ base: 12, md: 16 }}>
-            <Spinner size="lg" color="#85652D" />
+            <LcaLogoLoading size="sm" />
           </Center>
         ) : filteredSchedules.length === 0 ? (
           <Center

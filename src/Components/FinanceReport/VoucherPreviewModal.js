@@ -1,25 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  HStack,
-  Text,
-  useToast,
-  Spinner,
-  Box,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, HStack, Text, useToast, Box } from "@chakra-ui/react";
 import { Download, Printer } from "lucide-react";
 import {
   downloadFinanceVoucherPdf,
   printFinanceVoucherPdf,
   generateFinanceVoucherPdf,
 } from "../../utlls/generateFinanceVoucherPdf";
+import LcaLogoLoading from "../LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -145,7 +132,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
               height="65vh"
               bg="gray.50"
             >
-              <Spinner size="xl" color="blue.500" />
+              <LcaLogoLoading size="sm" />
             </Box>
           )}
         </ModalBody>

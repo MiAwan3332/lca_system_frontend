@@ -1,29 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Box,
-  Text,
-  Badge,
-  SimpleGrid,
-  Spinner,
-  VStack,
-  HStack,
-  Divider,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Box, Text, Badge, SimpleGrid, VStack, HStack, Divider, Table, Thead, Tbody, Tr, Th, Td, TableContainer } from "@chakra-ui/react";
 import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import Cookies from "js-cookie";
@@ -32,6 +8,7 @@ import {
   fetchDeletionArchiveDetail,
   selectDeletionArchiveDetail,
 } from "../../Features/batchSlice";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -115,7 +92,7 @@ function DeletedBatchDetailModal({ archiveId, isOpen, onClose }) {
         <ModalBody>
           {isLoading || !archive ? (
             <Box py={10} textAlign="center">
-              <Spinner />
+              <LcaLogoLoading size="sm" />
             </Box>
           ) : (
             <VStack spacing={5} align="stretch">

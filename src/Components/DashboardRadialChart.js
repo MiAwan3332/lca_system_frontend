@@ -1,5 +1,6 @@
 import React from "react";
 import Chart from "react-apexcharts";
+import LcaLogoLoading from "./LcaLogoLoading";
 
 function DashboardRadialChart({ title, items = [], loading = false }) {
   const labels = items.map((item) => item.label);
@@ -43,7 +44,7 @@ function DashboardRadialChart({ title, items = [], loading = false }) {
   if (loading) {
     return (
       <div className="bg-white rounded-xl border border-[#E0E8EC] p-8 min-h-[320px] flex items-center justify-center">
-        <div className="animate-pulse h-32 w-32 bg-gray-200 rounded-full" />
+        <LcaLogoLoading size="sm" />
       </div>
     );
   }

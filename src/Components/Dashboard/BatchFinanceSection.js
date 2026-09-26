@@ -13,6 +13,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { config } from "../../utlls/config";
+import LcaLogoLoading from "../LcaLogoLoading";
 
 const formatRs = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-PK", {
@@ -168,9 +169,7 @@ function BatchFinanceSection({ filters = {} }) {
       </div>
 
       {loading ? (
-        <Text className="dash-text-muted" py={8} textAlign="center">
-          Loading batch fee summary...
-        </Text>
+        <LcaLogoLoading size="sm" label="Loading" />
       ) : error ? (
         <Text color="red.500" py={8} textAlign="center">
           {error}

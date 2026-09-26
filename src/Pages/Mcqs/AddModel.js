@@ -1,21 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Select,
-  Text,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, VStack, Box, Select, Text } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
@@ -23,6 +7,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchMcqs, addMcq } from "../../Features/mcqSlice";
 import { fetchCourses , selectAllCourses  } from "../../Features/courseSlice";
 import { isTeacherRole } from "../../utlls/teacherAccess";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -46,7 +31,7 @@ function AddModel({ isOpen, onClose, stayOpenOnSubmit = false }) {
   }, [dispatch, isOpen, authToken]);
 
   // if (fetchStatus === 'loading') {
-  //   return <div>Loading...</div>;
+  //   return <LcaLogoLoading size="sm" />;
   // }
 
   // if (fetchStatus === 'failure') {
@@ -107,7 +92,7 @@ function AddModel({ isOpen, onClose, stayOpenOnSubmit = false }) {
             </Text>
           </Box>
         )}
-        {fetchStatus === 'loading' && <div>Loading...</div>}
+        {fetchStatus === 'loading' && <LcaLogoLoading size="sm" />}
         {fetchStatus === 'failure' && <div>Error loading courses</div>}
         <form onSubmit={formik.handleSubmit}>
           <ModalBody>

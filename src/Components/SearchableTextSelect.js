@@ -10,6 +10,7 @@ function SearchableTextSelect({
   emptyMessage = "No matches",
   isDisabled = false,
   name,
+  allowCustom = false,
 }) {
   const containerRef = useRef(null);
   const [search, setSearch] = useState(value || "");
@@ -23,6 +24,18 @@ function SearchableTextSelect({
     );
   }, [options, search]);
 
+  const trimmedSearch = search.trim();
+  const hasExactMatch = useMemo(() => {
+    if (!trimmedSearch) return false;
+    const query = trimmedSearch.toLowerCase();
+    return options.some(
+      (option) => String(option).toLowerCase() === query
+    );
+  }, [options, trimmedSearch]);
+
+  const canCreate =
+    allowCustom && Boolean(trimmedSearch) && !hasExactMatch;
+
   useEffect(() => {
     setSearch(value || "");
   }, [value]);
@@ -34,14 +47,27 @@ function SearchableTextSelect({
         !containerRef.current.contains(event.target)
       ) {
         setIsOpen(false);
-        setSearch(value || "");
+        if (allowCustom) {
+          const next = search.trim();
+          if (next && next !== (value || "")) {
+            onChange(next);
+            setSearch(next);
+          } else if (!next) {
+            onChange("");
+            setSearch("");
+          } else {
+            setSearch(value || "");
+          }
+        } else {
+          setSearch(value || "");
+        }
         onBlur?.();
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [value, onBlur]);
+  }, [value, onBlur, allowCustom, search, onChange]);
 
   const handleInputChange = (event) => {
     const nextSearch = event.target.value;
@@ -53,15 +79,35 @@ function SearchableTextSelect({
   };
 
   const handleSelect = (option) => {
-    setSearch(option);
+    const next = String(option || "").trim();
+    setSearch(next);
     setIsOpen(false);
-    onChange(option);
+    onChange(next);
     onBlur?.();
   };
 
-  const showList = isOpen && !isDisabled && filteredOptions.length > 0;
+  const handleKeyDown = (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (canCreate) {
+      handleSelect(trimmedSearch);
+      return;
+    }
+    if (filteredOptions.length > 0) {
+      handleSelect(filteredOptions[0]);
+    }
+  };
+
+  const showList =
+    isOpen &&
+    !isDisabled &&
+    (filteredOptions.length > 0 || canCreate);
   const showEmpty =
-    isOpen && !isDisabled && search.trim() && filteredOptions.length === 0;
+    isOpen &&
+    !isDisabled &&
+    trimmedSearch &&
+    filteredOptions.length === 0 &&
+    !canCreate;
 
   return (
     <Box
@@ -74,6 +120,7 @@ function SearchableTextSelect({
         name={name}
         value={search}
         onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
         onFocus={() => {
           if (!isDisabled) setIsOpen(true);
         }}
@@ -115,6 +162,25 @@ function SearchableTextSelect({
               {option}
             </ListItem>
           ))}
+          {canCreate ? (
+            <ListItem
+              key={`__create__${trimmedSearch}`}
+              px={4}
+              py={2}
+              cursor="pointer"
+              bg="white"
+              color="#85652D"
+              fontWeight="600"
+              borderTop={
+                filteredOptions.length > 0 ? "1px solid #E0E8EC" : undefined
+              }
+              _hover={{ bg: "#FFF8EE" }}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => handleSelect(trimmedSearch)}
+            >
+              Add &quot;{trimmedSearch}&quot;
+            </ListItem>
+          ) : null}
         </List>
       ) : null}
       {showEmpty ? (

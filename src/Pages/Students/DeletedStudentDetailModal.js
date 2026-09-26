@@ -1,28 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Box,
-  Flex,
-  Text,
-  Badge,
-  SimpleGrid,
-  Spinner,
-  VStack,
-  HStack,
-  Divider,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Tabs, TabList, TabPanels, Tab, TabPanel, Box, Flex, Text, Badge, SimpleGrid, VStack, HStack, Divider } from "@chakra-ui/react";
 import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import Cookies from "js-cookie";
@@ -32,6 +9,7 @@ import {
   selectDeletionArchiveDetail,
 } from "../../Features/studentSlice";
 import PaymentEvidenceGallery from "../../Components/PaymentEvidenceGallery";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -138,7 +116,7 @@ function DeletedStudentDetailModal({ archiveId, isOpen, onClose }) {
         <ModalBody pb={6}>
           {isLoading || !archive ? (
             <Flex justify="center" py={10}>
-              <Spinner />
+              <LcaLogoLoading size="sm" />
             </Flex>
           ) : (
             <VStack align="stretch" spacing={5}>

@@ -1,15 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Spinner,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button } from "@chakra-ui/react";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@chakra-ui/react";
 import { TableContainer } from "@chakra-ui/react";
 import Cookies from "js-cookie";
@@ -34,6 +24,7 @@ import { fetchBatches } from "../../Features/batchSlice";
 import { Select, FormControl } from "@chakra-ui/react";
 import { selectActiveStudentBatches } from "../../Features/batchSlice";
 import { fetchStudentsByBatch } from "../../Features/studentSlice";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const isStudentBatch = (batch) =>
   batch && batch.is_active !== false && batch.is_interview_batch !== true;
@@ -236,7 +227,7 @@ const ExportModal = () => {
             </div>
             {fetchStatus === "loading" ? (
               <div className="flex justify-center items-center h-40 rounded-xl border border-[#E0E8EC]">
-                <Spinner />
+                <LcaLogoLoading size="sm" />
               </div>
             ) : (
               <>

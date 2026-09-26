@@ -1,29 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import {
-  Box,
-  Button,
-  Center,
-  Divider,
-  Flex,
-  FormControl,
-  FormLabel,
-  Grid,
-  GridItem,
-  Heading,
-  Image,
-  Input,
-  Radio,
-  RadioGroup,
-  SimpleGrid,
-  Spinner,
-  Stack,
-  Tag,
-  Text,
-  Textarea,
-  VStack,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Box, Button, Center, Divider, Flex, FormControl, FormLabel, Grid, GridItem, Heading, Image, Input, Radio, RadioGroup, SimpleGrid, Stack, Tag, Text, Textarea, VStack, Wrap, WrapItem } from "@chakra-ui/react";
 import { ArrowLeft, GraduationCap, UserRound } from "lucide-react";
 import Cookies from "js-cookie";
 import { useFormik } from "formik";
@@ -42,6 +18,7 @@ import {
   INTERVIEW_VERDICT_OPTIONS,
 } from "../../utlls/interviewEvaluation";
 import { normalizeEducationBackground } from "../../utlls/qualifierEducation";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const defaultAvatar =
   "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9";
@@ -187,7 +164,7 @@ function ConductInterview() {
   if (conductStatus === "loading" && !conductData) {
     return (
       <Center py={20}>
-        <Spinner size="lg" color="#85652D" />
+        <LcaLogoLoading size="sm" />
       </Center>
     );
   }

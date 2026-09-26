@@ -1,37 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Text,
-  FormControl,
-  FormLabel,
-  Input,
-  Alert,
-  AlertIcon,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Spinner,
-  Box,
-  Flex,
-  HStack,
-  VStack,
-  Badge,
-  SimpleGrid,
-  Divider,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Text, FormControl, FormLabel, Input, Alert, AlertIcon, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Box, Flex, HStack, VStack, Badge, SimpleGrid, Divider, useToast } from "@chakra-ui/react";
 import { useDispatch, useSelector } from "react-redux";
 import { FormInput, Users, Sparkles } from "lucide-react";
 import {
@@ -49,6 +18,7 @@ import {
   citySelectOptions,
   getCitiesForProvince,
 } from "../../utlls/pakistanProvinces";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -521,7 +491,7 @@ function QualifierFillNullFieldModal({ isOpen, onClose }) {
                   fontWeight="700"
                 >
                   {listLoading
-                    ? "Loading…"
+                    ? "…"
                     : listError
                       ? "Error"
                       : matchedCount == null
@@ -531,12 +501,7 @@ function QualifierFillNullFieldModal({ isOpen, onClose }) {
               </Flex>
 
               {listLoading ? (
-                <Flex py={12} justify="center" align="center" gap={3}>
-                  <Spinner color={accent.solidHover} thickness="3px" />
-                  <Text fontSize="sm" color={accent.muted}>
-                    Finding empty {fieldLabel.toLowerCase()} records…
-                  </Text>
-                </Flex>
+                <LcaLogoLoading size="sm" label="Loading" />
               ) : listError ? (
                 <Alert status="error" borderRadius="none" variant="subtle">
                   <AlertIcon />

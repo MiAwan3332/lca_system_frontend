@@ -1,24 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  HStack,
-  Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  Textarea,
-  useToast,
-  VStack,
-  Spinner,
-} from "@chakra-ui/react";
+import { Box, Button, FormControl, FormLabel, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Textarea, useToast, VStack } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Cookies from "js-cookie";
@@ -45,6 +26,7 @@ import {
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
 import { config } from "../../utlls/config";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const formatAmount = (amount) =>
   `Rs. ${Number(amount || 0).toLocaleString("en-PK", {
@@ -620,7 +602,7 @@ function GeneratePendingFeeSlipAction({
                 </Text>
                 {loadingRemarks ? (
                   <HStack spacing={2} py={2}>
-                    <Spinner size="sm" />
+                    <LcaLogoLoading size="sm" />
                     <Text fontSize="sm" color="gray.500">
                       Loading remarks…
                     </Text>

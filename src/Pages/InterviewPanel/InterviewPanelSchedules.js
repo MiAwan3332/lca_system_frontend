@@ -1,21 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  Text,
-  Badge,
-  HStack,
-  VStack,
-  Flex,
-  Spinner,
-  Center,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Stack,
-  IconButton,
-} from "@chakra-ui/react";
+import { Box, Button, Text, Badge, HStack, VStack, Flex, Center, FormControl, FormLabel, Input, Textarea, Stack, IconButton } from "@chakra-ui/react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -43,6 +27,7 @@ import {
   panelToScheduleRows,
 } from "../../utlls/interviewPanel";
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 function InterviewPanelSchedules() {
   const { id } = useParams();
@@ -177,7 +162,7 @@ function InterviewPanelSchedules() {
 
       {fetchOneStatus === "loading" && !panel ? (
         <Center py={16}>
-          <Spinner size="lg" color="#85652D" />
+          <LcaLogoLoading size="sm" />
         </Center>
       ) : !panel ? (
         <Center

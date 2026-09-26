@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Chart from 'react-apexcharts';
 import axios from 'axios';
+import LcaLogoLoading from "./LcaLogoLoading";
 
 const SeminarChart = ({ chartTitle }) => {
   const [chartOptions, setChartOptions] = useState({
@@ -84,7 +85,7 @@ const SeminarChart = ({ chartTitle }) => {
 
   // Conditional rendering to avoid rendering the chart with undefined or empty data
   if (chartSeries[0].data.length === 0 || chartOptions.xaxis.categories.length === 0) {
-    return <div>Loading...</div>;
+    return <LcaLogoLoading size="sm" />;
   }
 
   return (

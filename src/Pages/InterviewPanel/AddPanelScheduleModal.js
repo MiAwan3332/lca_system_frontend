@@ -1,28 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  VStack,
-  Stack,
-  Text,
-  Box,
-  Flex,
-  HStack,
-  Badge,
-  Spinner,
-  Divider,
-  IconButton,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, Textarea, Select, VStack, Stack, Text, Box, Flex, HStack, Badge, Divider, IconButton } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import moment from "moment";
@@ -49,6 +26,7 @@ import {
 } from "../../utlls/interviewPanel";
 import { formatClassTimeRange, formatTime12Hour } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -374,7 +352,7 @@ function AddPanelScheduleModal({
         >
           {loadingPanels ? (
             <Flex py={14} direction="column" align="center" gap={3}>
-              <Spinner color="#85652D" thickness="3px" size="lg" />
+              <LcaLogoLoading size="sm" />
               <Text fontSize="sm" color="gray.500">
                 Loading panels...
               </Text>

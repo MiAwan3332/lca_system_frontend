@@ -1,22 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import {
-  Badge,
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  HStack,
-  Image,
-  Input,
-  Spinner,
-  Text,
-  VStack,
-  useToast,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, FormControl, FormLabel, HStack, Image, Input, Text, VStack, useToast, Wrap, WrapItem } from "@chakra-ui/react";
 import {
   Link2,
   LogOut,
@@ -31,6 +16,7 @@ import { Navigate } from "react-router-dom";
 import PageHeader, { DataTableShell } from "../../Components/PageHeader";
 import { config } from "../../utlls/config";
 import { isPlatformSuperAdminRole } from "../../utlls/useful";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const STATUS_COLOR = {
   ready: "green",
@@ -330,7 +316,7 @@ function WhatsAppConnect() {
   if (loading) {
     return (
       <Box py={16} textAlign="center">
-        <Spinner size="lg" color="#85652D" />
+        <LcaLogoLoading size="sm" />
         <Text mt={3} className="dash-text-muted">
           Loading WhatsApp gateway…
         </Text>

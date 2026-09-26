@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Spinner,
-  Checkbox,
-  VStack,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Checkbox, VStack } from "@chakra-ui/react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useFormik } from "formik";
@@ -23,6 +11,7 @@ import {
   fetchPermissions,
 } from "../../Features/permissionSlice";
 import { useSelector, useDispatch } from "react-redux";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   selectAllAssignedPermissions,
   fetchAssignedPermissions,
@@ -102,7 +91,7 @@ const AssignPermissions = ({ roleId }) => {
           <form onSubmit={formik.handleSubmit}>
             <ModalBody>
               {fetchAssignedPermissionsStatus === "loading" ? (
-                <Spinner />
+                <LcaLogoLoading size="sm" />
               ) : (
                 <VStack spacing={2} align="stretch" w="full" maxH="60vh" overflowY="auto">
                   {permissions.map((permission) => (

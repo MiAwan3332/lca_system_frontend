@@ -1,21 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  SimpleGrid,
-  Text,
-  Badge,
-  HStack,
-  VStack,
-  Select,
-  Input,
-  Flex,
-  IconButton,
-  Spinner,
-  Center,
-  useDisclosure,
-  FormControl,
-} from "@chakra-ui/react";
+import { Box, Button, SimpleGrid, Text, Badge, HStack, VStack, Select, Input, Flex, IconButton, Center, useDisclosure, FormControl } from "@chakra-ui/react";
 import {
   CalendarDays,
   CalendarPlus,
@@ -56,6 +40,7 @@ import UpdateInterviewPanelModal from "./UpdateInterviewPanelModal";
 import DeleteInterviewPanelModal from "./DeleteInterviewPanelModal";
 import ViewInterviewPanelModal from "./ViewInterviewPanelModal";
 import ScheduleInterviewPanelModal from "./ScheduleInterviewPanelModal";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const formatPanelDuration = (panel) => {
   const { start_time, end_time } = getPanelTimeRange(panel);
@@ -225,7 +210,7 @@ function InterviewPanel() {
       <Box mt={{ base: 4, md: 5 }} w="full" minW={0}>
         {fetchStatus === "loading" ? (
           <Center py={{ base: 12, md: 16 }}>
-            <Spinner size="lg" color="#85652D" />
+            <LcaLogoLoading size="sm" />
           </Center>
         ) : panels.length === 0 ? (
           <Center

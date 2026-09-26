@@ -1,25 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  Box,
-  Flex,
-  Text,
-  Badge,
-  SimpleGrid,
-  Spinner,
-  Center,
-  Image,
-  Tag,
-  Wrap,
-  WrapItem,
-  VStack,
-  Divider,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Box, Flex, Text, Badge, SimpleGrid, Center, Image, Tag, Wrap, WrapItem, VStack, Divider } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,6 +15,7 @@ import {
   INTERVIEW_SCORE_MAX_TOTAL,
   getInterviewVerdictLabel,
 } from "../../utlls/interviewEvaluation";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import {
   responsiveModalContentProps,
   responsiveModalProps,
@@ -179,7 +160,7 @@ function InterviewEvaluationDetailsModal({ isOpen, onClose, scheduleRow }) {
         <ModalBody pb={6} px={{ base: 4, md: 6 }}>
           {evaluationDetailsStatus === "loading" && !evaluationDetails ? (
             <Center py={16}>
-              <Spinner size="lg" color="#85652D" />
+              <LcaLogoLoading size="sm" />
             </Center>
           ) : (
             <VStack align="stretch" spacing={5}>

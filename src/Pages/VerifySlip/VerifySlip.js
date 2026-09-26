@@ -1,19 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Box,
-  Badge,
-  Center,
-  Flex,
-  Image,
-  Spinner,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Badge, Center, Flex, Image, Text, VStack } from "@chakra-ui/react";
 import { CheckCircle2, MapPin, Phone, ShieldAlert } from "lucide-react";
 import axios from "axios";
 import { config } from "../../utlls/config";
 import { ACADEMY_BRANDING } from "../../utlls/academyBranding";
+import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 function VerifySlip() {
   const { token } = useParams();
@@ -90,7 +82,7 @@ function VerifySlip() {
           {loading ? (
             <Center py={16}>
               <VStack spacing={3}>
-                <Spinner size="lg" color="#85652D" />
+                <LcaLogoLoading size="sm" />
                 <Text fontSize="sm" color="gray.500">
                   Checking authenticity…
                 </Text>
