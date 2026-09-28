@@ -1,6 +1,9 @@
 /**
  * Shared in-flight request counter for the global LCA loading overlay.
- * Axios calls opt out with `{ skipLoading: true }`.
+ *
+ * Opt-in only: axios calls must set `{ showLoading: true }` (or header
+ * `X-Show-Loading: 1`) to trigger the full-screen overlay. Routine fetches
+ * (modals, tables, background polls) stay silent by default.
  */
 
 let pending = 0;
@@ -68,13 +71,13 @@ export const endGlobalLoading = () => {
 };
 
 export const shouldTrackAxiosLoading = (config = {}) => {
-  if (config.skipLoading === true) return false;
+  if (config.showLoading === true) return true;
   const headers = config.headers || {};
-  const skipHeader =
-    headers["X-Skip-Loading"] ||
-    headers["x-skip-loading"] ||
-    headers.common?.["X-Skip-Loading"];
-  if (String(skipHeader || "").toLowerCase() === "1") return false;
-  if (String(skipHeader || "").toLowerCase() === "true") return false;
-  return true;
+  const showHeader =
+    headers["X-Show-Loading"] ||
+    headers["x-show-loading"] ||
+    headers.common?.["X-Show-Loading"];
+  if (String(showHeader || "").toLowerCase() === "1") return true;
+  if (String(showHeader || "").toLowerCase() === "true") return true;
+  return false;
 };

@@ -27,27 +27,18 @@ import TableSearch from "../../Components/TableSearch";
 import TablePagination from "../../Components/TablePagination";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
+import { hasPermission } from "../../utlls/useful";
 
 function Roles() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);
   const onAddClose = () => setIsAddOpen(false);
 
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+  const [authToken] = useState(Cookies.get("authToken"));
 
   const { fetchStatus, pagination } = useSelector((state) => state.roles);
   const roles = useSelector(selectAllRoles);
   const dispatch = useDispatch();
-
-  const hasPermission = (permissionsToCheck) => {
-    const storedPermissions = sessionStorage.getItem("permissions");
-    const permissionsArray = storedPermissions
-      ? storedPermissions.split(",")
-      : [];
-    return permissionsToCheck.some((permission) =>
-      permissionsArray.includes(permission)
-    );
-  };
 
   useEffect(() => {
     dispatch(fetchRoles({ authToken }));

@@ -25,29 +25,10 @@ import { Select, FormControl } from "@chakra-ui/react";
 import { selectActiveStudentBatches } from "../../Features/batchSlice";
 import { fetchStudentsByBatch } from "../../Features/studentSlice";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
+import { compareStudentsByRollAscending } from "../../utlls/rollNumber";
 
 const isStudentBatch = (batch) =>
   batch && batch.is_active !== false && batch.is_interview_batch !== true;
-
-/** Ascending by roll no (OC-MARATHON-1, OC-MARATHON-2, …), then name. */
-const compareStudentsAscending = (a, b) => {
-  const rollA = String(a?.roll_number || "").trim();
-  const rollB = String(b?.roll_number || "").trim();
-  if (!rollA && rollB) return 1;
-  if (rollA && !rollB) return -1;
-  if (rollA !== rollB) {
-    return rollA.localeCompare(rollB, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-  }
-  const nameA = String(a?.name || "").trim().toLowerCase();
-  const nameB = String(b?.name || "").trim().toLowerCase();
-  if (nameA !== nameB) {
-    return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
-  }
-  return String(a?._id || "").localeCompare(String(b?._id || ""));
-};
 
 const ExportModal = () => {
   const fileHeaders = [
@@ -83,7 +64,7 @@ const ExportModal = () => {
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
 
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
+  const [authToken] = useState(Cookies.get("authToken"));
   const [selectedBatch, setSelectedBatch] = useState("");
   const [formBatch, setFormBatch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -94,7 +75,7 @@ const ExportModal = () => {
   const dispatch = useDispatch();
 
   const sortedStudents = useMemo(
-    () => [...(students || [])].sort(compareStudentsAscending),
+    () => [...(students || [])].sort(compareStudentsByRollAscending),
     [students]
   );
 
@@ -144,7 +125,7 @@ const ExportModal = () => {
       .unwrap()
       .then((data) => {
         const exportStudents = [...(data.docs || [])].sort(
-          compareStudentsAscending
+          compareStudentsByRollAscending
         );
         downloadExcel({
           fileName: "StudentsSheet[" + moment().format("DD/MM/YYYY") + "]",
