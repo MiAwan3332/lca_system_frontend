@@ -26,7 +26,7 @@ function AddModel({ isOpen, onClose, stayOpenOnSubmit = false }) {
   
   useEffect(() => {
     if (isOpen) {
-      dispatch(fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+      dispatch(fetchCourses({ authToken, queryParams: { limit: 100, page: 1, query: "" } }));
     }
   }, [dispatch, isOpen, authToken]);
 

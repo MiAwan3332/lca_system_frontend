@@ -72,7 +72,7 @@ const AssignTeachersModal = ({ batchId }) => {
         dispatch(
           fetchTeachers({
             authToken,
-            queryParams: { page: 1, limit: 1000, query: "" },
+            queryParams: { page: 1, limit: 100, query: "" },
           })
         ),
         dispatch(fetchBatchCourses({ authToken, batchId })),

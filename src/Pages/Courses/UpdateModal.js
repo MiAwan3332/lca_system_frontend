@@ -12,7 +12,6 @@ import {
   FormLabel,
   Input,
   VStack,
-  Boxv
 } from "@chakra-ui/react";
 import { useFormik } from "formik";
 import * as Yup from "yup";

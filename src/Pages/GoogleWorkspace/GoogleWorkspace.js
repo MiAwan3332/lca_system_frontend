@@ -110,7 +110,7 @@ function GoogleWorkspace() {
 
       setBatches(batchResponse.data?.docs || []);
       setAssignments(assignmentResponse.data?.docs || []);
-      setTimetable(Array.isArray(timetableResponse.data) ? timetableResponse.data : []);
+      setTimetable(Array.isArray(timetableResponse.data?.docs) ? timetableResponse.data.docs : []);
     } catch (error) {
       toast({
         title: "Unable to load portal records",

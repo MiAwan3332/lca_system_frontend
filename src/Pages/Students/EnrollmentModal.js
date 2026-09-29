@@ -64,7 +64,7 @@ const EnrollmentModal = ({ studentId }) => {
   };
 
   useEffect(() => {
-    dispatch(setLimitFilter(999999));
+    dispatch(setLimitFilter(100));
     dispatch(fetchBatches({ authToken }));
   }, []);
 

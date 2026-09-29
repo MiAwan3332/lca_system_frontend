@@ -131,7 +131,7 @@ function Announcements() {
 
   useEffect(() => {
     if (canManage) {
-      dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+      dispatch(fetchBatches({ authToken, queryParams: { limit: 100, page: 1, query: "" } }));
     }
     loadAnnouncements();
     if (viewOnly) {

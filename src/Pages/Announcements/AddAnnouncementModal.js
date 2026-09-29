@@ -44,7 +44,7 @@ function AddAnnouncementModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen && authToken) {
-      dispatch(setLimitFilter(200));
+      dispatch(setLimitFilter(100));
       dispatch(fetchBatches({ authToken }));
     }
   }, [isOpen, authToken, dispatch]);

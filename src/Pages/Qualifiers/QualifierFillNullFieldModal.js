@@ -72,7 +72,7 @@ function QualifierFillNullFieldModal({ isOpen, onClose }) {
     dispatch(
       fetchBatches({
         authToken,
-        queryParams: { limit: 200, page: 1, query: "" },
+        queryParams: { limit: 100, page: 1, query: "" },
       })
     );
   }, [isOpen, authToken, dispatch]);

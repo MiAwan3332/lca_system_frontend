@@ -114,7 +114,7 @@ function GeneratePendingFeeWizard() {
         headers: { Authorization: `Bearer ${authToken}` },
         params: {
           batch_id: id,
-          limit: 500,
+          limit: 100,
           page: 1,
           is_active: "true",
         },

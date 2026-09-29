@@ -71,7 +71,7 @@ function UpdateQualifierModal({ qualifier }) {
     dispatch(
       fetchBatches({
         authToken,
-        queryParams: { limit: 200, page: 1, query: "", is_active: "true" },
+        queryParams: { limit: 100, page: 1, query: "", is_active: "true" },
       })
     );
   }, [isOpen, authToken, dispatch]);

@@ -125,7 +125,7 @@ function Assignments() {
 
   useEffect(() => {
     if (!viewOnly) {
-      dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+      dispatch(fetchBatches({ authToken, queryParams: { limit: 100, page: 1, query: "" } }));
     } else {
       dispatch(fetchMyAssignmentCourses({ authToken }));
     }

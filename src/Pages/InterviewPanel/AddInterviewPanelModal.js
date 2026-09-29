@@ -73,7 +73,7 @@ function AddInterviewPanelModal({ isOpen, onClose }) {
         authToken,
         queryParams: {
           page: 1,
-          limit: 500,
+          limit: 100,
           query: "",
           is_active: "true",
         },

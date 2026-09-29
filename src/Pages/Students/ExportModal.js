@@ -26,6 +26,8 @@ import { selectActiveStudentBatches } from "../../Features/batchSlice";
 import { fetchStudentsByBatch } from "../../Features/studentSlice";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import { compareStudentsByRollAscending } from "../../utlls/rollNumber";
+import { fetchAllPaginated } from "../../utlls/fetchAllPaginated";
+import { config } from "../../utlls/config";
 
 const isStudentBatch = (batch) =>
   batch && batch.is_active !== false && batch.is_interview_batch !== true;
@@ -115,16 +117,15 @@ const ExportModal = () => {
     );
   };
 
-  function handleDownloadExcel() {
-    const tempLimit = pagination.limit;
-    dispatch(setLimitFilter(9999999));
-    dispatch(setPageFilter(1));
-    dispatch(setQueryFilter(""));
+  async function handleDownloadExcel() {
     setLoading(true);
-    dispatch(fetchStudentsByBatch({ authToken, batchId: formBatch }))
-      .unwrap()
-      .then((data) => {
-        const exportStudents = [...(data.docs || [])].sort(
+    try {
+        const records = await fetchAllPaginated({
+          url: `${config.BASE_URL}/students/batch/${formBatch}`,
+          headers: { Authorization: `Bearer ${authToken}` },
+          params: { query: "" },
+        });
+        const exportStudents = [...records].sort(
           compareStudentsByRollAscending
         );
         downloadExcel({
@@ -164,10 +165,10 @@ const ExportModal = () => {
         });
         setLoading(false);
         onClose();
-        dispatch(setPageFilter(1));
-        dispatch(setLimitFilter(tempLimit));
         dispatch(fetchStudents({ authToken }));
-      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

@@ -37,7 +37,7 @@ function UpdateModal({ mcq }) {
   useEffect(() => {
     if (isOpen) {
       dispatch(
-        fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+        fetchCourses({ authToken, queryParams: { limit: 100, page: 1, query: "" } })
       );
     }
   }, [dispatch, isOpen, authToken]);

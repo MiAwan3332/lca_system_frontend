@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { createStandaloneToast } from "@chakra-ui/react";
 import { config } from "../utlls/config.js";
+import { fetchAllPaginated } from "../utlls/fetchAllPaginated.js";
 
 const { toast } = createStandaloneToast();
 
@@ -18,24 +19,18 @@ const initialState = {
 
 const fetchTimeTableEvents = createAsyncThunk(
   "timetable/fetchTimeTableEvents",
-  async ({ authToken, batch_id, course_id, teacher_id }) => {
-    const params = new URLSearchParams();
-    if (batch_id) params.set("batch_id", batch_id);
-    if (course_id) params.set("course_id", course_id);
-    if (teacher_id) params.set("teacher_id", teacher_id);
-    const queryString = params.toString();
-    const response = await fetch(
-      `${BASE_URL}/timetable${queryString ? `?${queryString}` : ""}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-      }
-    );
-    const data = await response.json();
-    return data;
+  async ({ authToken, batch_id, course_id, teacher_id, start_date, end_date }) => {
+    return fetchAllPaginated({
+      url: `${BASE_URL}/timetable`,
+      headers: { Authorization: `Bearer ${authToken}` },
+      params: {
+        batch_id,
+        course_id,
+        teacher_id,
+        start_date,
+        end_date,
+      },
+    });
   }
 );
 

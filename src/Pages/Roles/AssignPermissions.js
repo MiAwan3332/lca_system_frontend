@@ -43,7 +43,7 @@ const AssignPermissions = ({ roleId }) => {
   };
 
   useEffect(() => {
-    dispatch(setLimitFilter(999999));
+    dispatch(setLimitFilter(100));
     dispatch(fetchPermissions({ authToken }));
   }, []);
 

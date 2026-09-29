@@ -143,7 +143,7 @@ function ShiftBatchModal({ student }) {
         fetchBatches({
           authToken,
           queryParams: {
-            limit: 200,
+            limit: 100,
             page: 1,
             query: "",
             is_active: "true",

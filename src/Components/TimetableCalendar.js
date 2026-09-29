@@ -53,6 +53,10 @@ export default function TimetableCalendar({
   } = useDisclosure();
 
   const [events, setEvents] = useState([]);
+  const [visibleRange, setVisibleRange] = useState(() => ({
+    start: moment().startOf("month").subtract(7, "days").format("YYYY-MM-DD"),
+    end: moment().endOf("month").add(7, "days").format("YYYY-MM-DD"),
+  }));
 
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
 
@@ -305,6 +309,8 @@ export default function TimetableCalendar({
         batch_id: filterBatchId || undefined,
         course_id: filterCourseId || undefined,
         teacher_id: filterTeacherId || undefined,
+        start_date: visibleRange.start,
+        end_date: visibleRange.end,
       })
     )
       .unwrap()
@@ -321,7 +327,19 @@ export default function TimetableCalendar({
         }));
         setEvents(formattedData);
       });
-  }, [authToken, filterBatchId, filterCourseId, filterTeacherId]);
+  }, [authToken, filterBatchId, filterCourseId, filterTeacherId, visibleRange]);
+
+  const handleRangeChange = useCallback((range) => {
+    const dates = Array.isArray(range)
+      ? range
+      : [range?.start, range?.end].filter(Boolean);
+    if (!dates.length) return;
+
+    setVisibleRange({
+      start: moment(dates[0]).format("YYYY-MM-DD"),
+      end: moment(dates[dates.length - 1]).format("YYYY-MM-DD"),
+    });
+  }, []);
 
   return (
     <>
@@ -337,6 +355,7 @@ export default function TimetableCalendar({
           events={events}
           onSelectEvent={handleSelectEvent}
           onSelectSlot={viewOnly ? undefined : handleSelectSlot}
+          onRangeChange={handleRangeChange}
           selectable={!viewOnly}
           scrollToTime={scrollToTime}
           components={{

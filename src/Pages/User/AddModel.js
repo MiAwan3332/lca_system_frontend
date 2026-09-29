@@ -49,7 +49,7 @@ function AddModel({ isOpen, onClose }) {
       try {
         const response = await axios.get(`${config.BASE_URL}/roles`, {
           headers: { Authorization: `Bearer ${authToken}` },
-          params: { page: 1, limit: 1000, query: "" },
+          params: { page: 1, limit: 100, query: "" },
         });
         if (!cancelled) {
           setRoles(

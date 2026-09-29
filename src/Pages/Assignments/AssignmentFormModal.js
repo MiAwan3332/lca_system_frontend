@@ -73,7 +73,7 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
       dispatch(
         fetchBatches({
           authToken,
-          queryParams: { limit: 200, page: 1, query: "" },
+          queryParams: { limit: 100, page: 1, query: "" },
         })
       );
     }

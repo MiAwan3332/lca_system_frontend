@@ -123,7 +123,7 @@ function AddPanelScheduleModal({
           `${config.BASE_URL}/interview-panels`,
           {
             headers: { Authorization: `Bearer ${authToken}` },
-            params: { page: 1, limit: 500 },
+            params: { page: 1, limit: 100 },
           }
         );
         if (cancelled) return;

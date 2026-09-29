@@ -462,7 +462,7 @@ function AddStudnet({ isOpen, onClose }) {
     setIsPrintingSlip(false);
     setFormSessionKey((key) => key + 1);
     dispatch(
-      fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+      fetchBatches({ authToken, queryParams: { limit: 100, page: 1, query: "" } })
     );
   }, [isOpen, dispatch, authToken]);
 

@@ -58,7 +58,7 @@ function Course() {
 
   useEffect(() => {
     if (canManageInstitution) {
-      dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+      dispatch(fetchBatches({ authToken, queryParams: { limit: 100, page: 1, query: "" } }));
     }
     loadCourses();
   }, []);

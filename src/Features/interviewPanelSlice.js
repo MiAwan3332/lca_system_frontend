@@ -82,7 +82,7 @@ export const fetchInterviewPanelScheduleBoard = createAsyncThunk(
         headers: { Authorization: `Bearer ${authToken}` },
         params: {
           page: 1,
-          limit: 500,
+          limit: 100,
           query,
           status,
           start_date,
