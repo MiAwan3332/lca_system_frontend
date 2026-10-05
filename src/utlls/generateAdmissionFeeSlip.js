@@ -88,7 +88,7 @@ const toJpegDataUrl = async (source, maxSide = 900) => {
 };
 
 const getPaymentLabel = (paymentOption, { isFullyDiscounted = false } = {}) => {
-  if (isFullyDiscounted) return "Fully Discounted";
+  if (isFullyDiscounted) return "No Dues";
   if (paymentOption === "full") return "Full Payment";
   if (paymentOption === "partial") return "Partial Payment";
   return "Pay Later";
@@ -215,7 +215,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
 
   const paymentLabel = getPaymentLabel(paymentOption, { isFullyDiscounted });
   const methodLabel = isFullyDiscounted
-    ? "Discount"
+    ? "N/A"
     : paidAmount > 0
       ? paymentMethod
       : "N/A";
@@ -355,9 +355,6 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
   y = drawRow("Payment", paymentLabel, y);
   y = drawRow("Method", methodLabel, y, true);
   y = drawRow("Paid Amount", formatCurrency(paidAmount), y);
-  if (discount > 0) {
-    y = drawRow("Discount", formatCurrency(discount), y, true);
-  }
   y = drawRow(
     "Next Installment",
     pendingAmount > 0
@@ -366,16 +363,8 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
         : "To be scheduled"
       : "N/A",
     y,
-    discount <= 0
+    true
   );
-  const remarksText = String(data?.remarks || "").trim();
-  const discountRemarksText = String(data?.discountRemarks || "").trim();
-  if (remarksText) {
-    y = drawRow("Remarks", remarksText, y);
-  }
-  if (discountRemarksText) {
-    y = drawRow("Discount Remarks", discountRemarksText, y, true);
-  }
   y += 1.5;
 
   const hasPendingDues = pendingAmount > 0;
@@ -405,7 +394,7 @@ export const generateAdmissionFeeSlip = async (data, mode = "print") => {
     total: Math.max(grossFee - discount, 0),
     paid: paidAmount,
     pending: pendingAmount,
-    totalLabel: discount > 0 ? "After Discount" : "Total",
+    totalLabel: "Total",
     formatCurrency,
     colors: COLORS,
   });
