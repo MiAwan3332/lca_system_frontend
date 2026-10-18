@@ -4,6 +4,7 @@ import { createStandaloneToast } from "@chakra-ui/react";
 import { config } from "../utlls/config.js";
 import { whatsappWelcomeDescription } from "../utlls/whatsappWelcome.js";
 import axios from 'axios';
+import { createWithRecovery } from '../utlls/creationRecovery';
 
 const { toast } = createStandaloneToast();
 
@@ -109,28 +110,7 @@ const fetchStudentsByBatch = createAsyncThunk('students/fetchStudentsByBatch', a
 const addStudent = createAsyncThunk('students/addStudent', async (payload, { rejectWithValue }) => {
     const { authToken, student, formData } = payload;
     try {
-        if (formData) {
-            const response = await axios.post(`${BASE_URL}/students/add`, formData, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
-            });
-            return response.data;
-        }
-
-        const response = await fetch(`${BASE_URL}/students/add`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${authToken}`,
-            },
-            body: JSON.stringify(student),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            return rejectWithValue(data.message || 'Failed to add student');
-        }
-        return data;
+        return await createWithRecovery('student', authToken, formData || student);
     } catch (error) {
         return rejectWithValue(
             error.response?.data?.message || error.message || 'Failed to add student'
@@ -677,8 +657,8 @@ const studentSlice = createSlice({
                 state.addStatus = 'success';
                 const wa = action.payload?.whatsapp_welcome;
                 toast({
-                    title: "Student added successfully!",
-                    description: whatsappWelcomeDescription(wa),
+                    title: action.payload?.submission_status === 'complete' ? 'Student added successfully!' : 'Confirming student creation',
+                    description: action.payload?.submission_status === 'complete' ? whatsappWelcomeDescription(wa) : 'Keep this form open while we check the result. Do not submit again.',
                     status:
                         wa?.queued || wa?.sent
                             ? "success"

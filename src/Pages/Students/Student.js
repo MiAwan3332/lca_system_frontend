@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
+import { CreationStatusButton } from '../../Components/CreationProcessing';
 import {
   Table,
   Thead,
@@ -685,6 +686,7 @@ function Student() {
                           </Badge>
                         )}
                       </HStack>
+                      <CreationStatusButton kind="student" record={student} authToken={authToken} />
                     </Td>
                     <Td>{student.phone}</Td>
                     <Td>{student.city || "-"}</Td>

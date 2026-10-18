@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -22,6 +22,8 @@ import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, addUser } from "../../Features/userSlice";
 import { config } from "../../utlls/config";
+import CreationProcessing from '../../Components/CreationProcessing';
+import { pendingCreationKey } from '../../utlls/creationRecovery';
 
 const isExcludedUserFormRole = (roleName) => {
   const name = String(roleName || "")
@@ -36,6 +38,15 @@ function AddModel({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [roles, setRoles] = useState([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  const [submission, setSubmission] = useState(null);
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const key = pendingCreationKey('user', authToken);
+    if (!key) formRef.current?.resetForm();
+    setSubmission(key ? { idempotency_key: key, submission_status: 'unknown' } : null);
+  }, [isOpen, authToken]);
 
   const { addStatus } = useSelector((state) => state.users);
   const dispatch = useDispatch();
@@ -87,16 +98,14 @@ function AddModel({ isOpen, onClose }) {
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      dispatch(addUser({ formData: values, authToken }))
-        .unwrap()
-        .then(() => {
-          formik.resetForm();
-          onClose();
-          dispatch(fetchUsers({ authToken }));
-        })
-        .catch(() => {});
+      try {
+        const result = await dispatch(addUser({ formData: values, authToken })).unwrap();
+        setSubmission(result);
+        if (result.submission_status === 'complete') dispatch(fetchUsers({ authToken }));
+      } catch { /* The shared request handler displays validation errors. */ }
     },
   });
+  formRef.current = formik;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -106,7 +115,11 @@ function AddModel({ isOpen, onClose }) {
         <ModalCloseButton />
         <form onSubmit={formik.handleSubmit}>
           <ModalBody>
-            <VStack spacing={4}>
+            {submission && <Box mb={4}><CreationProcessing kind="user" authToken={authToken}
+              submissionKey={submission.idempotency_key} initial={submission}
+              onReset={() => setSubmission(null)}
+              onResolved={() => dispatch(fetchUsers({ authToken }))} /></Box>}
+            <VStack as="fieldset" disabled={addStatus === 'loading' || Boolean(submission)} spacing={4} width="100%">
               <FormControl id="name" isRequired>
                 <FormLabel fontSize={14}>Name</FormLabel>
                 <Input
@@ -214,6 +227,7 @@ function AddModel({ isOpen, onClose }) {
               type="submit"
               loadingText="Adding"
               isLoading={addStatus === "loading"}
+              isDisabled={Boolean(submission)}
             >
               Add
             </Button>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { CreationStatusButton } from '../../Components/CreationProcessing';
 import {
   Table,
   Thead,
@@ -110,6 +111,7 @@ function User() {
                           className="h-10 w-10 rounded-full"
                         />
                         <span>{user.name}</span>
+                        <CreationStatusButton kind="user" record={user} authToken={authToken} />
                       </div>
                     </Td>
                     <Td>{user.email}</Td>

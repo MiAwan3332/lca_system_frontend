@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { createStandaloneToast } from "@chakra-ui/react";
 import axios from 'axios';
+import { createWithRecovery } from '../utlls/creationRecovery';
 import { config } from "../utlls/config.js";
 import { whatsappWelcomeDescription } from "../utlls/whatsappWelcome.js";
 
@@ -39,22 +40,9 @@ const addUser = createAsyncThunk(
     async (payload, { rejectWithValue }) => {
         const { formData, authToken } = payload;
         try {
-            const response = await axios.post(
-                `${BASE_URL}/users/add`,
-                {
-                    name: formData.name,
-                    email: formData.email,
-                    phone: formData.phone,
-                    role: formData.role,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-            return response.data;
+            return await createWithRecovery('user', authToken, {
+                name: formData.name, email: formData.email, phone: formData.phone, role: formData.role,
+            });
         } catch (error) {
             return rejectWithValue(
                 error?.response?.data?.message || error.message || "Failed to add user"
@@ -135,8 +123,8 @@ const userSlice = createSlice({
                 const wa = action.payload?.whatsapp_welcome;
                 const waNote = whatsappWelcomeDescription(wa);
                 toast({
-                    title: 'User added successfully',
-                    description: waNote,
+                    title: action.payload?.submission_status === 'complete' ? 'User added successfully' : 'Confirming user creation',
+                    description: action.payload?.submission_status === 'complete' ? waNote : 'Keep this form open while we check the result. Do not submit again.',
                     status:
                         wa?.queued || wa?.sent
                             ? "success"

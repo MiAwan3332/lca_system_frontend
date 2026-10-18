@@ -43,6 +43,8 @@ import { generateAdmissionFeeSlip } from "../../utlls/generateAdmissionFeeSlip";
 import { formatClassTimeRange } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
 import axios from "axios";
+import CreationProcessing from '../../Components/CreationProcessing';
+import { pendingCreationKey } from '../../utlls/creationRecovery';
 
 import {
   FEE_PAYMENT_METHODS,
@@ -86,6 +88,7 @@ function AddStudnet({ isOpen, onClose }) {
   const [paymentOption, setPaymentOption] = useState("later");
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
   const [createdStudent, setCreatedStudent] = useState(null);
+  const [submission, setSubmission] = useState(null);
   const [mustPrintZeroSlip, setMustPrintZeroSlip] = useState(false);
   const [formSessionKey, setFormSessionKey] = useState(0);
   const toast = useToast();
@@ -383,6 +386,8 @@ function AddStudnet({ isOpen, onClose }) {
         const created = await dispatch(
           addStudent({ authToken, formData })
         ).unwrap();
+        setSubmission(created);
+        if (created.submission_status !== 'complete') return;
         dispatch(fetchStudents({ authToken }));
         // Normalize API shape (student may be nested or use `id`)
         const raw = created?.student || created?.data || created || {};
@@ -458,6 +463,8 @@ function AddStudnet({ isOpen, onClose }) {
     setPaymentEvidenceError("");
     setPaymentOption("later");
     setCreatedStudent(null);
+    const pendingKey = pendingCreationKey('student', authToken);
+    setSubmission(pendingKey ? { idempotency_key: pendingKey, submission_status: 'unknown' } : null);
     setMustPrintZeroSlip(false);
     setIsPrintingSlip(false);
     setFormSessionKey((key) => key + 1);
@@ -1189,6 +1196,16 @@ function AddStudnet({ isOpen, onClose }) {
         </ModalHeader>
         {createdStudent ? null : <ModalCloseButton />}
         <ModalBody flex="1" overflowY="auto" py={4}>
+          {submission && <Box mb={4}>
+            <CreationProcessing kind="student" authToken={authToken} submissionKey={submission.idempotency_key}
+              initial={submission} onReset={() => setSubmission(null)} onFinished={(record) => {
+                setCreatedStudent((previous) => record.submission_status === 'complete' ? { ...previous, ...record } : previous);
+                dispatch(fetchStudents({ authToken }));
+              }} onResolved={(record) => {
+                setCreatedStudent((previous) => previous || record);
+                dispatch(fetchStudents({ authToken }));
+              }} />
+          </Box>}
           {createdStudent ? (
             <Box
               mb={4}
@@ -1211,7 +1228,7 @@ function AddStudnet({ isOpen, onClose }) {
               </Text>
             </Box>
           ) : null}
-          <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
+          <Grid as="fieldset" disabled={addStatus === 'loading' || Boolean(submission && !createdStudent)} templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
             <GridItem>
               <FormControl id="name" isRequired>
                 <FormLabel fontSize={14}>Name</FormLabel>
@@ -1528,6 +1545,7 @@ function AddStudnet({ isOpen, onClose }) {
             isLoading={addStatus === "loading"}
             isDisabled={
               Boolean(createdStudent) ||
+              Boolean(submission) ||
               (isPaidBatch &&
                 !isFullyDiscounted &&
                 (paymentOption === "partial" ||
