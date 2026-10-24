@@ -92,7 +92,16 @@ export const generateFeeDueReport = (report, mode = "download") => {
   doc.text(`Report date: ${report.report_date_label || moment().format("DD MMM YYYY")}`, margin, y);
   y += 4;
   doc.text(`Generated: ${report.generated_at || moment().format("DD MMM YYYY, hh:mm A")}`, margin, y);
-  y += 8;
+  y += 4;
+  if (report.filter_summary) {
+    const filterLines = doc.splitTextToSize(
+      `Filters: ${report.filter_summary}`,
+      pageWidth - margin * 2
+    );
+    doc.text(filterLines, margin, y);
+    y += filterLines.length * 4 + 2;
+  }
+  y += 4;
 
   const summary = report.summary || {};
   const cards = [
@@ -141,11 +150,12 @@ export const generateFeeDueReport = (report, mode = "download") => {
     const columns = {
       totalWidth: pageWidth - margin * 2,
       items: [
-        { label: "Student", width: 42 },
-        { label: "Batch", width: 28 },
-        { label: "Amount (Rs.)", width: 24 },
-        { label: "Due Date", width: 28 },
-        { label: overdueSection ? "Overdue By" : "Status", width: 24 },
+        { label: "Student", width: 34 },
+        { label: "Roll No", width: 28 },
+        { label: "Batch", width: 24 },
+        { label: "Amount (Rs.)", width: 22 },
+        { label: "Due Date", width: 24 },
+        { label: overdueSection ? "Overdue By" : "Status", width: 20 },
       ],
     };
 
@@ -158,6 +168,7 @@ export const generateFeeDueReport = (report, mode = "download") => {
         columns,
         [
           entry.student_name,
+          entry.roll_number || "—",
           entry.batch_name,
           formatRs(entry.amount),
           entry.due_date_label,

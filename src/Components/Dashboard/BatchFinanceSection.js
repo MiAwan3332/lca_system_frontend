@@ -23,6 +23,17 @@ const formatRs = (value) =>
 const formatCount = (value) =>
   Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 });
 
+const emptyTotals = () => ({
+  active_students: 0,
+  total_fee_created: 0,
+  discount: 0,
+  received: 0,
+  cash: 0,
+  online: 0,
+  refund: 0,
+  pending: 0,
+});
+
 const buildParams = (filters = {}) => {
   const params = {};
   if (filters.batch_id) {
@@ -37,18 +48,11 @@ const buildParams = (filters = {}) => {
 
 /**
  * Dashboard table: active batches — students, fee created, discount,
- * received, refund, pending.
+ * received (cash + online), refund, pending.
  */
 function BatchFinanceSection({ filters = {} }) {
   const [rows, setRows] = useState([]);
-  const [totals, setTotals] = useState({
-    active_students: 0,
-    total_fee_created: 0,
-    discount: 0,
-    received: 0,
-    refund: 0,
-    pending: 0,
-  });
+  const [totals, setTotals] = useState(emptyTotals);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -73,16 +77,7 @@ function BatchFinanceSection({ filters = {} }) {
         );
 
         setRows(Array.isArray(data?.batches) ? data.batches : []);
-        setTotals(
-          data?.totals || {
-            active_students: 0,
-            total_fee_created: 0,
-            discount: 0,
-            received: 0,
-            refund: 0,
-            pending: 0,
-          }
-        );
+        setTotals({ ...emptyTotals(), ...(data?.totals || {}) });
       } catch (err) {
         setError(
           err?.response?.data?.message ||
@@ -125,6 +120,18 @@ function BatchFinanceSection({ filters = {} }) {
         isMoney: true,
       },
       {
+        label: "Cash",
+        value: totals.cash,
+        color: "teal",
+        isMoney: true,
+      },
+      {
+        label: "Online",
+        value: totals.online,
+        color: "cyan",
+        isMoney: true,
+      },
+      {
         label: "Refund",
         value: totals.refund,
         color: "pink",
@@ -148,8 +155,8 @@ function BatchFinanceSection({ filters = {} }) {
             Batch-wise Fee Summary
           </h2>
           <p className="text-sm dash-text-muted">
-            Active students, fee created, discount, received, refund, and
-            pending dues for active batches only
+            Active students, fee created, discount, received (cash / online),
+            refund, and pending dues for active batches only
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -188,6 +195,8 @@ function BatchFinanceSection({ filters = {} }) {
                 <Th isNumeric>Total Fee Created</Th>
                 <Th isNumeric>Discount</Th>
                 <Th isNumeric>Received</Th>
+                <Th isNumeric>Cash</Th>
+                <Th isNumeric>Online</Th>
                 <Th isNumeric>Refund</Th>
                 <Th isNumeric>Pending Dues</Th>
               </Tr>
@@ -212,6 +221,16 @@ function BatchFinanceSection({ filters = {} }) {
                   <Td isNumeric>
                     <Badge colorScheme="green" borderRadius="md">
                       {formatRs(row.received)}
+                    </Badge>
+                  </Td>
+                  <Td isNumeric>
+                    <Badge colorScheme="teal" borderRadius="md">
+                      {formatRs(row.cash)}
+                    </Badge>
+                  </Td>
+                  <Td isNumeric>
+                    <Badge colorScheme="cyan" borderRadius="md">
+                      {formatRs(row.online)}
                     </Badge>
                   </Td>
                   <Td isNumeric>
@@ -245,6 +264,12 @@ function BatchFinanceSection({ filters = {} }) {
                 </Td>
                 <Td isNumeric fontWeight="700">
                   {formatRs(totals.received)}
+                </Td>
+                <Td isNumeric fontWeight="700">
+                  {formatRs(totals.cash)}
+                </Td>
+                <Td isNumeric fontWeight="700">
+                  {formatRs(totals.online)}
                 </Td>
                 <Td isNumeric fontWeight="700">
                   {formatRs(totals.refund)}
