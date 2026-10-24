@@ -27,6 +27,7 @@ function PaymentEvidenceUploader({
   const fileInputRef = useRef(null);
   const [showCamera, setShowCamera] = useState(false);
   const [previews, setPreviews] = useState([]);
+  const [validationError, setValidationError] = useState('');
 
   const list = useMemo(
     () => (Array.isArray(files) ? files.filter(Boolean) : []),
@@ -59,6 +60,11 @@ function PaymentEvidenceUploader({
   }, [list]);
 
   const emit = (nextFiles) => {
+    if (nextFiles.length > 10 || nextFiles.some((file) => file.size > 10 * 1024 * 1024 || !/\.(jpe?g|png|webp|pdf)$/i.test(file.name))) {
+      setValidationError('Choose up to ten JPG, PNG, WebP or PDF files, each at most 10 MB.');
+      return;
+    }
+    setValidationError('');
     onChange?.(nextFiles);
   };
 
@@ -138,7 +144,7 @@ function PaymentEvidenceUploader({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/jpeg,image/png,image/webp,image/gif,image/*,application/pdf"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
         // Native hidden input — must NOT be HTML-required (browser can't focus it)
         tabIndex={-1}
         aria-hidden="true"
@@ -233,9 +239,9 @@ function PaymentEvidenceUploader({
         </Text>
       )}
 
-      {error ? (
+      {error || validationError ? (
         <Text color="red.500" fontSize="sm" mt={2}>
-          {error}
+          {error || validationError}
         </Text>
       ) : null}
     </Box>

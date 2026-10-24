@@ -23,11 +23,11 @@ export function clearCreationKey(kind, token, key) {
   memory.delete(slot);
   try { sessionStorage.removeItem(slot); } catch { /* Session storage may be unavailable. */ }
 }
-export async function readCreation(kind, token, key, recordId, signal) {
+export async function readCreation(kind, token, key, recordId, signal, requestId) {
   const group = kind === 'student' ? 'students' : 'users';
   const url = recordId ? `${group}/${recordId}/processing` : `${group}/by-key/${encodeURIComponent(key)}`;
   return (await axios.get(`${config.BASE_URL}/${url}`, {
-    headers: { Authorization: `Bearer ${token}` }, timeout: 10000, signal,
+    headers: { Authorization: `Bearer ${token}` }, timeout: 10000, signal, params: requestId ? { request_id: requestId } : undefined,
   })).data;
 }
 export async function createWithRecovery(kind, token, body) {

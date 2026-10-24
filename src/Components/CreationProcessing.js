@@ -7,7 +7,7 @@ import { clearCreationKey, readCreation } from '../utlls/creationRecovery';
 
 const labelFor = (name) => name === 'welcome' ? 'WhatsApp welcome' : name.startsWith('avatar:') ? 'Avatar upload' : 'Payment evidence upload';
 
-export default function CreationProcessing({ kind, authToken, submissionKey, recordId, initial, onResolved, onReset, onFinished }) {
+export default function CreationProcessing({ kind, authToken, submissionKey, recordId, requestId, initial, onResolved, onReset, onFinished }) {
   const [data, setData] = useState(initial);
   const [message, setMessage] = useState('');
   const [revision, setRevision] = useState(0);
@@ -26,7 +26,7 @@ export default function CreationProcessing({ kind, authToken, submissionKey, rec
     const poll = async () => {
       checks++;
       try {
-        const result = await readCreation(kind, authToken, submissionKey, recordId, controller.signal);
+        const result = await readCreation(kind, authToken, submissionKey, recordId, controller.signal, requestId);
         if (disposed) return;
         setData(result);
         setMessage('');
@@ -60,14 +60,14 @@ export default function CreationProcessing({ kind, authToken, submissionKey, rec
     };
     poll();
     return () => { disposed = true; clearTimeout(timer); controller.abort(); };
-  }, [kind, authToken, submissionKey, recordId, revision]);
+  }, [kind, authToken, submissionKey, recordId, requestId, revision]);
 
   const retry = async () => {
     setRetrying(true);
     try {
       const group = kind === 'student' ? 'students' : 'users';
       await axios.post(`${config.BASE_URL}/${group}/${recordId || data?.record_id}/processing/retry`, {},
-        { headers: { Authorization: `Bearer ${authToken}` }, timeout: 10000 });
+        { headers: { Authorization: `Bearer ${authToken}`, ...(data?.idempotency_key || submissionKey ? { 'Idempotency-Key': data?.idempotency_key || submissionKey } : {}) }, timeout: 10000 });
       setRevision((value) => value + 1);
     } catch (error) { setMessage(error.response?.data?.message || 'Could not queue a retry. Check the status again.'); }
     finally { setRetrying(false); }

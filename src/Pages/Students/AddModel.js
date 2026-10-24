@@ -44,6 +44,7 @@ import { formatClassTimeRange } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
 import axios from "axios";
 import CreationProcessing from '../../Components/CreationProcessing';
+import StudentIdentityNotice from '../../Components/StudentIdentityNotice';
 import { pendingCreationKey } from '../../utlls/creationRecovery';
 
 import {
@@ -89,6 +90,7 @@ function AddStudnet({ isOpen, onClose }) {
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
   const [createdStudent, setCreatedStudent] = useState(null);
   const [submission, setSubmission] = useState(null);
+  const [identityCheck, setIdentityCheck] = useState({ blocked: true });
   const [mustPrintZeroSlip, setMustPrintZeroSlip] = useState(false);
   const [formSessionKey, setFormSessionKey] = useState(0);
   const toast = useToast();
@@ -343,6 +345,11 @@ function AddStudnet({ isOpen, onClose }) {
       const formData = new FormData();
       formData.append("name", values.name);
       formData.append("phone", values.phone);
+      if (identityCheck.blocked) {
+        toast({ title: 'Check student identity', description: identityCheck.error || 'Resolve the existing student or pending dues before saving.', status: 'warning' });
+        return;
+      }
+      formData.append('reuse_existing', 'true');
       if (values.cnic?.trim()) {
         formData.append("cnic", values.cnic.trim());
       }
@@ -1284,6 +1291,14 @@ function AddStudnet({ isOpen, onClose }) {
                     {formik.errors.phone}
                   </Box>
                 ) : null}
+                <StudentIdentityNotice phone={formik.values.phone} batch={formik.values.batch} authToken={authToken} active={isOpen}
+                  onResult={(result) => {
+                    setIdentityCheck(result);
+                    if (result.student) {
+                      formik.setFieldValue('name', result.student.name || '', false);
+                      formik.setFieldValue('cnic', result.student.cnic || '', false);
+                    }
+                  }} />
               </FormControl>
             </GridItem>
 
@@ -1544,6 +1559,7 @@ function AddStudnet({ isOpen, onClose }) {
             loadingText="Adding"
             isLoading={addStatus === "loading"}
             isDisabled={
+              identityCheck.blocked ||
               Boolean(createdStudent) ||
               Boolean(submission) ||
               (isPaidBatch &&

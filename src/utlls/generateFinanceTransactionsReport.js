@@ -33,7 +33,7 @@ export const FINANCE_EXPORT_HEADERS = [
   "REMARKS",
 ];
 
-const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) => {
+export const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) => {
   let source = Array.isArray(transactions) ? [...transactions] : [];
 
   source = source.filter(
@@ -49,9 +49,23 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
         t?.type === "refund"
       );
     });
-    if (paidOrRefund.length) {
-      source = paidOrRefund;
+    source = paidOrRefund;
+  }
+
+  if (paymentsOnly) {
+    const groups = new Map();
+    for (const [index, transaction] of source.entries()) {
+      const identity = transaction.student_id && transaction.student_id !== 'N/A' ? transaction.student_id : transaction._id || `unidentified-${index}`;
+      const key = JSON.stringify([identity, transaction.batch_id || transaction.batch_name, transaction.roll_number]);
+      const amount = Math.abs(toNumber(transaction.action_amount ?? transaction.amount));
+      const signed = String(transaction.action_type).toLowerCase() === 'refund' || transaction.type === 'refund' ? -amount : amount;
+      const row = groups.get(key) || { ...transaction, daily_cash: 0, daily_online: 0, daily_paid: 0 };
+      row.daily_paid += signed;
+      if (isOnlineMethod(transaction.payment_method)) row.daily_online += signed;
+      else row.daily_cash += signed;
+      groups.set(key, row);
     }
+    source = [...groups.values()];
   }
 
   return source.map((t, index) => {
@@ -95,10 +109,10 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
           : t.student_name || "",
       CONTACTS: String(t.student_phone || t.phone || t.contact || "").trim(),
       TOTAL: toNumber(t.total_batch_fee ?? t.total_fee),
-      PAID: toNumber(t.paid_fee),
+      PAID: t.daily_paid ?? toNumber(t.paid_fee),
       REMAINING: toNumber(t.pending_amount ?? t.pending_fee),
-      CASH: cash,
-      ONLINE: online,
+      CASH: t.daily_cash ?? cash,
+      ONLINE: t.daily_online ?? online,
       REMARKS: remarksParts.join(" | "),
     };
   });

@@ -29,6 +29,7 @@ import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { getMediaUrl } from "../../utlls/useful.js";
 import CameraCapture from "../../Components/CameraCapture";
 import ActionButton from "../../Components/ActionButton";
+import StudentPaymentEvidenceEditor from '../../Components/StudentPaymentEvidenceEditor';
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -266,6 +267,7 @@ function UpdateModal({ student }) {
                 </GridItem>
               )}
             </Grid>
+            {!viewOnly && isOpen && <StudentPaymentEvidenceEditor studentId={student._id} authToken={authToken} />}
           </ModalBody>
 
           <ModalFooter

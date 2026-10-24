@@ -208,7 +208,8 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     0
   );
   // Net amount after this slip's discount (what Total chip must show)
-  const totalAfterDiscount = Math.max(outstandingBefore - discount, 0);
+  const totalAfterDiscount = Math.max(data.totalFee != null ? Number(data.totalFee) : outstandingBefore - discount, 0);
+  const cumulativePaid = data.paidFee != null ? Number(data.paidFee) : Number(payingNow);
   const isFullyDiscounted =
     discount > 0 && !(Number(payingNow) > 0) && remainingAmount <= 0;
   const paymentLabel = isFullyDiscounted
@@ -437,7 +438,7 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     gap,
     // Net total after discount (not gross / pre-discount fee)
     total: totalAfterDiscount,
-    paid: payingNow,
+    paid: cumulativePaid,
     pending: remainingAmount,
     totalLabel: "Total",
     formatCurrency,
