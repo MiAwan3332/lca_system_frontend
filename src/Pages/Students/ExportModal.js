@@ -1,175 +1,246 @@
-import React, { useMemo, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button } from "@chakra-ui/react";
-import { Table, Thead, Tbody, Tr, Th, Td } from "@chakra-ui/react";
-import { TableContainer } from "@chakra-ui/react";
-import Cookies from "js-cookie";
-import { Download } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  fetchStudents,
-  selectAllStudents,
-  setLimitFilter,
-  setPageFilter,
-  setQueryFilter,
-} from "../../Features/studentSlice";
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Button,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Select,
+  FormControl,
+  FormLabel,
+  Input,
+  SimpleGrid,
+  Box,
+  Text,
+  Badge,
+  HStack,
+  useToast,
+} from "@chakra-ui/react";
+import Cookies from "js-cookie";
+import { Download, FilterX } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import axios from "axios";
 import moment from "moment";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
 } from "../../utlls/responsiveModal";
-import { downloadExcel } from "react-export-table-to-excel";
 import { formatStudentEmail } from "../../utlls/studentEmail";
-import TablePagination from "../../Components/TablePagination";
-import { fetchBatches } from "../../Features/batchSlice";
-import { Select, FormControl } from "@chakra-ui/react";
-import { selectActiveStudentBatches } from "../../Features/batchSlice";
-import { fetchStudentsByBatch } from "../../Features/studentSlice";
+import { fetchBatches, selectActiveStudentBatches } from "../../Features/batchSlice";
+import { fetchStudents } from "../../Features/studentSlice";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
 import { compareStudentsByRollAscending } from "../../utlls/rollNumber";
-import { fetchAllPaginated } from "../../utlls/fetchAllPaginated";
 import { config } from "../../utlls/config";
+import {
+  downloadStudentsExcel,
+  getStudentDueDate,
+  hasPendingDues,
+} from "../../utlls/exportStudentsExcel";
 
 const isStudentBatch = (batch) =>
   batch && batch.is_active !== false && batch.is_interview_batch !== true;
 
+const DEFAULT_FILTERS = {
+  batch_id: "",
+  search_field: "all",
+  query: "",
+  payment_status: "", // "" | pending_dues | fully_paid
+  start_date: "",
+  end_date: "",
+  due_date_from: "",
+  due_date_to: "",
+  city: "",
+  is_active: "",
+};
+
+const formatDueDate = (value) => {
+  if (!value) return "—";
+  const m = moment(value);
+  return m.isValid() ? m.format("DD/MM/YYYY") : String(value);
+};
+
 const ExportModal = () => {
-  const fileHeaders = [
-    "No",
-    "Name",
-    "Roll No",
-    "Email",
-    "Phone",
-    "CNIC",
-    "Admission Date",
-    "Date of Birth",
-    "Father Name",
-    "Father Phone",
-    "Latest Degree",
-    "University",
-    "City",
-    "Completion Year",
-    "Marks CGPA",
-    "Total Fee",
-    "Received Fee",
-    "Pending Fee",
-    "Remarks",
-    "Discount Remarks",
-    "Finance History",
-    "CNIC Image",
-    "CNIC Back Image",
-    "Image",
-    "Latest Degree Image",
-    "QR Code",
-  ];
-
-  const [isOpen, setIsOpen] = React.useState(false);
-  const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
-
+  const [isOpen, setIsOpen] = useState(false);
   const [authToken] = useState(Cookies.get("authToken"));
-  const [selectedBatch, setSelectedBatch] = useState("");
-  const [formBatch, setFormBatch] = useState("");
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState("");
 
-  const { fetchStatus, pagination } = useSelector((state) => state.students);
   const batches = useSelector(selectActiveStudentBatches);
-  const students = useSelector(selectAllStudents);
   const dispatch = useDispatch();
+  const toast = useToast();
 
-  const sortedStudents = useMemo(
-    () => [...(students || [])].sort(compareStudentsByRollAscending),
-    [students]
+  const studentBatches = useMemo(
+    () => (batches || []).filter(isStudentBatch),
+    [batches]
   );
 
-  const handleModalOpen = () => {
-    dispatch(fetchStudents({ authToken }));
-    dispatch(fetchBatches({ authToken }))
-      .unwrap()
-      .then((data) => {
-        const studentBatches = (data.docs || []).filter(isStudentBatch);
-        const first = studentBatches[0];
-        if (!first) {
-          setFormBatch("");
-          setSelectedBatch("");
-          return;
-        }
-        setFormBatch(first._id);
-        setSelectedBatch(first);
-        dispatch(fetchStudentsByBatch({ authToken, batchId: first._id }));
+  const hasActiveFilters =
+    Boolean(filters.batch_id) ||
+    Boolean(filters.query?.trim()) ||
+    Boolean(filters.payment_status) ||
+    Boolean(filters.start_date) ||
+    Boolean(filters.end_date) ||
+    Boolean(filters.due_date_from) ||
+    Boolean(filters.due_date_to) ||
+    Boolean(filters.city?.trim()) ||
+    Boolean(filters.is_active) ||
+    filters.search_field !== "all";
+
+  /** Highlight pending rows when not filtered to a single payment status. */
+  const highlightPending = !filters.payment_status;
+  const showDueDate =
+    filters.payment_status === "pending_dues" ||
+    Boolean(filters.due_date_from || filters.due_date_to);
+
+  const buildExportParams = useCallback(
+    (page = 1) => {
+      const params = {
+        page,
+        limit: 10000,
+        export: 1,
+      };
+      if (filters.batch_id) params.batch_id = filters.batch_id;
+      if (filters.query?.trim()) {
+        params.query = filters.query.trim();
+        params.search_field = filters.search_field || "all";
+      }
+      if (filters.payment_status) params.payment_status = filters.payment_status;
+      if (filters.start_date) params.start_date = filters.start_date;
+      if (filters.end_date) params.end_date = filters.end_date;
+      if (filters.due_date_from) params.due_date_from = filters.due_date_from;
+      if (filters.due_date_to) params.due_date_to = filters.due_date_to;
+      if (filters.city?.trim()) params.city = filters.city.trim();
+      if (filters.is_active) params.is_active = filters.is_active;
+      return params;
+    },
+    [filters]
+  );
+
+  const fetchAllFilteredStudents = useCallback(async () => {
+    const headers = { Authorization: `Bearer ${authToken}` };
+    const first = await axios.get(`${config.BASE_URL}/students`, {
+      headers,
+      params: buildExportParams(1),
+    });
+    let docs = Array.isArray(first.data?.docs) ? [...first.data.docs] : [];
+    const totalPages = Number(first.data?.totalPages) || 1;
+
+    for (let page = 2; page <= totalPages; page += 1) {
+      const next = await axios.get(`${config.BASE_URL}/students`, {
+        headers,
+        params: buildExportParams(page),
       });
-    onOpen();
-  };
+      if (Array.isArray(next.data?.docs)) {
+        docs = docs.concat(next.data.docs);
+      }
+    }
 
-  const handleModalClose = () => {
-    dispatch(fetchStudents({ authToken }));
-    onClose();
-  };
+    return docs;
+  }, [authToken, buildExportParams]);
 
-  const handleFormBatchChange = (e) => {
-    setFormBatch(e.target.value);
-    console.log(e.target.value);
-    setSelectedBatch(batches.find((batch) => batch._id === e.target.value));
-    dispatch(
-      fetchStudentsByBatch({
-        authToken,
-        batchId: e.target.value,
-      })
-    );
-  };
-
-  async function handleDownloadExcel() {
+  const loadStudents = useCallback(async () => {
+    if (!authToken) return;
     setLoading(true);
+    setError("");
     try {
-        const records = await fetchAllPaginated({
-          url: `${config.BASE_URL}/students/batch/${formBatch}`,
-          headers: { Authorization: `Bearer ${authToken}` },
-          params: { query: "" },
-        });
-        const exportStudents = [...records].sort(
-          compareStudentsByRollAscending
-        );
-        downloadExcel({
-          fileName: "StudentsSheet[" + moment().format("DD/MM/YYYY") + "]",
-          sheet: "Students Sheet",
-          tablePayload: {
-            header: fileHeaders,
-            body: exportStudents.map((student, index) => [
-              index + 1,
-              student.name,
-              student.roll_number || "",
-              formatStudentEmail(student.email),
-              student.phone,
-              student.cnic,
-              moment(student.admission_date).format("DD/MM/YYYY"),
-              moment(student.dob || student.date_of_birth).format("DD/MM/YYYY"),
-              student.father_name,
-              student.father_phone,
-              student.latest_degree,
-              student.university,
-              student.city,
-              student.completion_year,
-              student.marks_cgpa,
-              student.total_fee || 0,
-              student.paid_fee || 0,
-              student.pending_fee || 0,
-              student.remarks || "",
-              student.discount_remarks || "",
-              student.finance_history || "No history",
-              student.cnic_image,
-              student.cnic_back_image,
-              student.image,
-              student.latest_degree_image,
-              student.qr_code || student.qrcode,
-            ]),
-          },
-        });
-        setLoading(false);
-        onClose();
-        dispatch(fetchStudents({ authToken }));
+      const docs = await fetchAllFilteredStudents();
+      setStudents([...docs].sort(compareStudentsByRollAscending));
+    } catch (err) {
+      setStudents([]);
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Could not load students for export"
+      );
     } finally {
       setLoading(false);
     }
-  }
+  }, [authToken, fetchAllFilteredStudents]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    loadStudents();
+  }, [isOpen, loadStudents]);
+
+  const pendingCount = useMemo(
+    () => students.filter(hasPendingDues).length,
+    [students]
+  );
+
+  const updateFilter = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => setFilters({ ...DEFAULT_FILTERS });
+
+  const handleModalOpen = () => {
+    setFilters({ ...DEFAULT_FILTERS });
+    setStudents([]);
+    setError("");
+    dispatch(fetchBatches({ authToken }));
+    setIsOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsOpen(false);
+    // Restore main students list (export uses its own request, not redux list)
+    dispatch(fetchStudents({ authToken }));
+  };
+
+  const handleDownloadExcel = async () => {
+    setExporting(true);
+    try {
+      const docs = await fetchAllFilteredStudents();
+      const exportStudents = [...docs].sort(compareStudentsByRollAscending);
+
+      const fileName = downloadStudentsExcel({
+        students: exportStudents,
+        highlightPending: !filters.payment_status,
+        fileName: `StudentsSheet[${moment().format("DD-MM-YYYY")}]`,
+      });
+
+      toast({
+        title: "Excel downloaded",
+        description: `${exportStudents.length} student(s)${
+          !filters.payment_status
+            ? ` · pending dues highlighted (${
+                exportStudents.filter(hasPendingDues).length
+              })`
+            : ""
+        } · ${fileName}`,
+        status: "success",
+        duration: 4500,
+        isClosable: true,
+      });
+      handleModalClose();
+    } catch (err) {
+      toast({
+        title: "Export failed",
+        description:
+          err?.response?.data?.message ||
+          err.message ||
+          "Could not export students",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <>
@@ -190,137 +261,347 @@ const ExportModal = () => {
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <div className="flex flex-col gap-2 mb-6 border-l-4 border-blue-400 pl-4 sm:pl-6 py-4">
-              <FormControl w={{ base: "full", md: "12rem" }}>
-                <Select
-                  placeholder="Select Batch"
-                  size="lg"
-                  borderRadius="xl"
-                  value={formBatch}
-                  onChange={(e) => handleFormBatchChange(e)}
-                >
-                  {batches.map((batch) => (
-                    <option key={batch._id} value={batch._id}>
-                      {batch.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-            </div>
-            {fetchStatus === "loading" ? (
+            <Box
+              mb={4}
+              p={4}
+              borderWidth="1px"
+              borderColor="#E0E8EC"
+              borderRadius="xl"
+              bg="#FAFBFC"
+            >
+              <HStack justify="space-between" mb={3} flexWrap="wrap" gap={2}>
+                <Text fontSize="sm" fontWeight="semibold" color="#4A5568">
+                  Filters
+                </Text>
+                {hasActiveFilters && (
+                  <Button
+                    size="sm"
+                    leftIcon={<FilterX size={14} />}
+                    borderRadius="lg"
+                    variant="ghost"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </HStack>
+
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3, xl: 4 }} spacing={3}>
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    Batch
+                  </FormLabel>
+                  <Select
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    value={filters.batch_id}
+                    onChange={(e) => updateFilter("batch_id", e.target.value)}
+                  >
+                    <option value="">All batches</option>
+                    {studentBatches.map((batch) => (
+                      <option key={batch._id} value={batch._id}>
+                        {batch.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    Pending dues
+                  </FormLabel>
+                  <Select
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    value={filters.payment_status}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFilters((prev) => ({
+                        ...prev,
+                        payment_status: value,
+                        // Clear due-date filters when leaving pending-dues mode
+                        due_date_from:
+                          value === "pending_dues" ? prev.due_date_from : "",
+                        due_date_to:
+                          value === "pending_dues" ? prev.due_date_to : "",
+                      }));
+                    }}
+                  >
+                    <option value="">All (highlight pending)</option>
+                    <option value="pending_dues">Pending dues only</option>
+                    <option value="fully_paid">No pending dues</option>
+                  </Select>
+                </FormControl>
+
+                {filters.payment_status === "pending_dues" && (
+                  <>
+                    <FormControl>
+                      <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                        Due date from
+                      </FormLabel>
+                      <Input
+                        type="date"
+                        size="md"
+                        borderRadius="xl"
+                        bg="white"
+                        value={filters.due_date_from}
+                        onChange={(e) =>
+                          updateFilter("due_date_from", e.target.value)
+                        }
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                        Due date to
+                      </FormLabel>
+                      <Input
+                        type="date"
+                        size="md"
+                        borderRadius="xl"
+                        bg="white"
+                        value={filters.due_date_to}
+                        onChange={(e) =>
+                          updateFilter("due_date_to", e.target.value)
+                        }
+                      />
+                    </FormControl>
+                  </>
+                )}
+
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    Student status
+                  </FormLabel>
+                  <Select
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    value={filters.is_active}
+                    onChange={(e) => updateFilter("is_active", e.target.value)}
+                  >
+                    <option value="">All statuses</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    Search in
+                  </FormLabel>
+                  <Select
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    value={filters.search_field}
+                    onChange={(e) =>
+                      updateFilter("search_field", e.target.value)
+                    }
+                  >
+                    <option value="all">All fields</option>
+                    <option value="name">Name</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    Search
+                  </FormLabel>
+                  <Input
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    placeholder="Name, phone, email, roll no…"
+                    value={filters.query}
+                    onChange={(e) => updateFilter("query", e.target.value)}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    City
+                  </FormLabel>
+                  <Input
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    placeholder="City"
+                    value={filters.city}
+                    onChange={(e) => updateFilter("city", e.target.value)}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    Admission from
+                  </FormLabel>
+                  <Input
+                    type="date"
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    value={filters.start_date}
+                    onChange={(e) => updateFilter("start_date", e.target.value)}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel fontSize="xs" color="gray.500" mb={1}>
+                    Admission to
+                  </FormLabel>
+                  <Input
+                    type="date"
+                    size="md"
+                    borderRadius="xl"
+                    bg="white"
+                    value={filters.end_date}
+                    onChange={(e) => updateFilter("end_date", e.target.value)}
+                  />
+                </FormControl>
+              </SimpleGrid>
+
+              <HStack mt={3} spacing={2} flexWrap="wrap">
+                <Badge colorScheme="blue" borderRadius="md" px={2} py={1}>
+                  {students.length} student{students.length === 1 ? "" : "s"}
+                </Badge>
+                {highlightPending && (
+                  <Badge colorScheme="orange" borderRadius="md" px={2} py={1}>
+                    {pendingCount} with pending dues (highlighted)
+                  </Badge>
+                )}
+                {filters.payment_status === "pending_dues" && (
+                  <Badge colorScheme="red" borderRadius="md" px={2} py={1}>
+                    Pending dues only
+                    {(filters.due_date_from || filters.due_date_to) &&
+                      ` · due ${filters.due_date_from || "…"} → ${
+                        filters.due_date_to || "…"
+                      }`}
+                  </Badge>
+                )}
+                {filters.payment_status === "fully_paid" && (
+                  <Badge colorScheme="green" borderRadius="md" px={2} py={1}>
+                    Fully paid only
+                  </Badge>
+                )}
+              </HStack>
+            </Box>
+
+            {loading ? (
               <div className="flex justify-center items-center h-40 rounded-xl border border-[#E0E8EC]">
                 <LcaLogoLoading size="sm" />
               </div>
+            ) : error ? (
+              <Text color="red.500" textAlign="center" py={8}>
+                {error}
+              </Text>
             ) : (
-              <>
-                <div className="w-full bg-white rounded-xl border border-[#E0E8EC] overflow-auto max-h-[50vh]">
-                  {sortedStudents.length === 0 ? (
-                    <div className="p-4 text-center">No students found</div>
-                  ) : (
-                    <TableContainer>
-                      <Table variant="simple">
-                        <Thead>
-                          <Tr>
-                            <Th>No</Th>
-                            <Th>Name</Th>
-                            <Th>Roll No</Th>
-                            <Th>Email</Th>
-                            <Th>Phone</Th>
-                            <Th>CNIC</Th>
-                            <Th>Admission Date</Th>
-                            <Th>DOB</Th>
-                            <Th>Father Name</Th>
-                            <Th>Father Phone</Th>
-                            <Th>Latest Degree</Th>
-                            <Th>University</Th>
-                            <Th>City</Th>
-                            <Th>Completion Year</Th>
-                            <Th>Marks CGPA</Th>
-                            <Th>Total Fee</Th>
-                            <Th>Received Fee</Th>
-                            <Th>Pending Fee</Th>
-                            <Th>Remarks</Th>
-                            <Th>Discount Remarks</Th>
-                            <Th>CNIC Image</Th>
-                            <Th>CNIC Back Image</Th>
-                            <Th>Image</Th>
-                            <Th>Latest Degree Image</Th>
-                            <Th>QR Code</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {sortedStudents.map((student, index) => (
-                            <Tr key={student._id}>
+              <div className="w-full bg-white rounded-xl border border-[#E0E8EC] overflow-auto max-h-[50vh]">
+                {students.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    No students found for these filters
+                  </div>
+                ) : (
+                  <TableContainer>
+                    <Table variant="simple" size="sm">
+                      <Thead>
+                        <Tr>
+                          <Th>No</Th>
+                          <Th>Name</Th>
+                          <Th>Roll No</Th>
+                          <Th>Phone</Th>
+                          <Th>Batch</Th>
+                          <Th>Pending Dues?</Th>
+                          {showDueDate && <Th>Due Date</Th>}
+                          <Th isNumeric>Pending Fee</Th>
+                          <Th>Status</Th>
+                          <Th>City</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {students.map((student, index) => {
+                          const pending = hasPendingDues(student);
+                          return (
+                            <Tr
+                              key={student._id}
+                              className={
+                                highlightPending && pending
+                                  ? "student-row--pending-fee"
+                                  : undefined
+                              }
+                              title={
+                                pending
+                                  ? `Pending fee: Rs. ${Number(
+                                      student.pending_fee
+                                    ).toLocaleString()}`
+                                  : undefined
+                              }
+                            >
                               <Td>{index + 1}</Td>
-                              <Td>{student.name}</Td>
+                              <Td fontWeight="medium">{student.name}</Td>
                               <Td>{student.roll_number || "—"}</Td>
-                              <Td>{formatStudentEmail(student.email)}</Td>
                               <Td>{student.phone}</Td>
-                              <Td>{student.cnic}</Td>
+                              <Td>{student.batch?.name || "—"}</Td>
                               <Td>
-                                {moment(student.admission_date).format(
-                                  "DD/MM/YYYY"
+                                {pending ? (
+                                  <Badge colorScheme="orange">
+                                    PENDING DUES
+                                  </Badge>
+                                ) : (
+                                  <Badge colorScheme="green">Clear</Badge>
                                 )}
                               </Td>
-                              <Td>
-                                {moment(
-                                  student.dob || student.date_of_birth
-                                ).format("DD/MM/YYYY")}
+                              {showDueDate && (
+                                <Td fontWeight="semibold" color="#9C4221">
+                                  {formatDueDate(getStudentDueDate(student))}
+                                </Td>
+                              )}
+                              <Td isNumeric fontWeight="semibold">
+                                {Number(
+                                  student.pending_fee || 0
+                                ).toLocaleString()}
                               </Td>
-                              <Td>{student.father_name}</Td>
-                              <Td>{student.father_phone}</Td>
-                              <Td>{student.latest_degree}</Td>
-                              <Td>{student.university}</Td>
-                              <Td>{student.city}</Td>
-                              <Td>{student.completion_year}</Td>
-                              <Td>{student.marks_cgpa}</Td>
-                              <Td>{student.total_fee || 0}</Td>
-                              <Td>{student.paid_fee || 0}</Td>
-                              <Td>{student.pending_fee || 0}</Td>
-                              <Td>{student.remarks || "—"}</Td>
-                              <Td>{student.discount_remarks || "—"}</Td>
-                              <Td>{student.cnic_image}</Td>
-                              <Td>{student.cnic_back_image}</Td>
-                              <Td>{student.image}</Td>
-                              <Td>{student.latest_degree_image}</Td>
-                              <Td>{student.qr_code || student.qrcode}</Td>
+                              <Td>
+                                {student.is_active === false
+                                  ? "Inactive"
+                                  : "Active"}
+                              </Td>
+                              <Td>{student.city || "—"}</Td>
                             </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </div>
-                <TablePagination
-                  pagination={pagination}
-                  setLimitFilter={setLimitFilter}
-                  setPageFilter={setPageFilter}
-                  method={fetchStudents}
-                />
-              </>
+                          );
+                        })}
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </div>
             )}
           </ModalBody>
           <ModalFooter>
             <Button
               variant="ghost"
               mr={3}
-              borderRadius={"0.75rem"}
-              onClick={onClose}
+              borderRadius="0.75rem"
+              onClick={handleModalClose}
             >
               Close
             </Button>
             <Button
-              borderRadius={"0.75rem"}
-              backgroundColor={"#7AEF85"}
-              color={"#257947"}
+              borderRadius="0.75rem"
+              backgroundColor="#7AEF85"
+              color="#257947"
               _hover={{
                 backgroundColor: "#65C76E",
                 color: "#184E2E",
               }}
-              fontWeight={"500"}
+              fontWeight="500"
               onClick={handleDownloadExcel}
               loadingText="Exporting"
-              isLoading={loading}
+              isLoading={exporting}
+              isDisabled={loading || students.length === 0}
             >
               Export Excel
             </Button>
