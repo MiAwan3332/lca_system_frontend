@@ -15,6 +15,7 @@ export const CSS_OPTIONAL_SUBJECTS = [
   "Economics",
   "English Literature",
   "Environmental Sciences",
+  "European History",
   "Gender Studies",
   "Geography",
   "Geology",
