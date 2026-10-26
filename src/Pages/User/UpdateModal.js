@@ -1,21 +1,10 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Select,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import axios from "axios";
@@ -52,7 +41,7 @@ function UpdateModal({ user }) {
     const loadRoles = async () => {
       setRolesLoading(true);
       try {
-        const response = await axios.get(`${config.BASE_URL}/roles`, {
+        const response = await axios.get(`${config.BASE_URL}/access/account-categories`, {
           headers: { Authorization: `Bearer ${authToken}` },
           params: { page: 1, limit: 100, query: "" },
         });
@@ -92,7 +81,8 @@ function UpdateModal({ user }) {
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      dispatch(updateUser({ userId: user._id, values, authToken }))
+      const { role, password, ...profileValues } = values;
+      dispatch(updateUser({ userId: user._id, values: profileValues, authToken }))
         .unwrap()
         .then(() => {
           onClose();
@@ -126,12 +116,12 @@ function UpdateModal({ user }) {
       </button>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Update User
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl id="name">
@@ -184,6 +174,7 @@ function UpdateModal({ user }) {
                   <FormLabel fontSize={14}>Password</FormLabel>
                   <Input
                     type="password"
+                    isDisabled
                     name="password"
                     borderRadius={"0.5rem"}
                     value={formik.values.password}
@@ -205,7 +196,7 @@ function UpdateModal({ user }) {
                     borderRadius={"0.5rem"}
                     onChange={formik.handleChange}
                     value={formik.values.role}
-                    isDisabled={rolesLoading}
+                    isDisabled
                   >
                     {roleOptions.map((role) => (
                       <option key={role._id} value={role.name}>
@@ -247,8 +238,8 @@ function UpdateModal({ user }) {
                 Update
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

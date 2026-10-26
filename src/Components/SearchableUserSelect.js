@@ -1,16 +1,6 @@
+import { Checkbox, Input } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Badge,
-  Box,
-  Checkbox,
-  Flex,
-  Input,
-  List,
-  ListItem,
-  Text,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Badge, Box, Flex, List, ListItem, Text, Wrap, WrapItem } from '@chakra-ui/react';
 import { X } from "lucide-react";
 
 function SearchableUserSelect({

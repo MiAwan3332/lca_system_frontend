@@ -10,6 +10,9 @@ import theme from "./chakraTheme";
 import { createStandaloneToast } from '@chakra-ui/react'
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import GlobalLoadingOverlay from "./Components/GlobalLoadingOverlay";
+import { setupAccessRequestInterceptor } from './utlls/accessRequests';
+
+setupAccessRequestInterceptor();
 
 const { ToastContainer } = createStandaloneToast()
 

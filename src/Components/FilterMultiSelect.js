@@ -1,12 +1,6 @@
+import { Checkbox } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Flex,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Button, Flex, Text, VStack } from '@chakra-ui/react';
 import { ChevronDown } from "lucide-react";
 
 /**

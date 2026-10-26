@@ -1,3 +1,4 @@
+import { accessFetch as fetch } from '../utlls/accessRequests';
 import { createSlice } from "@reduxjs/toolkit";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { createStandaloneToast } from "@chakra-ui/react";

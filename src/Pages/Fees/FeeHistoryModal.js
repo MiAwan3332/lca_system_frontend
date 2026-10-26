@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, IconButton, Text, Badge, useToast, HStack, Box, Flex, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, Image, Link } from "@chakra-ui/react";
 import Cookies from "js-cookie";
@@ -125,7 +127,7 @@ function FeeHistoryModal({ fee }) {
                 {...getResponsiveModalSize("2xl")}
             >
                 <ModalOverlay backdropFilter="blur(4px)" />
-                <ModalContent
+                <AccessForm permissionMode="read" component={ModalContent}
                     {...responsiveModalContentProps}
                     display="flex"
                     flexDirection="column"
@@ -514,7 +516,7 @@ function FeeHistoryModal({ fee }) {
                             </Button>
                         </HStack>
                     </ModalFooter>
-                </ModalContent>
+                </AccessForm>
             </Modal>
         </>
     );

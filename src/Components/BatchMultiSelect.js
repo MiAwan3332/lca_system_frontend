@@ -1,16 +1,6 @@
+import { Checkbox, Input } from './AccessInputs';
 import React, { useMemo, useState } from "react";
-import {
-  Badge,
-  Box,
-  Checkbox,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Text,
-  VStack,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Badge, Box, InputGroup, InputLeftElement, Text, VStack, Wrap, WrapItem } from '@chakra-ui/react';
 import { Search, X } from "lucide-react";
 import { filterActiveBatches } from "../Features/batchSlice";
 

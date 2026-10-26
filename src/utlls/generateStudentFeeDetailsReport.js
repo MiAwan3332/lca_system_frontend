@@ -1,3 +1,4 @@
+import { accessFetch as fetch } from './accessRequests';
 import jsPDF from "jspdf";
 import moment from "moment";
 import { formatStudentEmail } from "./studentEmail";

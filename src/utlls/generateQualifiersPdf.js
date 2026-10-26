@@ -1,3 +1,4 @@
+import { accessFetch as fetch } from './accessRequests';
 import jsPDF from "jspdf";
 import moment from "moment";
 import { ACADEMY_BRANDING } from "./academyBranding";
@@ -169,7 +170,7 @@ const drawPhotoCell = (doc, photoDataUrl, x, y, size) => {
 
 /**
  * Branded landscape PDF of qualifier profiles.
- * Updated profiles show photo; others show blank avatar.
+ * Shows any stored profile photo (uploaded by the qualifier or staff).
  */
 export const exportQualifiersPdf = async ({
   qualifiers = [],
@@ -178,6 +179,8 @@ export const exportQualifiersPdf = async ({
   classTypeLabel = "All Modes",
   examTypeLabel = "All CSS/PMS",
 } = {}) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('qualifiers', 'export');
   const list = Array.isArray(qualifiers) ? qualifiers : [];
   const stamp = moment().format("DD MMM YYYY, hh:mm A");
   const fileStamp = moment().format("DD-MM-YYYY");
@@ -198,16 +201,12 @@ export const exportQualifiersPdf = async ({
     logoPng = null;
   }
 
-  // Preload photos only for updated profiles that have a photo URL
+  // Preload every stored photo, regardless of who uploaded it.
   const photoById = {};
   await Promise.all(
     list.map(async (qualifier) => {
       const id = String(qualifier?._id || "");
       if (!id) return;
-      if (!isUpdated(qualifier)) {
-        photoById[id] = null;
-        return;
-      }
       const photoUrl = String(qualifier?.photo || "").trim();
       if (!photoUrl) {
         photoById[id] = null;
@@ -399,7 +398,7 @@ export const exportQualifiersPdf = async ({
 
     const profileUpdated = isUpdated(qualifier);
     const id = String(qualifier?._id || "");
-    const photoDataUrl = profileUpdated ? photoById[id] || null : null;
+    const photoDataUrl = photoById[id] || null;
 
     const values = {
       no: String(index + 1),

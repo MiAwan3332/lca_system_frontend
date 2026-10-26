@@ -1,7 +1,11 @@
+
+import { Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Select, Text, HStack, Badge, useToast, Box, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Avatar } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Text, HStack, Badge, useToast, Box, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Avatar } from '@chakra-ui/react';
 import { Download, FileSpreadsheet, FileText, FileX } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -239,7 +243,7 @@ function QualifierExportModal({ isOpen, onClose }) {
       {...getResponsiveModalSize("5xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader className="text-xl font-semibold">
           Export Qualifier Profiles
         </ModalHeader>
@@ -288,7 +292,7 @@ function QualifierExportModal({ isOpen, onClose }) {
 
             <FormControl maxW="150px">
               <FormLabel fontSize="sm">Status</FormLabel>
-              <Select
+              <Select permissionField="is_active"
                 value={isActive}
                 onChange={(e) => setIsActive(e.target.value)}
               >
@@ -492,7 +496,7 @@ function QualifierExportModal({ isOpen, onClose }) {
             Export PDF
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

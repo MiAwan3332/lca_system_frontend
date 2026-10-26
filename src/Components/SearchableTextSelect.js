@@ -1,5 +1,6 @@
+import { Input } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Input, List, ListItem, Text } from "@chakra-ui/react";
+import { Box, List, ListItem, Text } from '@chakra-ui/react';
 
 function SearchableTextSelect({
   options = [],

@@ -1,7 +1,8 @@
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
 import {
   Button,
-  FormControl,
   FormLabel,
   HStack,
   Modal,
@@ -148,7 +149,7 @@ function UpdateRefundPayoutAction({
         {...getResponsiveModalSize("lg")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader>Update refund payout</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -247,7 +248,7 @@ function UpdateRefundPayoutAction({
               Save changes
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

@@ -1,3 +1,6 @@
+import { NativeInput as AccessNativeInput } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import {
@@ -13,7 +16,6 @@ import {
   Box,
   List,
   ListItem,
-  FormControl,
   FormLabel,
   useToast,
 } from "@chakra-ui/react";
@@ -169,7 +171,7 @@ function QualifierImportModal({ isOpen, onClose }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         display="flex"
         flexDirection="column"
@@ -242,7 +244,7 @@ function QualifierImportModal({ isOpen, onClose }) {
             </Button>
           </Box>
 
-          <input
+          <AccessNativeInput
             ref={fileInputRef}
             type="file"
             accept=".xlsx,.xls,.csv"
@@ -386,7 +388,7 @@ function QualifierImportModal({ isOpen, onClose }) {
             Import Qualifiers
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

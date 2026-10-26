@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useSyncExternalStore } from 'react';
+import { accessSnapshot, subscribeAccess, refreshAccess } from '../utlls/accessCapabilities';
+import { Button, Text } from '@chakra-ui/react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom'; // Import Outlet from react-router-dom
 import { Box, useColorModeValue, Drawer, DrawerContent } from '@chakra-ui/react';
 import { useDisclosure } from '@chakra-ui/react';
@@ -15,6 +17,7 @@ import { useDispatch } from 'react-redux';
 import { fetchUserById } from '../Features/authSlice.js';
 
 function Dashboard() {
+  const access = useSyncExternalStore(subscribeAccess, accessSnapshot);
   const dispatch = useDispatch();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -38,6 +41,8 @@ function Dashboard() {
     }
 
     const enforceStudentAccess = async () => {
+      const current = await refreshAccess();
+      if (current.error) return;
       if (isStudentRole()) {
         const profileComplete = await syncStudentProfileStatus();
         if (!profileComplete && pathname !== '/student') {
@@ -46,13 +51,16 @@ function Dashboard() {
         }
       }
 
-      if (!canAccessRoute(pathname)) {
-        navigate('/dashboard', { replace: true });
-      }
     };
 
     enforceStudentAccess();
   }, [pathname, navigate, dispatch]);
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') refreshAccess(); };
+    const timer = setInterval(refresh, 30000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+  }, []);
 
   return (
     <Box minH="100vh" bg={useColorModeValue('#F9FBFC', 'gray.900')}>
@@ -77,7 +85,8 @@ function Dashboard() {
         maxW="100%"
         overflowX="hidden"
       >
-        <Outlet />
+        {!access.ready ? <Text>Checking access...</Text> : access.error ? <Box><Text>{access.error}</Text><Button onClick={refreshAccess}>Retry</Button></Box>
+          : !canAccessRoute(pathname) ? <Text>You do not have access to this page.</Text> : <Outlet />}
       </Box>
     </Box>
   );

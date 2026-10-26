@@ -1,26 +1,12 @@
+
+import { Input, Checkbox, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState } from "react";
 
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Checkbox,
-  Text,
-  HStack,
-  IconButton,
-  Select,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, Text, HStack, IconButton } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Plus, Trash2 } from "lucide-react";
@@ -238,10 +224,10 @@ function AddModel({ isOpen, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader className="text-xl font-semibold">Add Batch</ModalHeader>
         <ModalCloseButton />
-        <form onSubmit={formik.handleSubmit}>
+        <AccessForm onSubmit={formik.handleSubmit}>
           <ModalBody>
             <VStack spacing={4}>
               <FormControl id="name">
@@ -483,7 +469,7 @@ function AddModel({ isOpen, onClose }) {
 
               <FormControl id="startdate">
                 <FormLabel fontSize={14}>Start Date</FormLabel>
-                <Input
+                <Input permissionField="startdate"
                   placeholder="Select Start Date"
                   size="md"
                   type="date"
@@ -502,7 +488,7 @@ function AddModel({ isOpen, onClose }) {
 
               <FormControl id="enddate">
                 <FormLabel fontSize={14}>End Date</FormLabel>
-                <Input
+                <Input permissionField="enddate"
                   placeholder="Select End Date"
                   size="md"
                   type="date"
@@ -620,8 +606,8 @@ function AddModel({ isOpen, onClose }) {
               Add
             </Button>
           </ModalFooter>
-        </form>
-      </ModalContent>
+        </AccessForm>
+      </AccessForm>
     </Modal>
   );
 }

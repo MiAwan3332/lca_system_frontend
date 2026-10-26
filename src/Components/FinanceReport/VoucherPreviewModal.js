@@ -1,3 +1,4 @@
+import AccessForm from '../AccessForm';
 import React, { useMemo, useState, useEffect } from "react";
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, HStack, Text, useToast, Box } from "@chakra-ui/react";
 import { Download, Printer } from "lucide-react";
@@ -99,7 +100,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
       scrollBehavior="inside"
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps} className="voucher-preview-modal">
+      <AccessForm component={ModalContent} {...responsiveModalContentProps} className="voucher-preview-modal">
         <ModalHeader className="voucher-preview-modal__header">
           <div>
             <Text fontSize="lg" fontWeight="semibold">
@@ -165,7 +166,7 @@ function VoucherPreviewModal({ isOpen, onClose, transaction }) {
             Download PDF
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

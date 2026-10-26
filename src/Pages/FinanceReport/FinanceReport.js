@@ -1,32 +1,10 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import moment from "moment";
 import axios from "axios";
-import {
-  Badge,
-  Button,
-  ButtonGroup,
-  FormControl,
-  FormLabel,
-  IconButton,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Select,
-  Stat,
-  StatHelpText,
-  StatLabel,
-  StatNumber,
-  Table,
-  TableContainer,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Text,
-  useToast,
-} from "@chakra-ui/react";
+import { Badge, Button, ButtonGroup, FormLabel, IconButton, InputGroup, InputLeftElement, Stat, StatHelpText, StatLabel, StatNumber, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, useToast } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import {
   AlertTriangle,

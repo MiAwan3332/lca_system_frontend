@@ -1,20 +1,8 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  Textarea,
-  VStack,
-} from "@chakra-ui/react";
+import { Button, FormLabel, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, VStack } from '@chakra-ui/react';
 
 function DecisionModal({
   isOpen,
@@ -74,7 +62,7 @@ function DecisionModal({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} isCentered>
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader>
           {isApprove ? "Approve Refund Request" : "Reject Refund Request"}
         </ModalHeader>
@@ -146,7 +134,7 @@ function DecisionModal({
             {isApprove ? "Approve" : "Reject"}
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

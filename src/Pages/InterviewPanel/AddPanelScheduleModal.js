@@ -1,5 +1,8 @@
+import { Input, Textarea, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, Textarea, Select, VStack, Stack, Text, Box, Flex, HStack, Badge, Divider, IconButton } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Stack, Text, Box, Flex, HStack, Badge, Divider, IconButton } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import axios from "axios";
 import moment from "moment";
@@ -257,7 +260,7 @@ function AddPanelScheduleModal({
       {...getResponsiveModalSize("xl")}
     >
       <ModalOverlay bg="blackAlpha.500" backdropFilter="blur(4px)" />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         as="form"
         noValidate
@@ -796,7 +799,7 @@ function AddPanelScheduleModal({
             {schedules.length === 1 ? "" : "s"}
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

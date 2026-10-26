@@ -1,9 +1,12 @@
+import { Checkbox, Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState, useEffect } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Checkbox, VStack, Input, HStack } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, HStack } from '@chakra-ui/react';
 import { Box } from "@chakra-ui/react";
 import { Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon } from "@chakra-ui/react";
 import Cookies from "js-cookie";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import { Check } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -153,12 +156,12 @@ const EnrollmentModal = ({ studentId }) => {
         scrollBehavior="inside"
       >
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Course Enrollment
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               {fetchStudentEnrollmentsStatus === "loading" ? (
                 <LcaLogoLoading size="sm" />
@@ -297,8 +300,8 @@ const EnrollmentModal = ({ studentId }) => {
                 Save
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

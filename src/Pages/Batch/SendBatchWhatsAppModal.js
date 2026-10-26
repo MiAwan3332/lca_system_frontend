@@ -1,24 +1,8 @@
+import { Select, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Select,
-  Text,
-  Textarea,
-  useToast,
-  VStack,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Box, Button, FormLabel, Text, useToast, VStack, Wrap, WrapItem } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import axios from "axios";
 import { MessageCircle, MessageSquareText } from "lucide-react";
@@ -338,7 +322,7 @@ const SendBatchWhatsAppModal = ({ batch }) => {
 
       <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
         <ModalOverlay />
-        <ModalContent borderRadius="2xl">
+        <AccessForm component={ModalContent} borderRadius="2xl">
           <ModalHeader className="text-xl font-semibold">
             Send WhatsApp to batch
           </ModalHeader>
@@ -488,7 +472,7 @@ const SendBatchWhatsAppModal = ({ batch }) => {
               Add to Queue
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

@@ -1,27 +1,11 @@
+
+import { Input, Select, Checkbox } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Select,
-  Checkbox,
-  Text,
-  HStack,
-  IconButton,
-  Flex,
-  useToast,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, Text, HStack, IconButton, Flex, useToast } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Pen, Plus, Trash2 } from "lucide-react";
@@ -277,7 +261,7 @@ function AddModel({ batch }) {
         {...getResponsiveModalSize("lg")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           as="form"
           onSubmit={formik.handleSubmit}
@@ -595,7 +579,7 @@ function AddModel({ batch }) {
 
               <FormControl id="startdate" minW={0}>
                 <FormLabel fontSize={14}>Start Date</FormLabel>
-                <Input
+                <Input permissionField="startdate"
                   size="md"
                   type="date"
                   borderRadius="0.5rem"
@@ -613,7 +597,7 @@ function AddModel({ batch }) {
 
               <FormControl id="enddate" minW={0}>
                 <FormLabel fontSize={14}>End Date</FormLabel>
-                <Input
+                <Input permissionField="enddate"
                   size="md"
                   type="date"
                   borderRadius="0.5rem"
@@ -769,7 +753,7 @@ function AddModel({ batch }) {
               Update
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
       <BatchDeactivateConfirmModal
         isOpen={showDeactivateConfirm}

@@ -1,22 +1,10 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  VStack,
-  Box,
-  Text,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, Text } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
@@ -110,10 +98,10 @@ function UpdateAnnouncementModal({ isOpen, onClose, announcement }) {
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="xl" scrollBehavior="inside">
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader className="text-xl font-semibold">Update Announcement</ModalHeader>
         <ModalCloseButton />
-        <form onSubmit={formik.handleSubmit}>
+        <AccessForm onSubmit={formik.handleSubmit}>
           <ModalBody>
             <VStack spacing={4} align="stretch">
               <FormControl id="title" isRequired>
@@ -187,8 +175,8 @@ function UpdateAnnouncementModal({ isOpen, onClose, announcement }) {
               Save Changes
             </Button>
           </ModalFooter>
-        </form>
-      </ModalContent>
+        </AccessForm>
+      </AccessForm>
     </Modal>
   );
 }

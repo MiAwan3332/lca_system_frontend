@@ -1,14 +1,6 @@
+import { Input } from '../AccessInputs';
 import React, { useMemo, useState } from "react";
-import {
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverBody,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { InputGroup, InputLeftElement, Popover, PopoverTrigger, PopoverContent, PopoverBody, useColorModeValue } from '@chakra-ui/react';
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getVisibleRoutes } from "../../utlls/studentAccess";

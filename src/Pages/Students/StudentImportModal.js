@@ -1,3 +1,6 @@
+import { NativeInput as AccessNativeInput } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useRef, useState } from "react";
 import Cookies from "js-cookie";
 import {
@@ -13,7 +16,6 @@ import {
   Box,
   List,
   ListItem,
-  FormControl,
   FormLabel,
   useToast,
 } from "@chakra-ui/react";
@@ -150,7 +152,7 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader className="text-xl font-semibold">
           Import Students from Excel
         </ModalHeader>
@@ -206,7 +208,7 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
             </Button>
           </Box>
 
-          <input
+          <AccessNativeInput
             ref={fileInputRef}
             type="file"
             accept=".xlsx,.xls,.csv"
@@ -309,7 +311,7 @@ function StudentImportModal({ isOpen, onClose, batches = [] }) {
             Import Students
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

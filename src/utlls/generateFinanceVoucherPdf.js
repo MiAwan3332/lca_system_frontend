@@ -385,6 +385,8 @@ export const generateFinanceVoucherPdf = async (transaction, options = {}) => {
 };
 
 export const downloadFinanceVoucherPdf = async (transaction) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('fees', 'export');
   const { fileName, doc, blobUrl } = await generateFinanceVoucherPdf(transaction);
   doc.save(fileName);
   URL.revokeObjectURL(blobUrl);
@@ -392,6 +394,8 @@ export const downloadFinanceVoucherPdf = async (transaction) => {
 };
 
 export const printFinanceVoucherPdf = async (transaction) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('fees', 'print');
   const { doc, blobUrl } = await generateFinanceVoucherPdf(transaction, {
     includeBranding: false,
   });

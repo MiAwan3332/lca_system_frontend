@@ -1,11 +1,6 @@
+import { Input } from './AccessInputs';
 import React, { useEffect, useState, forwardRef, useImperativeHandle } from "react";
-import {
-  IconButton,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  InputRightElement
-} from "@chakra-ui/react";
+import { IconButton, InputGroup, InputLeftElement, InputRightElement } from '@chakra-ui/react';
 import { Search, X } from "lucide-react";
 import { useDispatch } from "react-redux";
 import Cookies from "js-cookie";

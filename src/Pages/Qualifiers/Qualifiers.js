@@ -1,24 +1,9 @@
+
+import { Select, Input, Switch } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  FormControl,
-  Select,
-  Button,
-  Badge,
-  Input,
-  Tooltip,
-  HStack,
-  Switch,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Button, Badge, Tooltip, HStack, Text, VStack } from '@chakra-ui/react';
 import { FileX, FilterX, FileUp, Plus, Download, FormInput } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -531,7 +516,7 @@ function Qualifiers() {
                             {isActive ? "Active" : "Inactive"}
                           </Badge>
                           {canManage && (
-                            <Switch
+                            <Switch permissionField="is_active"
                               size="sm"
                               isChecked={isActive}
                               onChange={() =>

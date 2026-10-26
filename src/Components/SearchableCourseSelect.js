@@ -1,7 +1,10 @@
+import { Input } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Input, List, ListItem, Text } from "@chakra-ui/react";
+import { Box, List, ListItem, Text } from '@chakra-ui/react';
+import { useAccessForm } from './AccessForm';
+import { accessSnapshot, subscribeAccess, canUseField } from '../utlls/accessCapabilities';
 
-function SearchableCourseSelect({
+function CourseSelectInput({
   courses = [],
   value = "",
   onChange,
@@ -145,4 +148,11 @@ function SearchableCourseSelect({
   );
 }
 
-export default SearchableCourseSelect;
+export default function SearchableCourseSelect(props) {
+  React.useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const mode = useAccessForm();
+  const field = props.permissionField || 'course';
+  if (!mode || canUseField(field, mode === 'read' ? 'read' : 'write')) return <CourseSelectInput {...props} />;
+  if (!canUseField(field, 'read')) return null;
+  return <Text fontSize="sm">{(props.courses || []).find((course) => course._id === props.value)?.name || '-'}</Text>;
+}

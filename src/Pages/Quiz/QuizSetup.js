@@ -1,6 +1,8 @@
+import { Select, Input, Switch } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { Box, Button, FormControl, FormLabel, Select, Input, Switch, VStack, Text, SimpleGrid, Badge } from "@chakra-ui/react";
+import { Box, Button, FormLabel, VStack, Text, SimpleGrid, Badge } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchQuizSubjects,

@@ -1,26 +1,10 @@
+
+import { Input, Select, Switch } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import { CreationStatusButton } from '../../Components/CreationProcessing';
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  ButtonGroup,
-  FormControl,
-  Input,
-  Select,
-  Button,
-  Text,
-  Box,
-  Switch,
-  Badge,
-  HStack,
-  VStack,
-} from "@chakra-ui/react";
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, ButtonGroup, Button, Text, Box, Badge, HStack, VStack } from '@chakra-ui/react';
 import AddModel from "./AddModel";
 import UpdateModal from "./UpdateModal";
 import ShiftBatchModal from "./ShiftBatchModal";
@@ -697,7 +681,7 @@ function Student() {
                           <Badge colorScheme={isActive ? "green" : "gray"}>
                             {isActive ? "Active" : "Inactive"}
                           </Badge>
-                          <Switch
+                          <Switch permissionField="is_active" permission="students.toggle.student.status"
                             size="sm"
                             isChecked={isActive}
                             onChange={() => handleToggleStudentStatus(student)}

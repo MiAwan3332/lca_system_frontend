@@ -1,25 +1,8 @@
+import { Checkbox } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Text,
-  Box,
-  Alert,
-  AlertIcon,
-  AlertDescription,
-  useToast,
-  VStack,
-  Checkbox,
-  HStack,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Text, Box, Alert, AlertIcon, AlertDescription, useToast, VStack, HStack } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { ArrowRightLeft, FileText, Receipt } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -362,7 +345,7 @@ function ShiftBatchModal({ student }) {
         {...getResponsiveModalSize("4xl")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           w={{ base: "100%", sm: "90vw", md: "720px", lg: "820px" }}
           maxW={{ base: "100%", sm: "90vw", md: "820px" }}
@@ -539,7 +522,7 @@ function ShiftBatchModal({ student }) {
               </Button>
             </HStack>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React from "react";
 import {
   Modal,
@@ -32,7 +33,7 @@ function DeleteAnnouncementModal({ announcement, isOpen, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader>Delete Announcement</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -46,7 +47,7 @@ function DeleteAnnouncementModal({ announcement, isOpen, onClose }) {
             Delete
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

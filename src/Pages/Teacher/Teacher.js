@@ -1,17 +1,8 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  FormControl,
-  Select,
-  Button,
-} from "@chakra-ui/react";
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Button } from '@chakra-ui/react';
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
@@ -34,6 +25,7 @@ import TablePagination from "../../Components/TablePagination";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { getMediaUrl, hasPermission } from "../../utlls/useful.js";
+import { resourceAccess } from '../../utlls/accessCapabilities';
 import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
@@ -44,7 +36,7 @@ const defaultAvatar =
 function Teacher() {
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
-  const canManageInstitution = isInstitutionAdmin();
+  const canManageInstitution = resourceAccess('teachers', isInstitutionAdmin(), true);
   const tableSearchRef = useRef();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const onAddOpen = () => setIsAddOpen(true);

@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { dynamicRoute, accessSnapshot } from './accessCapabilities';
 import axios from "axios";
 import { config } from "./config";
 import {
@@ -154,6 +155,7 @@ export const canAccessSuperAdminOnlyRoute = (path) => {
 };
 
 export const isStudentRole = () => {
+  if (accessSnapshot().ready && accessSnapshot().managed) return accessSnapshot().accountType === 'student';
   const storedRole = sessionStorage.getItem("role");
   if (storedRole) {
     return storedRole.toLowerCase() === "student";
@@ -234,6 +236,8 @@ const isWhatsAppRoute = (path) => {
 };
 
 export const canAccessRoute = (path) => {
+  const dynamic = dynamicRoute(path);
+  if (dynamic !== undefined) return dynamic;
   if (path === "/profile" || path === "/google-workspace") {
     return true;
   }
@@ -288,6 +292,7 @@ export const canAccessRoute = (path) => {
 };
 
 export const getVisibleRoutes = (allRoutes) => {
+  if (dynamicRoute('/profile') !== undefined) return allRoutes.filter((route) => !route.hidden && dynamicRoute(route.path));
   const visibleRouteList = allRoutes.filter((route) => {
     if (route.hidden) return false;
     if (route.path === "/request-management" && !canAccessRequestManagement()) {

@@ -1,5 +1,6 @@
 import Cookies from "js-cookie";
 import axios from "axios";
+import { resetAccess } from './accessCapabilities';
 import { createStandaloneToast } from "@chakra-ui/react";
 import {
   beginGlobalLoading,
@@ -75,6 +76,7 @@ export const getSessionRemainingMs = (token = getAuthToken()) => {
 };
 
 export const clearAuthSession = () => {
+  resetAccess();
   sessionStorage.removeItem("authToken");
   sessionStorage.removeItem("permissions");
   sessionStorage.removeItem("role");

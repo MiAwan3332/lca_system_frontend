@@ -1,3 +1,9 @@
+import { Checkbox } from './AccessInputs';
+import { Input } from './AccessInputs';
+import { Select } from './AccessInputs';
+import AccessForm from './AccessForm';
+import FormControl from './AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../utlls/accessForms';
 import moment from "moment";
 import Calendar from "./Calendar";
 import axios from "axios";
@@ -9,11 +15,11 @@ import React, {
   useEffect,
 } from "react";
 import { Views } from "react-big-calendar";
-import { Card, Badge, Checkbox, Divider, Heading, HStack, Link, TabPanel, createStandaloneToast, useDisclosure } from "@chakra-ui/react";
+import { Card, Badge, Divider, Heading, HStack, Link, TabPanel, createStandaloneToast, useDisclosure } from '@chakra-ui/react';
 import { Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay } from "@chakra-ui/react";
-import { Box, FormControl, FormLabel, Input, VStack } from "@chakra-ui/react";
-import { Select } from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Box, FormLabel, VStack } from '@chakra-ui/react';
+
+
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBatches, selectActiveBatches, setLimitFilter } from "../Features/batchSlice";
@@ -387,7 +393,7 @@ export default function TimetableCalendar({
       {viewOnly && (
         <Modal isOpen={isEditModalOpen} onClose={onEditModalClose} isCentered>
           <ModalOverlay />
-          <ModalContent className="p-4">
+          <AccessForm component={ModalContent} className="p-4">
             <ModalHeader className="text-xl font-semibold">
               Class Details
             </ModalHeader>
@@ -401,7 +407,7 @@ export default function TimetableCalendar({
                 Close
               </Button>
             </ModalFooter>
-          </ModalContent>
+          </AccessForm>
         </Modal>
       )}
 
@@ -410,12 +416,12 @@ export default function TimetableCalendar({
       {/* Add New Timetable Event Modal */}
       <Modal isOpen={isAddModalOpen} onClose={onAddModalClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Lecture Details
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl id="day">
@@ -604,14 +610,14 @@ export default function TimetableCalendar({
                 Save
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
 
       {/* Edit Timetable Event Modal */}
       <Modal isOpen={isEditModalOpen} onClose={onEditModalClose}>
         <ModalOverlay />
-        <ModalContent className="p-4">
+        <AccessForm component={ModalContent} className="p-4">
           <ModalCloseButton />
           <Tabs variant="soft-rounded" colorScheme="gray">
             <TabList>
@@ -676,7 +682,7 @@ export default function TimetableCalendar({
               </TabPanel>
             </TabPanels>
           </Tabs>
-        </ModalContent>
+        </AccessForm>
       </Modal>
       </>
       )}

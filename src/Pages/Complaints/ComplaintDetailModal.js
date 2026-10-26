@@ -1,22 +1,9 @@
+
+import { Textarea, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Textarea,
-  Select,
-  VStack,
-  Text,
-  Badge,
-  Divider,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, FormLabel, VStack, Text, Badge, Divider } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import { respondToComplaint } from "../../Features/complaintSlice";
 import {
@@ -66,7 +53,7 @@ function ComplaintDetailModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...responsiveModalProps} {...getResponsiveModalSize("xl")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>{complaint.subject}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -143,7 +130,7 @@ function ComplaintDetailModal({
             </Button>
           )}
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

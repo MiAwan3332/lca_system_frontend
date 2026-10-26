@@ -2,6 +2,7 @@
  * Frontend helpers for refund request create / decide access.
  */
 import Cookies from "js-cookie";
+import { accessSnapshot, dynamicPermission } from './accessCapabilities';
 import { extractRoleFromToken } from "./useful";
 
 const normalizeRole = (role) =>
@@ -67,6 +68,7 @@ export const isAccountsRole = (role) =>
  * Principal, Vice Principal, CEO, Super Admins, and Accounts.
  */
 export const canViewDashboardCollections = (role) => {
+  if (accessSnapshot().managed) return dynamicPermission(['getTodayCollections', 'getFinanceReport']);
   const current = role || getCurrentRoleName();
   return (
     isCeoRole(current) ||
@@ -81,6 +83,7 @@ export const canViewDashboardCollections = (role) => {
  * CEO, Principal, Vice Principal, Super Admin, Accounts.
  */
 export const canCreateRefundRequest = (role) => {
+  if (accessSnapshot().managed) return dynamicPermission(['createRefundRequest']);
   const current = role || getCurrentRoleName();
   return (
     isCeoRole(current) ||
@@ -91,12 +94,9 @@ export const canCreateRefundRequest = (role) => {
 };
 
 /** Same roles — Request Management decisions. */
-export const canDecideRefundRequest = (role) =>
-  canCreateRefundRequest(role);
+export const canDecideRefundRequest = (role) => accessSnapshot().managed ? dynamicPermission(['approveRefundRequest', 'rejectRefundRequest']) : canCreateRefundRequest(role);
 
-export const canAccessRequestManagement = (role) =>
-  canDecideRefundRequest(role);
+export const canAccessRequestManagement = (role) => accessSnapshot().managed ? dynamicPermission(['getRefundRequests']) : canDecideRefundRequest(role);
 
 /** Super Admin only — edit Cash/Online + screenshot on refunded requests. */
-export const canUpdateRefundPayout = (role) =>
-  isSuperAdminRole(role);
+export const canUpdateRefundPayout = (role) => accessSnapshot().managed ? dynamicPermission(['updateRefundPayout']) : isSuperAdminRole(role);

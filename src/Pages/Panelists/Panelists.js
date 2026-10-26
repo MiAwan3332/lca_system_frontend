@@ -1,18 +1,8 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  FormControl,
-  Select,
-  Button,
-  Badge,
-} from "@chakra-ui/react";
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Button, Badge } from '@chakra-ui/react';
 import { FileX, FilterX, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {

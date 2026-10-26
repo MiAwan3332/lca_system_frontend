@@ -1,6 +1,10 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, FormControl, FormLabel, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Textarea, useToast, VStack } from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Box, Button, FormLabel, HStack, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useToast, VStack } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import axios from "axios";
@@ -571,7 +575,7 @@ function GeneratePendingFeeSlipAction({
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           display="flex"
           flexDirection="column"
@@ -916,7 +920,7 @@ function GeneratePendingFeeSlipAction({
               {hasPaid ? "Payment Recorded" : "Submit Payment"}
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

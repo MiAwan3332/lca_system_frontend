@@ -1,7 +1,10 @@
+import { Input, Select, Textarea } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { Badge, Box, Button, ButtonGroup, FormControl, FormLabel, HStack, Input, Select, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Text, Textarea, useToast, VStack, Wrap, WrapItem } from "@chakra-ui/react";
+import { resourceAccess } from '../../utlls/accessCapabilities';
+import { Badge, Box, Button, ButtonGroup, FormLabel, HStack, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Text, useToast, VStack, Wrap, WrapItem } from '@chakra-ui/react';
 import {
   Ban,
   ChevronFirst,
@@ -159,7 +162,7 @@ function WhatsAppQueue() {
   const authToken = Cookies.get("authToken");
   const toast = useToast();
   const dispatch = useDispatch();
-  const canView = isPlatformSuperAdminRole();
+  const canView = resourceAccess('whatsapp', isPlatformSuperAdminRole());
 
   const activeBatches = useSelector(selectActiveStudentBatches);
   const interviewBatches = useSelector(selectActiveInterviewBatches);

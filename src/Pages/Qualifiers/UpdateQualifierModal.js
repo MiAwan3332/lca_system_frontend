@@ -1,25 +1,10 @@
+import { Input, Select, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
-  Textarea,
-  VStack,
-  Box,
-  Grid,
-  GridItem,
-  useToast,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, Grid, GridItem, useToast } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Pen } from "lucide-react";
@@ -243,7 +228,7 @@ function UpdateQualifierModal({ qualifier }) {
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Update Qualifier
           </ModalHeader>
@@ -441,7 +426,7 @@ function UpdateQualifierModal({ qualifier }) {
               Update
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

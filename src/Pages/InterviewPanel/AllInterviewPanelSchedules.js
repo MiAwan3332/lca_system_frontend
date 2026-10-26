@@ -1,4 +1,6 @@
-import { Box, Button, SimpleGrid, Text, Badge, HStack, VStack, Flex, Center, FormControl, Select, Input, useDisclosure, useToast, AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay } from "@chakra-ui/react";
+import { Select, Input } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
+import { Box, Button, SimpleGrid, Text, Badge, HStack, VStack, Flex, Center, useDisclosure, useToast, AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay } from '@chakra-ui/react';
 import {
   CalendarCheck2,
   CalendarDays,

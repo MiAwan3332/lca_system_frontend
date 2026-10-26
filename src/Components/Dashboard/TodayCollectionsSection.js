@@ -1,5 +1,6 @@
+import FormControl from '../AccessFormControl';
 import React from "react";
-import { FormControl, FormLabel } from "@chakra-ui/react";
+import { FormLabel } from "@chakra-ui/react";
 import {
   CircleDollarSign,
   HandCoins,

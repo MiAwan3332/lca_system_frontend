@@ -1,3 +1,4 @@
+import AccessForm from './AccessForm';
 import React from "react";
 import {
   Modal,
@@ -56,7 +57,7 @@ class ErrorBoundary extends React.Component {
           )}
           <Modal isOpen onClose={this.handleClose} isCentered size="lg">
             <ModalOverlay />
-            <ModalContent borderRadius="xl">
+            <AccessForm component={ModalContent} borderRadius="xl">
               <ModalHeader color="red.500">Error</ModalHeader>
               <ModalCloseButton />
               <ModalBody>
@@ -74,7 +75,7 @@ class ErrorBoundary extends React.Component {
                   Close
                 </Button>
               </ModalFooter>
-            </ModalContent>
+            </AccessForm>
           </Modal>
         </>
       );

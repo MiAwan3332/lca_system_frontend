@@ -1,32 +1,10 @@
+import { Select, Input } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Badge,
-  Button,
-  ButtonGroup,
-  useDisclosure,
-  Select,
-  FormControl,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Box,
-  Text,
-  IconButton,
-  Input,
-  Link,
-  createStandaloneToast,
-} from "@chakra-ui/react";
+import { resourceAccess } from '../../utlls/accessCapabilities';
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Badge, Button, ButtonGroup, useDisclosure, Tabs, TabList, TabPanels, Tab, TabPanel, Box, Text, IconButton, Link, createStandaloneToast } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import { Cloud, ExternalLink, FileX, Plus, Eye, Send, Trash2, ClipboardList, FilterX, Pencil } from "lucide-react";
 import TableRowLoading from "../../Components/TableRowLoading";
@@ -85,7 +63,7 @@ function Assignments() {
   // Teachers and institution staff can create/edit; students remain view-only.
   const canManage =
     !viewOnly &&
-    (isTeacher || hasPermission(["Add_Assignment", "Edit_Assignment"]) || isInstitutionAdmin());
+    resourceAccess('assignments', isTeacher || hasPermission(["Add_Assignment", "Edit_Assignment"]) || isInstitutionAdmin(), true);
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
   const { fetchStatus, pagination, filters, batchCourses } = useSelector(

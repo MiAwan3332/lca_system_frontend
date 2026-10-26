@@ -1,4 +1,5 @@
-import { Button, ButtonGroup, Select } from "@chakra-ui/react";
+import { Select } from './AccessInputs';
+import { Button, ButtonGroup } from '@chakra-ui/react';
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import Cookies from "js-cookie";

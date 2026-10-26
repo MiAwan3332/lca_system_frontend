@@ -1,27 +1,10 @@
+import { Input, Select, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
-  Textarea,
-  Box,
-  Text,
-  Grid,
-  GridItem,
-  HStack,
-  Badge,
-  Flex,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Box, Text, Grid, GridItem, HStack, Badge, Flex } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useDispatch, useSelector } from "react-redux";
@@ -376,7 +359,7 @@ function AddQualifierModal({ isOpen, onClose }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         as="form"
         onSubmit={formik.handleSubmit}
@@ -880,7 +863,7 @@ function AddQualifierModal({ isOpen, onClose }) {
             Add Qualifier
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

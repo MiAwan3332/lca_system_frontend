@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import {
   Modal,
@@ -40,7 +41,7 @@ function DeleteInterviewPanelModal({ isOpen, onClose, panel }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader className="text-xl font-semibold">
           Delete Interview Panel
         </ModalHeader>
@@ -71,7 +72,7 @@ function DeleteInterviewPanelModal({ isOpen, onClose, panel }) {
             Delete
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

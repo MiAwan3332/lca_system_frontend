@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React from "react";
 import {
   Modal,
@@ -49,7 +51,7 @@ function ViewInterviewPanelModal({ isOpen, onClose, panel }) {
       {...getResponsiveModalSize("lg")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader className="text-xl font-semibold pr-10">
           {panel.title}
         </ModalHeader>
@@ -191,7 +193,7 @@ function ViewInterviewPanelModal({ isOpen, onClose, panel }) {
             </Box>
           </VStack>
         </ModalBody>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

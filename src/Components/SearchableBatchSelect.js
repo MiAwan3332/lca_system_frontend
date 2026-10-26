@@ -1,20 +1,12 @@
+import { Checkbox, Input } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Badge,
-  Box,
-  Checkbox,
-  Flex,
-  Input,
-  List,
-  ListItem,
-  Text,
-  Wrap,
-  WrapItem,
-} from "@chakra-ui/react";
+import { Badge, Box, Flex, List, ListItem, Text, Wrap, WrapItem } from '@chakra-ui/react';
 import { X } from "lucide-react";
 import { filterActiveBatches } from "../Features/batchSlice";
+import { useAccessForm } from './AccessForm';
+import { accessSnapshot, subscribeAccess, canUseField } from '../utlls/accessCapabilities';
 
-function SearchableBatchSelect({
+function BatchSelectInput({
   batches = [],
   value = "",
   onChange,
@@ -296,4 +288,12 @@ function SearchableBatchSelect({
   );
 }
 
-export default SearchableBatchSelect;
+export default function SearchableBatchSelect(props) {
+  React.useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const mode = useAccessForm();
+  const field = props.permissionField || (props.isMulti ? 'batch_ids' : 'batch');
+  if (!mode || canUseField(field, mode === 'read' ? 'read' : 'write')) return <BatchSelectInput {...props} />;
+  if (!canUseField(field, 'read')) return null;
+  const ids = [].concat(props.value || []);
+  return <Text fontSize="sm">{(props.batches || []).filter((batch) => ids.includes(batch._id)).map((batch) => batch.name).join(', ') || '-'}</Text>;
+}

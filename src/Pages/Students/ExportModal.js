@@ -1,31 +1,9 @@
+
+import { Select, Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Select,
-  FormControl,
-  FormLabel,
-  Input,
-  SimpleGrid,
-  Box,
-  Text,
-  Badge,
-  HStack,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Table, Thead, Tbody, Tr, Th, Td, TableContainer, FormLabel, SimpleGrid, Box, Text, Badge, HStack, useToast } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { Download, FilterX } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -255,7 +233,7 @@ const ExportModal = () => {
         {...getResponsiveModalSize("6xl")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Export Student Records
           </ModalHeader>
@@ -606,7 +584,7 @@ const ExportModal = () => {
               Export Excel
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

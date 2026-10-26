@@ -1,7 +1,10 @@
+import { Checkbox } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState, useEffect } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Checkbox, VStack } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack } from '@chakra-ui/react';
 import Cookies from "js-cookie";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import { Check } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -74,12 +77,12 @@ const AssignCoursesModal = ({ batchId }) => {
 
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside">
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Assign Courses to Batch
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               <div>
                 {fetchBatchCoursesStatus === "loading" ? (
@@ -139,8 +142,8 @@ const AssignCoursesModal = ({ batchId }) => {
                 Assign
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

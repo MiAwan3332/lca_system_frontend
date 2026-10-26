@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { requireOutput } from './accessCapabilities';
 import moment from "moment";
 
 const formatRs = (value) =>
@@ -24,6 +25,7 @@ const mapRow = (entry, index, section) => ({
  * Download fee due report (filtered) as Excel.
  */
 export const downloadFeeDueReportExcel = (report) => {
+  requireOutput('fees', 'export');
   if (!report) {
     throw new Error("Report data is not available.");
   }

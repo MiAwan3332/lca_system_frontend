@@ -1,6 +1,10 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, VStack, Box, Select, Text } from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, Text } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
@@ -72,7 +76,7 @@ function AddModel({ isOpen, onClose, stayOpenOnSubmit = false }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...getResponsiveModalSize("2xl")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader className="text-xl font-semibold">Add MCQ</ModalHeader>
         <ModalCloseButton />
         {stayOpenOnSubmit && (
@@ -94,7 +98,7 @@ function AddModel({ isOpen, onClose, stayOpenOnSubmit = false }) {
         )}
         {fetchStatus === 'loading' && <LcaLogoLoading size="sm" />}
         {fetchStatus === 'failure' && <div>Error loading courses</div>}
-        <form onSubmit={formik.handleSubmit}>
+        <AccessForm onSubmit={formik.handleSubmit}>
           <ModalBody>
             <VStack spacing={4}>
               <FormControl id="question">
@@ -244,8 +248,8 @@ function AddModel({ isOpen, onClose, stayOpenOnSubmit = false }) {
               Add MCQ
             </Button>
           </ModalFooter>
-        </form>
-      </ModalContent>
+        </AccessForm>
+      </AccessForm>
     </Modal>
   );
 }

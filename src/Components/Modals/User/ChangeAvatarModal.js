@@ -1,28 +1,9 @@
+
+import { Input } from '../../AccessInputs';
+import AccessForm from '../../AccessForm';
+import FormControl from '../../AccessFormControl';
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  VStack,
-  HStack,
-  MenuItem,
-  Input,
-  FormControl,
-  FormLabel,
-  Box,
-  Text,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
-  Image,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, HStack, MenuItem, FormLabel, Box, Text, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Image, useToast } from '@chakra-ui/react';
 import { useDisclosure } from "@chakra-ui/react";
 import Cropper from "react-easy-crop";
 import axios from "axios";
@@ -230,7 +211,7 @@ function ChangeAvatarModal({ showAvatar = true }) {
       {/* Avatar Modal */}
       <Modal isOpen={isOpen} onClose={handleCloseAvatarModal} size="md" isCentered>
         <ModalOverlay />
-        <ModalContent borderRadius="xl">
+        <AccessForm component={ModalContent} borderRadius="xl">
           <ModalHeader className="text-xl font-semibold">Change Avatar</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -356,13 +337,13 @@ function ChangeAvatarModal({ showAvatar = true }) {
               Save
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
 
       {/* Change Password Modal */}
       <Modal isOpen={isPasswordOpen} onClose={onPasswordClose} isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">Change Password</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -370,7 +351,7 @@ function ChangeAvatarModal({ showAvatar = true }) {
               {showAvatar ? (
                 <FormControl>
                   <FormLabel>Email</FormLabel>
-                  <Input
+                  <Input permissionField="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     isReadOnly
@@ -422,7 +403,7 @@ function ChangeAvatarModal({ showAvatar = true }) {
               Save
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

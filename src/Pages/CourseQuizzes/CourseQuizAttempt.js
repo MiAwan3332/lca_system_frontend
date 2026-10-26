@@ -1,17 +1,7 @@
+import { Radio, RadioGroup, Textarea } from '../../Components/AccessInputs';
+import { NativeInput as AccessNativeInput } from '../../Components/AccessInputs';
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  Box,
-  Button,
-  Text,
-  VStack,
-  Radio,
-  RadioGroup,
-  Stack,
-  Progress,
-  Textarea,
-  HStack,
-  Badge,
-} from "@chakra-ui/react";
+import { Box, Button, Text, VStack, Stack, Progress, HStack, Badge } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import {
   saveCourseQuizAnswer,
@@ -111,7 +101,7 @@ function CourseQuizAttempt({ authToken, quiz, onExit, onSubmitted }) {
               const checked = selected.includes(opt);
               return (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input
+                  <AccessNativeInput
                     type="checkbox"
                     checked={checked}
                     onChange={() => {

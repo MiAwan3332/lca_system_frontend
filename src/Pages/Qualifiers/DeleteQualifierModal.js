@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import {
   Modal,
@@ -47,7 +48,7 @@ function DeleteQualifierModal({ qualifierId }) {
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader>Delete qualifier</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -75,7 +76,7 @@ function DeleteQualifierModal({ qualifierId }) {
               Delete
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

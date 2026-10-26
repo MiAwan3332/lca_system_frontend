@@ -1,19 +1,10 @@
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Pen } from "lucide-react";
@@ -60,12 +51,12 @@ function AddModel({ course }) {
       </button>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Update Course
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl id="name">
@@ -142,8 +133,8 @@ function AddModel({ course }) {
                 Update
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

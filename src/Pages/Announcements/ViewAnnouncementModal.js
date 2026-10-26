@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React from "react";
 import {
   Modal,
@@ -33,7 +35,7 @@ function ViewAnnouncementModal({ isOpen, onClose, announcement }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" scrollBehavior="inside">
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm permissionMode="read" component={ModalContent}>
         <ModalHeader className="text-xl font-semibold pr-10">
           {announcement.title}
         </ModalHeader>
@@ -68,7 +70,7 @@ function ViewAnnouncementModal({ isOpen, onClose, announcement }) {
             </div>
           </VStack>
         </ModalBody>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

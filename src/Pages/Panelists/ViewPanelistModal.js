@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import {
   Modal,
@@ -40,7 +42,7 @@ function ViewPanelistModal({ panelist }) {
 
       <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm permissionMode="read" component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Panelist Details
           </ModalHeader>
@@ -93,7 +95,7 @@ function ViewPanelistModal({ panelist }) {
               Close
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

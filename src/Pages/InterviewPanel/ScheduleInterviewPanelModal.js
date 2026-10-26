@@ -1,24 +1,8 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  VStack,
-  Stack,
-  Flex,
-  Box,
-  IconButton,
-  Text,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Stack, Flex, Box, IconButton, Text } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { Plus, Trash2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -124,7 +108,7 @@ function ScheduleInterviewPanelModal({ isOpen, onClose, panel }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         as="form"
         onSubmit={handleSubmit}
@@ -346,7 +330,7 @@ function ScheduleInterviewPanelModal({ isOpen, onClose, panel }) {
             Save Schedules
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

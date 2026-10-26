@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useEffect, useMemo } from "react";
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Box, Flex, Text, Badge, SimpleGrid, Center, Image, Tag, Wrap, WrapItem, VStack, Divider } from "@chakra-ui/react";
 import Cookies from "js-cookie";
@@ -141,7 +143,7 @@ function InterviewEvaluationDetailsModal({ isOpen, onClose, scheduleRow }) {
       {...getResponsiveModalSize("4xl")}
     >
       <ModalOverlay bg="blackAlpha.500" backdropFilter="blur(4px)" />
-      <ModalContent
+      <AccessForm permissionMode="read" component={ModalContent}
         {...responsiveModalContentProps}
         maxW={{ base: "100%", sm: "52rem", lg: "64rem" }}
         overflow="hidden"
@@ -396,7 +398,7 @@ function InterviewEvaluationDetailsModal({ isOpen, onClose, scheduleRow }) {
             </VStack>
           )}
         </ModalBody>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

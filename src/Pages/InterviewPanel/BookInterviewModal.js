@@ -1,5 +1,8 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, Textarea, VStack, Text, Box, Flex, HStack, Badge, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Text, Box, Flex, HStack, Badge, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import moment from "moment";
 import {
@@ -314,7 +317,7 @@ function BookInterviewModal({
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay bg="blackAlpha.500" backdropFilter="blur(4px)" />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           as="form"
           onSubmit={requestBookConfirm}
@@ -591,7 +594,7 @@ function BookInterviewModal({
               </Button>
             ) : null}
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
 
       <AlertDialog

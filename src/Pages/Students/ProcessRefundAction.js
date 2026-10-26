@@ -1,27 +1,8 @@
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  Button,
-  FormControl,
-  FormLabel,
-  HStack,
-  Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  useToast,
-  VStack,
-} from "@chakra-ui/react";
+import { AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, Button, FormLabel, HStack, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useToast, VStack } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { HandCoins } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -173,7 +154,7 @@ function ProcessRefundAction({ student }) {
 
       <Modal isOpen={isOpen} onClose={handleClose} isCentered size="lg">
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader>Process Refund</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -287,7 +268,7 @@ function ProcessRefundAction({ student }) {
               Confirm Refund
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
 
       <AlertDialog

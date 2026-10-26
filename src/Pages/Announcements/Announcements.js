@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
+import { resourceAccess } from '../../utlls/accessCapabilities';
 import {
   Table,
   Thead,
@@ -109,7 +110,7 @@ function StudentAnnouncementCard({ item, onOpen }) {
 function Announcements() {
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
-  const canManage = isInstitutionAdmin() || isTeacher;
+  const canManage = resourceAccess('announcements', isInstitutionAdmin() || isTeacher, true);
   const authToken = Cookies.get("authToken");
   const tableSearchRef = useRef();
   const dispatch = useDispatch();

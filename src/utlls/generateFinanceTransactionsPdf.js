@@ -1,3 +1,4 @@
+import { accessFetch as fetch } from './accessRequests';
 import jsPDF from "jspdf";
 import moment from "moment";
 
@@ -91,6 +92,8 @@ export const exportFinanceTransactionsPdf = async ({
   batchWise = [],
   mode = "download",
 }) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('fees', mode === 'print' ? 'print' : 'export');
   const safeDate = date ? moment(date).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD");
   const label = period ? String(period).toLowerCase() : "daily";
   const collectedByLabel = collectedBy || "All admin users";

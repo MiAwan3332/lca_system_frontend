@@ -1,23 +1,8 @@
+import { Input, Textarea, Select, Switch } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  Switch,
-  VStack,
-  HStack,
-  Text,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, FormLabel, VStack, HStack, Text } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import {
   addAssignment,
@@ -83,7 +68,7 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
     if (assignment) {
       setForm({
         ...defaultForm,
-        ...assignment,
+        ...Object.fromEntries(Object.keys(defaultForm).filter((key) => assignment[key] !== undefined).map((key) => [key, assignment[key]])),
         batch: assignment.batch?._id || assignment.batch || "",
         course: assignment.course?._id || assignment.course || "",
         availability_date: assignment.availability_date
@@ -174,7 +159,7 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...responsiveModalProps} {...getResponsiveModalSize("2xl")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>{assignment ? "Edit Assignment" : "Create Assignment"}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -306,7 +291,7 @@ function AssignmentFormModal({ isOpen, onClose, authToken, assignment }) {
             {assignment ? "Update" : "Create"}
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

@@ -1,5 +1,9 @@
+
+import { Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, Select, Text, Table, Thead, Tbody, Tr, Th, Td, TableContainer, IconButton, Alert, AlertIcon, useToast, Heading } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormLabel, Text, Table, Thead, Tbody, Tr, Th, Td, TableContainer, IconButton, Alert, AlertIcon, useToast, Heading } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { UserPlus, Trash2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -171,7 +175,7 @@ const AssignTeachersModal = ({ batchId }) => {
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Assign Teacher to Batch by Course
           </ModalHeader>
@@ -195,7 +199,7 @@ const AssignTeachersModal = ({ batchId }) => {
 
                     <FormControl>
                       <FormLabel>Teacher</FormLabel>
-                      <Select
+                      <Select permissionField="assignments"
                         placeholder="Select teacher"
                         value={selectedTeacher}
                         onChange={(e) => setSelectedTeacher(e.target.value)}
@@ -210,7 +214,7 @@ const AssignTeachersModal = ({ batchId }) => {
 
                     <FormControl>
                       <FormLabel>Course</FormLabel>
-                      <Select
+                      <Select permissionField="assignments"
                         placeholder="Select course"
                         value={selectedCourse}
                         onChange={(e) => setSelectedCourse(e.target.value)}
@@ -299,7 +303,7 @@ const AssignTeachersModal = ({ batchId }) => {
               Save Assignments
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

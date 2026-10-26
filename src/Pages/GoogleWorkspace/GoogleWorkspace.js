@@ -1,19 +1,8 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import {
-  Badge,
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  HStack,
-  Link,
-  Select,
-  SimpleGrid,
-  Text,
-  VStack,
-  createStandaloneToast,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, FormLabel, HStack, Link, SimpleGrid, Text, VStack, createStandaloneToast } from '@chakra-ui/react';
 import {
   CalendarPlus,
   CheckCircle2,

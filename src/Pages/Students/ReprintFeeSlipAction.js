@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React, { useMemo, useState } from "react";
 import { Box, Button, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useToast, VStack, Badge, HStack } from "@chakra-ui/react";
 import Cookies from "js-cookie";
@@ -232,7 +233,7 @@ function ReprintFeeSlipAction({ student }) {
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           display="flex"
           flexDirection="column"
@@ -386,7 +387,7 @@ function ReprintFeeSlipAction({ student }) {
               Print Duplicate Slip
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

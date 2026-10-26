@@ -1,8 +1,12 @@
+
+import { Input, Radio, RadioGroup, Textarea } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo } from "react";
-import { Box, Button, Center, Divider, Flex, FormControl, FormLabel, Grid, GridItem, Heading, Image, Input, Radio, RadioGroup, SimpleGrid, Stack, Tag, Text, Textarea, VStack, Wrap, WrapItem } from "@chakra-ui/react";
+import { Box, Button, Center, Divider, Flex, FormLabel, Grid, GridItem, Heading, Image, SimpleGrid, Stack, Tag, Text, VStack, Wrap, WrapItem } from '@chakra-ui/react';
 import { ArrowLeft, GraduationCap, UserRound } from "lucide-react";
 import Cookies from "js-cookie";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
@@ -520,7 +524,7 @@ function ConductInterview() {
                 isInvalid={formik.touched.verdict && !!formik.errors.verdict}
                 isDisabled={isCompleted}
               >
-                <RadioGroup
+                <RadioGroup permissionField="verdict"
                   value={formik.values.verdict}
                   onChange={(value) => formik.setFieldValue("verdict", value)}
                 >

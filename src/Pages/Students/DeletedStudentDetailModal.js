@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Tabs, TabList, TabPanels, Tab, TabPanel, Box, Flex, Text, Badge, SimpleGrid, VStack, HStack, Divider } from "@chakra-ui/react";
 import moment from "moment";
@@ -107,7 +109,7 @@ function DeletedStudentDetailModal({ archiveId, isOpen, onClose }) {
       {...responsiveModalProps}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>
           Deleted student archive
           {student?.name ? ` — ${student.name}` : ""}
@@ -385,7 +387,7 @@ function DeletedStudentDetailModal({ archiveId, isOpen, onClose }) {
         <ModalFooter>
           <Button onClick={onClose}>Close</Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

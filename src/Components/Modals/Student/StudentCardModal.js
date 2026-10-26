@@ -1,3 +1,4 @@
+import AccessForm from '../../AccessForm';
 import React, { useState } from "react";
 import {
   Modal,
@@ -44,7 +45,7 @@ function StudentCardModal({ student }) {
         {...getResponsiveModalSize("4xl")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Student Card
           </ModalHeader>
@@ -67,7 +68,7 @@ function StudentCardModal({ student }) {
               </ErrorBoundary>
             )}
           </ModalBody>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

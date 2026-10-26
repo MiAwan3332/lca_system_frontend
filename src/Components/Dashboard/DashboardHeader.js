@@ -1,10 +1,7 @@
+import { Input } from '../AccessInputs';
+import FormControl from '../AccessFormControl';
 import React from "react";
-import {
-  FormControl,
-  Input,
-  Button,
-  IconButton,
-} from "@chakra-ui/react";
+import { Button, IconButton } from '@chakra-ui/react';
 import { FilterX, RotateCw } from "lucide-react";
 import SearchableBatchSelect from "../SearchableBatchSelect";
 

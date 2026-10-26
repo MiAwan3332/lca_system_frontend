@@ -1,18 +1,11 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import { resourceAccess } from '../../utlls/accessCapabilities';
 import moment from "moment";
 import axios from "axios";
-import {
-  Badge,
-  Box,
-  Button,
-  ButtonGroup,
-  FormControl,
-  Input,
-  Select,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, ButtonGroup, Text, VStack } from '@chakra-ui/react';
 import {
   Bell,
   CheckCheck,
@@ -148,7 +141,7 @@ function NotificationsPage() {
   const authToken = Cookies.get("authToken");
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const canView = isInstitutionAdmin();
+  const canView = resourceAccess('notifications', isInstitutionAdmin());
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);

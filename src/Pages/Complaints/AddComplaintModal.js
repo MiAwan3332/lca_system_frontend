@@ -1,20 +1,9 @@
+
+import { Input, Textarea, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  VStack,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, FormLabel, VStack } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import { addComplaint } from "../../Features/complaintSlice";
 import { COMPLAINT_CATEGORIES } from "../../utlls/complaintConstants";
@@ -66,7 +55,7 @@ function AddComplaintModal({ isOpen, onClose, authToken, onSubmitted }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...responsiveModalProps} {...getResponsiveModalSize("lg")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>Submit Complaint</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -110,7 +99,7 @@ function AddComplaintModal({ isOpen, onClose, authToken, onSubmitted }) {
             </FormControl>
             <FormControl isRequired>
               <FormLabel>Description</FormLabel>
-              <Textarea
+              <Textarea permissionField="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 borderRadius="xl"
@@ -133,7 +122,7 @@ function AddComplaintModal({ isOpen, onClose, authToken, onSubmitted }) {
             Submit Complaint
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

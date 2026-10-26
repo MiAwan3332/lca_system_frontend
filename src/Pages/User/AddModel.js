@@ -1,21 +1,10 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Select,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import axios from "axios";
@@ -58,7 +47,7 @@ function AddModel({ isOpen, onClose }) {
     const loadRoles = async () => {
       setRolesLoading(true);
       try {
-        const response = await axios.get(`${config.BASE_URL}/roles`, {
+        const response = await axios.get(`${config.BASE_URL}/access/account-categories`, {
           headers: { Authorization: `Bearer ${authToken}` },
           params: { page: 1, limit: 100, query: "" },
         });
@@ -110,10 +99,10 @@ function AddModel({ isOpen, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader className="text-xl font-semibold">Add User</ModalHeader>
         <ModalCloseButton />
-        <form onSubmit={formik.handleSubmit}>
+        <AccessForm onSubmit={formik.handleSubmit}>
           <ModalBody>
             {submission && <Box mb={4}><CreationProcessing kind="user" authToken={authToken}
               submissionKey={submission.idempotency_key} initial={submission}
@@ -232,8 +221,8 @@ function AddModel({ isOpen, onClose }) {
               Add
             </Button>
           </ModalFooter>
-        </form>
-      </ModalContent>
+        </AccessForm>
+      </AccessForm>
     </Modal>
   );
 }

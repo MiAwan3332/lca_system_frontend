@@ -1,3 +1,4 @@
+import { accessFetch as fetch } from './accessRequests';
 import * as pdfjsLib from "pdfjs-dist";
 import {
   SLIP_HEIGHT_IN,
@@ -153,6 +154,8 @@ const printImageDataUrl = (imageDataUrl) =>
 
 /** Print a jsPDF fee slip at 5×7.5 inches without browser header/footer chrome. */
 export const printFeeSlipPdf = async (doc) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('students', 'print');
   const pdfBytes = new Uint8Array(doc.output("arraybuffer"));
   const imageDataUrl = await pdfBytesToImageDataUrl(pdfBytes);
   await printImageDataUrl(imageDataUrl);
@@ -160,6 +163,8 @@ export const printFeeSlipPdf = async (doc) => {
 
 /** Print a fee slip PDF fetched from a URL (stored slip on server). */
 export const printFeeSlipFromUrl = async (slipUrl) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('students', 'print');
   if (!slipUrl) {
     throw new Error("Fee slip URL is missing.");
   }
@@ -176,6 +181,8 @@ export const printFeeSlipFromUrl = async (slipUrl) => {
 
 /** Print a fee slip PDF blob at 5×7.5 inches. */
 export const printFeeSlipBlob = async (blob) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('students', 'print');
   const pdfBytes = new Uint8Array(await blob.arrayBuffer());
   const imageDataUrl = await pdfBytesToImageDataUrl(pdfBytes);
   await printImageDataUrl(imageDataUrl);

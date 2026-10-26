@@ -1,3 +1,5 @@
+import { NativeInput as AccessNativeInput } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
 import React, { useRef, useState } from "react";
 import Cookies from "js-cookie";
 import {
@@ -130,7 +132,7 @@ function McqImportModal({ isOpen, onClose, courses = [] }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader className="text-xl font-semibold">
           Import MCQs from Excel
         </ModalHeader>
@@ -179,7 +181,7 @@ function McqImportModal({ isOpen, onClose, courses = [] }) {
             </Button>
           </Box>
 
-          <input
+          <AccessNativeInput
             ref={fileInputRef}
             type="file"
             accept=".xlsx,.xls,.csv"
@@ -254,7 +256,7 @@ function McqImportModal({ isOpen, onClose, courses = [] }) {
             Import MCQs
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

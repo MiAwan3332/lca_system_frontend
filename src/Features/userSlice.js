@@ -53,7 +53,8 @@ const addUser = createAsyncThunk(
 
 const updateUser = createAsyncThunk('users/updateUser', async (payload) => {
     const { userId, values, authToken } = payload;
-    const response = await axios.post(`${BASE_URL}/users/update/${userId}`, values, {
+    const { role, password, ...profile } = values;
+    const response = await axios.post(`${BASE_URL}/users/update/${userId}`, profile, {
         headers: {
             Authorization: `Bearer ${authToken}`,
             'Content-Type': 'application/json',

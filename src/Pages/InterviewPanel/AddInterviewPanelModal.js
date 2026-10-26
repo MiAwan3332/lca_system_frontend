@@ -1,26 +1,10 @@
+import { Input, Textarea, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  VStack,
-  Stack,
-  Flex,
-  Box,
-  IconButton,
-  Text,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Stack, Flex, Box, IconButton, Text } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Plus, Trash2 } from "lucide-react";
@@ -202,7 +186,7 @@ function AddInterviewPanelModal({ isOpen, onClose }) {
       {...getResponsiveModalSize("xl")}
     >
       <ModalOverlay />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         as="form"
         onSubmit={(e) => {
@@ -454,7 +438,7 @@ function AddInterviewPanelModal({ isOpen, onClose }) {
             Create
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

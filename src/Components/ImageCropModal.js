@@ -1,3 +1,4 @@
+import AccessForm from './AccessForm';
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Modal,
@@ -80,7 +81,7 @@ function ImageCropModal({
       closeOnOverlayClick={!saving}
     >
       <ModalOverlay />
-      <ModalContent borderRadius="xl" mx={3}>
+      <AccessForm component={ModalContent} borderRadius="xl" mx={3}>
         <ModalHeader className="text-xl font-semibold">{title}</ModalHeader>
         <ModalCloseButton isDisabled={saving} />
         <ModalBody>
@@ -159,7 +160,7 @@ function ImageCropModal({
             Apply Crop
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

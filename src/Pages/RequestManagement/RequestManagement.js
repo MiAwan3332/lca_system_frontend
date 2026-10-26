@@ -1,26 +1,9 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import moment from "moment";
-import {
-  Badge,
-  Button,
-  FormControl,
-  HStack,
-  Select,
-  Stat,
-  StatHelpText,
-  StatLabel,
-  StatNumber,
-  Table,
-  TableContainer,
-  Tbody,
-  Td,
-  Text,
-  Th,
-  Thead,
-  Tr,
-  useDisclosure,
-} from "@chakra-ui/react";
+import { Badge, Button, HStack, Stat, StatHelpText, StatLabel, StatNumber, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr, useDisclosure } from '@chakra-ui/react';
 import {
   Check,
   CheckCircle,

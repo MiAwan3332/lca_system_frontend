@@ -1,5 +1,7 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import { Box, Button, Text, Badge, HStack, VStack, Flex, Center, FormControl, FormLabel, Input, Textarea, Stack, IconButton } from "@chakra-ui/react";
+import { Box, Button, Text, Badge, HStack, VStack, Flex, Center, FormLabel, Stack, IconButton } from '@chakra-ui/react';
 import {
   ArrowLeft,
   CalendarDays,

@@ -1,6 +1,9 @@
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Text, FormControl, FormLabel, Input, Alert, AlertIcon, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Box, Flex, HStack, VStack, Badge, SimpleGrid, Divider, useToast } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Text, FormLabel, Alert, AlertIcon, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Box, Flex, HStack, VStack, Badge, SimpleGrid, Divider, useToast } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import { FormInput, Users, Sparkles } from "lucide-react";
 import {
@@ -329,7 +332,7 @@ function QualifierFillNullFieldModal({ isOpen, onClose }) {
       {...getResponsiveModalSize("4xl")}
     >
       <ModalOverlay bg="blackAlpha.500" backdropFilter="blur(2px)" />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         borderRadius="2xl"
         overflow="hidden"
@@ -646,7 +649,7 @@ function QualifierFillNullFieldModal({ isOpen, onClose }) {
             {matchedCount === 1 ? "" : "s"}
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

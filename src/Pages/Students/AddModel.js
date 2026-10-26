@@ -1,30 +1,11 @@
+import { Input, Textarea, Checkbox } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Box,
-  Text,
-  Textarea,
-  Grid,
-  GridItem,
-  HStack,
-  Badge,
-  Flex,
-  Checkbox,
-  VStack,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Box, Text, Grid, GridItem, HStack, Badge, Flex, VStack, useToast } from '@chakra-ui/react';
 import { Printer } from "lucide-react";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
@@ -1185,7 +1166,7 @@ function AddStudnet({ isOpen, onClose }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         as="form"
         onSubmit={formik.handleSubmit}
@@ -1574,7 +1555,7 @@ function AddStudnet({ isOpen, onClose }) {
             {createdStudent ? "Student Added" : "Add Student"}
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

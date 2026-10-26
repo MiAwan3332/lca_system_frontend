@@ -1,22 +1,9 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import moment from "moment";
-import {
-  Badge,
-  Button,
-  FormControl,
-  HStack,
-  Select,
-  Table,
-  TableContainer,
-  Tbody,
-  Td,
-  Text,
-  Th,
-  Thead,
-  Tr,
-  VStack,
-} from "@chakra-ui/react";
+import { Badge, Button, HStack, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr, VStack } from '@chakra-ui/react';
 import { Eye, FileX, FilterX } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import TableSearch from "../../Components/TableSearch";

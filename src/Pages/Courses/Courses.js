@@ -32,13 +32,14 @@ import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isTeacherRole, isInstitutionAdmin } from "../../utlls/teacherAccess";
 import { hasPermission } from "../../utlls/useful";
+import { resourceAccess } from '../../utlls/accessCapabilities';
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
 
 function Course() {
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
-  const canManageInstitution = isInstitutionAdmin();
+  const canManageInstitution = resourceAccess('courses', isInstitutionAdmin(), true);
   const showFeeAndActions = canManageInstitution;
   const tableSearchRef = useRef();
   const [isAddOpen, setIsAddOpen] = useState(false);

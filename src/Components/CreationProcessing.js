@@ -1,3 +1,4 @@
+import AccessForm from './AccessForm';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, AlertIcon, Badge, Box, Button, HStack, Modal, ModalBody, ModalCloseButton,
   ModalContent, ModalHeader, ModalOverlay, Text, VStack } from '@chakra-ui/react';
@@ -105,10 +106,10 @@ export function CreationStatusButton({ kind, record, authToken }) {
       {status === 'complete' ? 'Processing complete' : `Processing: ${status || 'pending'}`}
     </Button>
     <Modal isOpen={open} onClose={() => setOpen(false)}>
-      <ModalOverlay /><ModalContent><ModalHeader>Processing Status</ModalHeader><ModalCloseButton />
+      <ModalOverlay /><AccessForm component={ModalContent}><ModalHeader>Processing Status</ModalHeader><ModalCloseButton />
         <ModalBody pb={6}><CreationProcessing kind={kind} authToken={authToken} recordId={record._id}
           onResolved={(result) => setStatus(result.processing_status)} onFinished={(result) => setStatus(result.processing_status)} /></ModalBody>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   </Box>;
 }

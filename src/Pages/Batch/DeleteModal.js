@@ -1,19 +1,8 @@
+import { Checkbox, Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  Checkbox,
-  Text,
-  Input,
-  FormControl,
-  FormLabel,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Text, FormLabel } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { Trash } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -71,7 +60,7 @@ const DeleteModal = ({ batchId, batchName = "", enrolledCount = 0 }) => {
 
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Confirm delete batch
           </ModalHeader>
@@ -164,7 +153,7 @@ const DeleteModal = ({ batchId, batchName = "", enrolledCount = 0 }) => {
               Delete everything
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

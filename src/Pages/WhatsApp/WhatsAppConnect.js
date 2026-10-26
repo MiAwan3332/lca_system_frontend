@@ -1,7 +1,9 @@
+import { Input } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { Badge, Box, Button, FormControl, FormLabel, HStack, Image, Input, Text, VStack, useToast, Wrap, WrapItem } from "@chakra-ui/react";
+import { Badge, Box, Button, FormLabel, HStack, Image, Text, VStack, useToast, Wrap, WrapItem } from '@chakra-ui/react';
 import {
   Link2,
   LogOut,
@@ -17,6 +19,7 @@ import PageHeader, { DataTableShell } from "../../Components/PageHeader";
 import { config } from "../../utlls/config";
 import { isPlatformSuperAdminRole } from "../../utlls/useful";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
+import { resourceAccess } from '../../utlls/accessCapabilities';
 
 const STATUS_COLOR = {
   ready: "green",
@@ -42,7 +45,7 @@ function WhatsAppConnect() {
   const authToken = Cookies.get("authToken");
   const toast = useToast();
   const pollRef = useRef(null);
-  const canView = isPlatformSuperAdminRole();
+  const canView = resourceAccess('whatsapp', isPlatformSuperAdminRole());
 
   const [gatewayConfig, setGatewayConfig] = useState(null);
   const [sessions, setSessions] = useState([]);

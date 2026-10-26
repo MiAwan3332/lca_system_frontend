@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import moment from "moment";
+import { requireOutput } from './accessCapabilities';
 
 const toNumber = (value) => {
   const n = Number(value);
@@ -172,6 +173,7 @@ export const exportFinanceTransactionsExcel = ({
   totalOnline = 0,
   batchWise = [],
 }) => {
+  requireOutput('fees', 'export');
   const safeDate = date
     ? moment(date).format("YYYY-MM-DD")
     : startDate

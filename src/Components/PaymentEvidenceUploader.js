@@ -1,3 +1,4 @@
+import { NativeInput as AccessNativeInput } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
@@ -10,6 +11,8 @@ import {
 } from "@chakra-ui/react";
 import { Camera, Paperclip, Trash2, Upload, X } from "lucide-react";
 import CameraCapture from "./CameraCapture";
+import { useAccessForm } from './AccessForm';
+import { accessSnapshot, subscribeAccess, canUseField } from '../utlls/accessCapabilities';
 
 const isImageFile = (file) =>
   file && String(file.type || "").startsWith("image/");
@@ -18,7 +21,7 @@ const isImageFile = (file) =>
  * Upload and/or capture payment receipt photos for Online Payment.
  * Supports multiple images/PDFs.
  */
-function PaymentEvidenceUploader({
+function PaymentEvidenceInput({
   files = [],
   onChange,
   error = "",
@@ -140,7 +143,7 @@ function PaymentEvidenceUploader({
         ) : null}
       </HStack>
 
-      <input
+      <AccessNativeInput
         ref={fileInputRef}
         type="file"
         multiple
@@ -172,6 +175,7 @@ function PaymentEvidenceUploader({
           bg="#FAFBFC"
         >
           <CameraCapture
+            permissionField="payment_evidence"
             label="Payment receipt photo"
             onCapture={handleCapture}
           />
@@ -248,4 +252,9 @@ function PaymentEvidenceUploader({
   );
 }
 
-export default PaymentEvidenceUploader;
+export default function PaymentEvidenceUploader(props) {
+  React.useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const mode = useAccessForm();
+  if (mode && !canUseField('payment_evidence', 'write')) return null;
+  return <PaymentEvidenceInput {...props} />;
+}

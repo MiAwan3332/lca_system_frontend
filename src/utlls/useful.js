@@ -1,4 +1,5 @@
 import { markSessionStarted } from "./authSession.js";
+import { dynamicPermission, accessSnapshot, can, resetAccess } from './accessCapabilities';
 import { config } from "./config.js";
 import {
   isFullAccessRoleName,
@@ -118,31 +119,35 @@ const getCurrentRoleName = () => {
 };
 
 const hasFullAccess = () => {
+  if (accessSnapshot().managed) return accessSnapshot().owner && !accessSnapshot().error;
   const role = getCurrentRoleName();
   return isFullAccessRoleName(role);
 };
 
 const isFullAccessRole = () => hasFullAccess();
 
-const isPlatformSuperAdminRole = () =>
+const isPlatformSuperAdminRole = () => accessSnapshot().managed ? Boolean(accessSnapshot().owner && !accessSnapshot().error) :
   isPlatformSuperAdminRoleName(getCurrentRoleName());
 
-const isStrictSuperAdminRole = () =>
+const isStrictSuperAdminRole = () => accessSnapshot().managed ? Boolean(accessSnapshot().owner && !accessSnapshot().error) :
   isStrictSuperAdminRoleName(getCurrentRoleName());
 
 /** Delete student — VP, Principal, CEO, Super Admin, Secrate Super Admin, Accounts. */
-const canDeleteStudent = () => canDeleteStudentRoleName(getCurrentRoleName());
+const canDeleteStudent = () => accessSnapshot().managed ? dynamicPermission(['Delete_Student']) : canDeleteStudentRoleName(getCurrentRoleName());
 
 /** Shift batch — same roles as delete student (includes Accounts). */
-const canShiftStudentBatch = () => canDeleteStudentRoleName(getCurrentRoleName());
+const canShiftStudentBatch = () => accessSnapshot().managed ? dynamicPermission(['shiftStudentBatch']) : canDeleteStudentRoleName(getCurrentRoleName());
 
 /** Full action rights (add/update/view/delete) without opening Roles/Permissions/Logs. */
 const hasUnrestrictedActionAccess = () => {
+  if (accessSnapshot().managed) return can('access.owner');
   if (hasFullAccess()) return true;
   return isPrincipalManageRoleName(getCurrentRoleName());
 };
 
 const hasPermission = (permissionsToCheck) => {
+  const dynamic = dynamicPermission(permissionsToCheck);
+  if (dynamic !== undefined) return dynamic;
   if (hasUnrestrictedActionAccess()) return true;
 
   const checks = Array.isArray(permissionsToCheck) ? permissionsToCheck : [];
@@ -170,6 +175,7 @@ const storeAuthSession = ({
   skipProfileCompletion,
 }) => {
   if (authToken) {
+    resetAccess();
     sessionStorage.setItem("authToken", authToken);
     markSessionStarted();
   }
