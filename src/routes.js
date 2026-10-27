@@ -12,8 +12,8 @@ import Courses from "./Pages/Courses/Courses.js";
 import Mcq from "./Pages/Mcqs/Mcqs.js";
 import Batches from "./Pages/Batch/Batch.js";
 import Students from "./Pages/Students/Student.js";
-import Roles from "./Pages/Roles/AccessWorkspace.js";
-import Permissions from "./Pages/Roles/AccessWorkspace.js";
+import AccessManagement from "./Pages/Roles/AccessWorkspace.js";
+import { Navigate } from 'react-router-dom';
 import Seminars from "./Pages/Seminar/seminar.js";
 import { FaQuestionCircle } from "react-icons/fa";
 import { Boxes, BrainCircuit, CalendarDays, CalendarRange, CircleDollarSign, CircleHelp, GraduationCap, Layers, LayoutDashboard, ListChecks, ListOrdered, Presentation, School, UserRoundCheck, UserRoundCog, Users, UsersRound, BarChart3, Receipt, ClipboardList, BookOpenCheck, MessageSquareWarning, Megaphone, ScrollText, Shield, ClipboardPenLine, Bell, UserCircle, MessageCircle, MessageSquareText, Contact, BadgeCheck, Archive } from "lucide-react";
@@ -256,19 +256,22 @@ export const routes = [
     hidden: true,
   },
   {
-    name: "Roles",
+    name: "Access Management",
     icon: UserRoundCog,
-    component: <Roles />,
-    path: "/role",
+    component: <AccessManagement />,
+    path: "/access-management",
     superAdminOnly: true,
   },
   {
-    name: "Permissions",
+    name: "Access Management Detail",
     icon: ListChecks,
-    component: <Permissions />,
-    path: "/permission",
+    component: <AccessManagement />,
+    path: "/access-management/*",
     superAdminOnly: true,
+    hidden: true,
   },
+  { name: 'Legacy Roles', path: '/role', component: <Navigate to="/access-management" replace />, superAdminOnly: true, hidden: true },
+  { name: 'Legacy Permissions', path: '/permission', component: <Navigate to="/access-management" replace />, superAdminOnly: true, hidden: true },
   {
     name: "Activity Logs",
     icon: ScrollText,

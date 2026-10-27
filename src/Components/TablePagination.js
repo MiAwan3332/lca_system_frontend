@@ -1,166 +1,18 @@
-import { Select } from './AccessInputs';
-import { Button, ButtonGroup } from '@chakra-ui/react';
-import React, { useState } from "react";
-import { useDispatch } from "react-redux";
-import Cookies from "js-cookie";
-import {
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import React from 'react';
+import { useDispatch } from 'react-redux';
+import Cookies from 'js-cookie';
+import DataPagination from './DataPagination';
 
-export default function TablePagination({
-  pagination,
-  setLimitFilter,
-  setPageFilter,
-  method,
-  payload = {},
-}) {
-  const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
-  const {
-    totalDocs,
-    limit,
-    totalPages,
-    page,
-    pagingCounter,
-    hasPrevPage,
-    hasNextPage,
-    prevPage,
-    nextPage,
-  } = pagination;
+export default function TablePagination({ pagination, setLimitFilter, setPageFilter, method, payload = {} }) {
   const dispatch = useDispatch();
-
-  const handlePage = (page) => {
+  const authToken = Cookies.get('authToken');
+  const onPage = (page) => {
     dispatch(setPageFilter(page));
-    // Pass page explicitly so the request never uses a stale Redux filter value
     dispatch(method({ authToken, page, ...payload }));
   };
-
-  const handleLimit = (e) => {
-    const nextLimit = Number(e.target.value) || 10;
-    dispatch(setLimitFilter(nextLimit));
-    dispatch(method({ authToken, page: 1, limit: nextLimit, ...payload }));
+  const onLimit = (limit) => {
+    dispatch(setLimitFilter(limit));
+    dispatch(method({ authToken, page: 1, limit, ...payload }));
   };
-
-  const renderPageButtons = () => {
-    if (totalPages < 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1).map((item) => (
-        <Button
-          key={item}
-          onClick={() => handlePage(item)}
-          isDisabled={page === item}
-          borderRadius={"xl"}
-        >
-          {item}
-        </Button>
-      ));
-    } else {
-      if (page < 3) {
-        return Array.from({ length: 5 }, (_, i) => i + 1).map((item) => (
-          <Button
-            key={item}
-            onClick={() => handlePage(item)}
-            isDisabled={page === item}
-            borderRadius={"xl"}
-          >
-            {item}
-          </Button>
-        ));
-      } else if (page > totalPages - 2) {
-        return (
-          <>
-            <Button borderRadius={"xl"}>...</Button>
-            {Array.from({ length: 5 }, (_, i) => totalPages - 4 + i).map(
-              (item) => (
-                <Button
-                  key={item}
-                  onClick={() => handlePage(item)}
-                  isDisabled={page === item}
-                  borderRadius={"xl"}
-                >
-                  {item}
-                </Button>
-              )
-            )}
-          </>
-        );
-      } else {
-        return (
-          <>
-            {page !== 3 && (
-              <Button borderRadius={"xl"}>...</Button>
-            )}
-            {Array.from({ length: 5 }, (_, i) => page - 2 + i).map((item) => (
-              <Button
-                key={item}
-                onClick={() => handlePage(item)}
-                isDisabled={page === item}
-                borderRadius={"xl"}
-              >
-                {item}
-              </Button>
-            ))}
-            <Button borderRadius={"xl"}>...</Button>
-          </>
-        );
-      }
-    }
-  };
-
-  return (
-    <>
-      <div className="flex flex-wrap justify-between items-center gap-4 my-5 px-2 sm:px-4 lg:px-8 w-full max-w-full overflow-x-auto">
-        <div className="flex items-center gap-4">
-          <p className="text-md">
-            {`${page * limit - limit + 1} - ${
-              page * limit > totalDocs ? totalDocs : page * limit
-            } of ${totalDocs} records`}
-          </p>
-          <Select value={limit} onChange={handleLimit} w="24" borderRadius={"xl"} backgroundColor={"white"} cursor={"pointer"}>
-            <option value={1}>1</option>
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={30}>30</option>
-            <option value={40}>40</option>
-            <option value={50}>50</option>
-          </Select>
-        </div>
-        <ButtonGroup size="md" isAttached variant="outline" backgroundColor={"white"}>
-          <Button
-            onClick={() => handlePage(1)}
-            isDisabled={!hasPrevPage}
-            borderRadius={"xl"}
-          >
-            <ChevronFirst />
-          </Button>
-          <Button
-            onClick={() => handlePage(prevPage)}
-            isDisabled={!hasPrevPage}
-            borderRadius={"xl"}
-          >
-            <ChevronLeft />
-          </Button>
-
-          {renderPageButtons()}
-
-          <Button
-            onClick={() => handlePage(nextPage)}
-            isDisabled={!hasNextPage}
-            borderRadius={"xl"}
-          >
-            <ChevronRight />
-          </Button>
-          <Button
-            onClick={() => handlePage(totalPages)}
-            isDisabled={!hasNextPage}
-            borderRadius={"xl"}
-          >
-            <ChevronLast />
-          </Button>
-        </ButtonGroup>
-      </div>
-    </>
-  );
+  return <DataPagination pagination={pagination} onPage={onPage} onLimit={onLimit} />;
 }

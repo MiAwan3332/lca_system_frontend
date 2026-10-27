@@ -69,7 +69,7 @@ export function dynamicRoute(path) {
   if (!snapshot.ready || !snapshot.managed) return undefined;
   if (snapshot.error) return false;
   if (path === '/profile') return true;
-  if (path === '/role' || path === '/permission') return can('access.read');
+  if (path === '/role' || path === '/permission' || path === '/access-management' || path.startsWith('/access-management/')) return can('access.read');
   if (path.startsWith('/activity-logs')) return snapshot.routes.some((route) => route.resource === 'activity-logs');
   if (/^\/interview-panel-schedules\/[^/]+\/conduct\/[^/]+$/.test(path)) return can('interview-panels.get.conduct.interview');
   if (/^\/interview-panel\/[^/]+\/schedules$/.test(path)) return can('interview-panels.get.interview.panel');
