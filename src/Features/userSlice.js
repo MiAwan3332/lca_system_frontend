@@ -14,6 +14,7 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
     users: [],
+    collectors: [],
     filters: TABLE_FILTERS,
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
@@ -32,6 +33,11 @@ const fetchUsers = createAsyncThunk('users/fetchUsers', async (payload, { getSta
         },
         params: state.users.filters,
     });
+    return response.data;
+});
+
+export const fetchFeeCollectors = createAsyncThunk('users/fetchFeeCollectors', async ({ authToken, page = 1, query = '' }) => {
+    const response = await axios.get(`${BASE_URL}/users/fee-collectors`, { headers: { Authorization: `Bearer ${authToken}` }, params: { page, limit: 100, query } });
     return response.data;
 });
 
@@ -91,6 +97,8 @@ const userSlice = createSlice({
 
     extraReducers: (builder) => {
         builder
+            .addCase(fetchFeeCollectors.fulfilled, (state, action) => { state.collectors = action.payload.docs || []; })
+            .addCase(fetchFeeCollectors.rejected, (state) => { state.collectors = []; })
             // Fetch Users
             .addCase(fetchUsers.pending, (state) => {
                 state.fetchStatus = 'loading';
@@ -186,6 +194,7 @@ const userSlice = createSlice({
 });
 
 export const selectAllUsers = (state) => state.users.users;
+export const selectFeeCollectors = (state) => state.users.collectors;
 export const selectUserById = (state, userId) => state.users.users.find((user) => user.id === userId);
 
 export { fetchUsers, addUser, updateUser, deleteUser };

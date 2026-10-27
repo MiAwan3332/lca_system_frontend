@@ -31,9 +31,8 @@ import {
   setLimitFilter,
 } from "../../Features/batchSlice";
 import {
-  fetchUsers,
-  selectAllUsers,
-  setLimitFilter as setUserLimitFilter,
+  fetchFeeCollectors,
+  selectFeeCollectors,
 } from "../../Features/userSlice";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import FilterMultiSelect from "../../Components/FilterMultiSelect";
@@ -46,6 +45,7 @@ import BatchFinanceSection from "../../Components/Dashboard/BatchFinanceSection"
 import { exportFinanceTransactionsExcel } from "../../utlls/generateFinanceTransactionsReport";
 import { exportFinanceTransactionsPdf } from "../../utlls/generateFinanceTransactionsPdf";
 import { config } from "../../utlls/config";
+import { accessSnapshot, can } from '../../utlls/accessCapabilities';
 
 const BASE_URL = config.BASE_URL;
 
@@ -212,7 +212,7 @@ function FinanceReport() {
   const dispatch = useDispatch();
   const { report, status } = useSelector((state) => state.financeReport);
   const batches = useSelector(selectActiveBatches);
-  const users = useSelector(selectAllUsers);
+  const users = useSelector(selectFeeCollectors);
 
   const adminUsers = useMemo(
     () =>
@@ -464,9 +464,8 @@ function FinanceReport() {
 
   useEffect(() => {
     dispatch(setLimitFilter(100));
-    dispatch(setUserLimitFilter(100));
     dispatch(fetchBatches({ authToken }));
-    dispatch(fetchUsers({ authToken }));
+    if (!accessSnapshot().managed || can('users.get.fee.collectors')) dispatch(fetchFeeCollectors({ authToken }));
     loadReport({
       period: "daily",
       start_date: moment().format("YYYY-MM-DD"),

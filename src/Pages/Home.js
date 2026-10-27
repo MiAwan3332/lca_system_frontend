@@ -10,9 +10,8 @@ import {
   setLimitFilter,
 } from "../Features/batchSlice";
 import {
-  fetchUsers,
-  selectAllUsers,
-  setLimitFilter as setUserLimitFilter,
+  fetchFeeCollectors,
+  selectFeeCollectors,
 } from "../Features/userSlice";
 import { fetchNotifications } from "../Features/notificationSlice";
 import { selectUser } from "../Features/authSlice";
@@ -73,7 +72,7 @@ function Home() {
     (state) => state.notifications.notifications
   );
   const batches = useSelector(selectActiveBatches);
-  const users = useSelector(selectAllUsers);
+  const users = useSelector(selectFeeCollectors);
   const dispatch = useDispatch();
 
   const [statistics, setStatistics] = useState({});
@@ -137,9 +136,8 @@ function Home() {
       dispatch(setLimitFilter(100));
       dispatch(fetchBatches({ authToken }));
     }
-    if (showTodayCollections && permitted('users.get.users')) {
-      dispatch(setUserLimitFilter(200));
-      dispatch(fetchUsers({ authToken }));
+    if (showTodayCollections && permitted('users.get.fee.collectors')) {
+      dispatch(fetchFeeCollectors({ authToken }));
     }
     if (authToken) {
       dispatch(fetchNotifications({ authToken, page: 1, limit: 8 }));
