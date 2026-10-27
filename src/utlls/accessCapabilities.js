@@ -71,6 +71,21 @@ export function dynamicRoute(path) {
   if (path === '/profile') return true;
   if (path === '/role' || path === '/permission') return can('access.read');
   if (path.startsWith('/activity-logs')) return snapshot.routes.some((route) => route.resource === 'activity-logs');
+  if (/^\/interview-panel-schedules\/[^/]+\/conduct\/[^/]+$/.test(path)) return can('interview-panels.get.conduct.interview');
+  if (/^\/interview-panel\/[^/]+\/schedules$/.test(path)) return can('interview-panels.get.interview.panel');
+  const pagePermissions = {
+    '/user': 'users.get.users', '/student': 'students.get.students', '/deleted-students': 'students.get.deleted.students',
+    '/teacher': 'teachers.get.teachers', '/batch': 'batches.get.batches', '/course': 'courses.get.courses',
+    '/fees': 'fees.get.fees', '/finance-report': 'fees.get.finance.report', '/expenses': 'expenses.get.expenses',
+    '/request-management': 'refund-requests.get.refund.requests', '/timetable': 'timetable.get.all.time.tables',
+    '/attendance': 'attendence.get.attendences', '/seminar': 'seminars.get.seminars', '/mcq': 'mcqs.get.all.mcqs',
+    '/quiz': 'quiz.get.quiz.subjects', '/assignments': 'assignments.get.assignments', '/course-quizzes': 'course-quizzes.get.course.quizzes',
+    '/complaints': 'complaints.get.complaints', '/announcements': 'announcements.get.announcements',
+    '/notifications': 'notifications.get.notifications', '/qualifiers': 'qualifiers.get.qualifiers', '/panelists': 'panelists.get.panelists',
+    '/interview-panel': 'interview-panels.add.interview.panel', '/interview-panel-schedules': 'interview-panels.get.interview.panels',
+    '/dashboard': 'statistics.get.statistics', '/google-workspace': 'google.get.google.status',
+  };
+  if (pagePermissions[path]) return can(pagePermissions[path]);
   const resource = resources[path];
   return Boolean(resource && snapshot.routes.some((route) => route.resource === resource && route.method === 'GET'));
 }
