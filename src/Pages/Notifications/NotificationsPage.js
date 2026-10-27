@@ -2,7 +2,7 @@ import { Input, Select } from '../../Components/AccessInputs';
 import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { resourceAccess } from '../../utlls/accessCapabilities';
+import { accessSnapshot, can, resourceAccess } from '../../utlls/accessCapabilities';
 import moment from "moment";
 import axios from "axios";
 import { Badge, Box, Button, ButtonGroup, Text, VStack } from '@chakra-ui/react';
@@ -142,6 +142,7 @@ function NotificationsPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const canView = resourceAccess('notifications', isInstitutionAdmin());
+  const canViewFeeReport = accessSnapshot().managed ? can('notifications.get.fee.due.report') : isInstitutionAdmin();
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -170,7 +171,7 @@ function NotificationsPage() {
   const [feeReportStatus, setFeeReportStatus] = useState("idle");
 
   const loadFeeDueReport = useCallback(async () => {
-    if (!authToken || !canView) return;
+    if (!authToken || !canViewFeeReport) return;
 
     setFeeReportStatus("loading");
     try {
@@ -184,7 +185,7 @@ function NotificationsPage() {
       setFeeDueReport(null);
       setFeeReportStatus("failed");
     }
-  }, [authToken, canView, reportDate]);
+  }, [authToken, canViewFeeReport, reportDate]);
 
   // Backend pagination via GET /notifications?page=&limit=
   const loadNotifications = useCallback(async () => {
@@ -360,13 +361,13 @@ function NotificationsPage() {
         </FilterStack>
       </PageHeader>
 
-      <FeeDueReportPanel
+      {canViewFeeReport && <FeeDueReportPanel
         report={feeDueReport}
         loading={feeReportStatus === "loading"}
         reportDate={reportDate}
         onReportDateChange={setReportDate}
         onRefresh={loadFeeDueReport}
-      />
+      />}
 
       <Text fontSize="md" fontWeight="semibold" color="#2D3748" mb={3}>
         Notification Inbox

@@ -20,6 +20,7 @@ import { isStudentViewOnly } from "../utlls/studentAccess";
 import { isTeacherRole } from "../utlls/teacherAccess";
 import { isQualifierRole } from "../utlls/qualifierAccess";
 import { hasPermission } from "../utlls/useful";
+import { accessSnapshot, can } from '../utlls/accessCapabilities';
 import DashboardHeader from "../Components/Dashboard/DashboardHeader";
 import KpiCard from "../Components/Dashboard/KpiCard";
 import QuickActions from "../Components/Dashboard/QuickActions";
@@ -58,11 +59,12 @@ const isExcludedCollectionRole = (role) => {
 };
 
 function Home() {
+  const permitted = (permission) => !accessSnapshot().managed || can(permission);
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
   const isQualifier = isQualifierRole();
   const isPersonalDashboard = viewOnly || isQualifier;
-  const showTodayCollections = !isPersonalDashboard && !isTeacher;
+  const showTodayCollections = !isPersonalDashboard && !isTeacher && permitted('fees.get.finance.report');
   const user = useSelector(selectUser);
   const { status } = useSelector((state) => state.statistics);
   const financeReport = useSelector((state) => state.financeReport.report);
@@ -131,11 +133,11 @@ function Home() {
   };
 
   useEffect(() => {
-    if (!isPersonalDashboard && !isTeacher) {
+    if (!isPersonalDashboard && !isTeacher && permitted('batches.get.batches')) {
       dispatch(setLimitFilter(100));
       dispatch(fetchBatches({ authToken }));
     }
-    if (showTodayCollections) {
+    if (showTodayCollections && permitted('users.get.users')) {
       dispatch(setUserLimitFilter(200));
       dispatch(fetchUsers({ authToken }));
     }
@@ -460,22 +462,22 @@ function Home() {
                 loading={loading}
               />
             )}
-            <div className="dash-surface-card p-4">
+            {permitted('students.get.students.graph') && <div className="dash-surface-card p-4">
               <MonthlyColumnChart
                 chartTitle="Student Admissions"
                 filters={dashboardFilters}
               />
-            </div>
+            </div>}
           </section>
 
-          <section className="mb-4">
+          {permitted('students.get.students.by.batches.graph') && <section className="mb-4">
             <div className="dash-surface-card p-4">
               <BatchChart
                 chartTitle="Students per Batch"
                 filters={dashboardFilters}
               />
             </div>
-          </section>
+          </section>}
 
           {hasPermission(["view_total_fee_recovered"]) && (
             <section className="mb-4">
