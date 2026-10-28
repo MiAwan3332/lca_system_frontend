@@ -12,6 +12,7 @@ import Cookies from "js-cookie";
 import { Pen } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, updateUser } from "../../Features/userSlice";
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
 
 function UpdateModal({ user }) {
   const navigate = useNavigate();
@@ -134,7 +135,7 @@ function UpdateModal({ user }) {
                 </FormControl>
                 <Box width="100%">
                   <Box fontSize={14} fontWeight="medium" mb={2}>Account category</Box>
-                  <Box color="var(--dash-text)">{user.accountType || 'Staff'} / {user.role}</Box>
+                  <Box color="var(--dash-text)">{user.accountType || 'Staff'} / {accessRoleLabel(user)}</Box>
                   {can('access.read') && can('access.assign') && <Button mt={3} type="button" className="table-action-btn" onClick={() => {
                     if (formik.dirty && !window.confirm('Leave without saving these profile changes?')) return;
                     onClose(); navigate(`/access-management/people/${user._id}?category=staff`);

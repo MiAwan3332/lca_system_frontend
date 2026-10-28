@@ -24,6 +24,7 @@ import {
 import { getMediaUrl } from "../../utlls/useful";
 import { isQualifierRole } from "../../utlls/qualifierAccess";
 import QualifierSelfProfile from "../Qualifiers/QualifierSelfProfile";
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
 
 const { toast } = createStandaloneToast();
 
@@ -112,7 +113,7 @@ function Profile() {
                   {user?.name || "LCA Portal User"}
                 </Text>
                 <Badge colorScheme="yellow" borderRadius="md" mt={2}>
-                  {user?.role || "User"}
+                  {accessRoleLabel(user) || "User"}
                 </Badge>
               </Box>
             </HStack>
@@ -121,7 +122,7 @@ function Profile() {
 
             <VStack align="stretch" spacing={4}>
               <DetailRow icon={Mail} label="Email" value={user?.email} />
-              <DetailRow icon={Shield} label="Role" value={user?.role} />
+              <DetailRow icon={Shield} label="Role" value={accessRoleLabel(user)} />
               <DetailRow icon={UserRound} label="Username" value={user?.username} />
             </VStack>
           </VStack>

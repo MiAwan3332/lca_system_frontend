@@ -2,6 +2,7 @@ import { Checkbox, Input } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Box, Flex, List, ListItem, Text, Wrap, WrapItem } from '@chakra-ui/react';
 import { X } from "lucide-react";
+import { accessRoleLabel } from '../utlls/accessRoleLabel';
 
 function SearchableUserSelect({
   users = [],
@@ -41,7 +42,7 @@ function SearchableUserSelect({
       (user) =>
         user.name?.toLowerCase().includes(query) ||
         user.email?.toLowerCase().includes(query) ||
-        user.role?.toLowerCase().includes(query)
+        accessRoleLabel(user, "").toLowerCase().includes(query)
     );
   }, [sortedUsers, search]);
 
@@ -236,18 +237,18 @@ function SearchableUserSelect({
                       colorScheme="yellow"
                     />
                     <Text fontSize="sm">{user.name}</Text>
-                    {user.role ? (
+                    {accessRoleLabel(user, "") ? (
                       <Text fontSize="xs" color="gray.500">
-                        {user.role}
+                        {accessRoleLabel(user, "")}
                       </Text>
                     ) : null}
                   </Flex>
                 ) : (
                   <>
                     {user.name}
-                    {user.role ? (
+                    {accessRoleLabel(user, "") ? (
                       <Text as="span" fontSize="xs" color="gray.500" ml={1}>
-                        ({user.role})
+                        ({accessRoleLabel(user, "")})
                       </Text>
                     ) : null}
                   </>

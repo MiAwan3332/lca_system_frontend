@@ -32,6 +32,7 @@ import { ChevronDown, Info } from "lucide-react";
 import { isStudentViewOnly } from "../utlls/studentAccess";
 import { isQualifierRole } from "../utlls/qualifierAccess";
 import { getMediaUrl } from "../utlls/useful.js";
+import { accessRoleLabel } from '../utlls/accessRoleLabel';
 
 export default function MobileNav({ onOpen, ...rest }) {
   const viewOnly = isStudentViewOnly();
@@ -124,7 +125,7 @@ export default function MobileNav({ onOpen, ...rest }) {
                   {user?.name}
                 </Text>
                 <Text fontSize="xs" color="gray.600" className="uppercase">
-                  {user?.role}
+                  {accessRoleLabel(user, "")}
                 </Text>
               </VStack>
               <Box display={{ base: "none", lg: "flex" }}>

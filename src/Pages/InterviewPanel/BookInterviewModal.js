@@ -39,6 +39,7 @@ import {
 } from "../../utlls/responsiveModal";
 import { useNavigate } from "react-router-dom";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
 
 function BookInterviewModal({
   isOpen,
@@ -502,9 +503,9 @@ function BookInterviewModal({
                       />
                     </FormControl>
 
-                    {!isQualifier && currentUser?.role ? (
+                    {!isQualifier && accessRoleLabel(currentUser, "") ? (
                       <Text fontSize="xs" color="gray.500">
-                        Role: {currentUser.role}
+                        Role: {accessRoleLabel(currentUser, "")}
                       </Text>
                     ) : null}
 
