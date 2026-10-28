@@ -1,8 +1,8 @@
 import { DataTableShell } from '../../Components/PageHeader';
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, AlertIcon, Badge, Box, Button, FormControl, FormLabel, HStack, Input, Select, Stack, Table, Tbody, Td, Text, Th, Thead, Tr, useToast } from '@chakra-ui/react';
-import { ArrowLeft, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { Alert, AlertIcon, Badge, Box, Button, FormControl, FormLabel, HStack, Input, Menu, MenuButton, MenuItem, MenuList, Select, Stack, Table, Tbody, Td, Text, Th, Thead, Tr, useColorModeValue, useFormControlContext, useToast } from '@chakra-ui/react';
+import { ArrowLeft, ChevronDown, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { can, refreshAccess } from '../../utlls/accessCapabilities';
 import { ConfirmChange, LoadState, Pager, SearchInput, useAccessData } from './AccessCommon';
 import ScopePicker from './ScopePicker';
@@ -11,7 +11,24 @@ import { moduleName, permissionName, scopeName, words } from './accessUi';
 export function RoleChoice({ api, value, onChange, label = 'Role to assign' }) {
   const [page, setPage] = useState(1);
   const state = useAccessData(api, '/roles', { page, limit: 25 });
-  return <LoadState state={state}><Select aria-label={label} value={value?._id || ''} onChange={(event) => onChange(state.data.docs.find((role) => role._id === event.target.value) || null)}><option value="">Choose a role</option>{value && !state.data?.docs.some((role) => role._id === value._id && role.active) && <option value={value._id}>{value.name}{value.active === false ? ' (Disabled)' : ''}</option>}{state.data?.docs.filter((role) => role.active).map((role) => <option key={role._id} value={role._id}>{role.name}</option>)}</Select><Pager data={state.data} onPage={setPage} label="roles" /></LoadState>;
+  const form = useFormControlContext();
+  const background = useColorModeValue('#ffffff', '#1e293b');
+  const foreground = useColorModeValue('#263238', '#f1f5f9');
+  const highlight = useColorModeValue('#edf2f7', '#334155');
+  const activeRoles = state.data?.docs.filter((role) => role.active) || [];
+  return <LoadState state={state}>
+    <Menu matchWidth placement="bottom-start" isLazy>
+      <MenuButton as={Button} aria-label={label} isDisabled={form?.isDisabled} rightIcon={<ChevronDown size={16} />} width="100%" variant="outline" fontWeight="normal" textAlign="left" bg={background} color={foreground}>
+        <Text as="span" display="block" isTruncated>{value ? `${value.name}${value.active === false ? ' (Disabled)' : ''}` : 'Choose a role'}</Text>
+      </MenuButton>
+      <MenuList bg={background} color={foreground} maxHeight="280px" overflowY="auto" zIndex={1500}>
+        <MenuItem bg={background} color={foreground} _focus={{ bg: highlight }} _hover={{ bg: highlight }} onClick={() => onChange(null)}>Choose a role</MenuItem>
+        {activeRoles.map((role) => <MenuItem key={role._id} bg={background} color={foreground} _focus={{ bg: highlight }} _hover={{ bg: highlight }} onClick={() => onChange(role)}>{role.name}</MenuItem>)}
+        {!activeRoles.length && <Text px={3} py={2} fontSize="sm">No active roles on this page.</Text>}
+      </MenuList>
+    </Menu>
+    <Pager data={state.data} onPage={setPage} label="roles" />
+  </LoadState>;
 }
 export default function PeopleAccess({ api, userId, catalog, onSelect, onBack }) {
   const [params, setParams] = useSearchParams();
