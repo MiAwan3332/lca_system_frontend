@@ -7,7 +7,7 @@ import { ConfirmChange, SearchInput, useAccessData } from './AccessCommon';
 import AccessGrid from './AccessGrid';
 import inventory from '../../config/accessCatalog.generated.json';
 import { workflowGaps, completeWorkflowAccess } from '../../utlls/accessWorkflowRules';
-import { defaultScope, pageChanges } from './accessAreas';
+import { defaultScope, pageChanges, withFormFields } from './accessAreas';
 import { moduleName, permissionName, words, scopeName, scopeChoices, editable, fingerprint, rolePayload, draftErrors, financialRule, approvalRule } from './accessUi';
 
 // Safeguards that a built-in role (or a copy of it) adds on top of its permissions.
@@ -55,14 +55,14 @@ export default function RoleEditor({ api, role, seed, catalog, readOnly = false,
   const change = (update) => { setDraft((old) => ({ ...old, ...update })); setReview(null); setError(''); };
   const setGrants = useCallback((grants) => { setDraft((old) => ({ ...old, grants })); setReview(null); setError(''); }, []);
   const grantChange = (index, update) => change({ grants: draft.grants.map((item, position) => position === index ? { ...item, ...update } : item) });
-  const toggle = (permission, checked) => change({ grants: checked ? [...draft.grants, { permission: permission.key, scope: permission.type === 'field' ? 'all' : '', noSelfApproval: approvalRule(permission.key), _fieldMode: '', _key: `${Date.now()}-${permission.key}` }] : draft.grants.filter((item) => item.permission !== permission.key) });
+  const toggle = (permission, checked) => change({ grants: checked ? withFormFields(draft.grants, [...draft.grants, { permission: permission.key, scope: permission.type === 'field' ? 'all' : '', noSelfApproval: approvalRule(permission.key), _fieldMode: '', _key: `${Date.now()}-${permission.key}` }]) : draft.grants.filter((item) => item.permission !== permission.key) });
   // Advanced shortcuts add grants with the role's default records so they are ready to save.
   const bulk = (items, kind) => {
     const chosen = new Set(items.filter((item) => kind === 'all' || (kind === 'view' && (item.type === 'field' ? item.key.endsWith('.read') : /\.(get|list|getall|latest|check)\./.test(`${item.key}.`)))).map((item) => item.key));
     const keys = new Set(items.map((item) => item.key)), kept = draft.grants.filter((grant) => !keys.has(grant.permission) || chosen.has(grant.permission));
     const added = items.filter((item) => chosen.has(item.key) && !kept.some((grant) => grant.permission === item.key)).map((item, index) => ({ permission: item.key,
       scope: item.type === 'field' || scopeChoices(item.key).length === 1 ? 'all' : gridScope, noSelfApproval: approvalRule(item.key), _fieldMode: item.type === 'field' ? 'all' : '', _key: `${Date.now()}-${index}-${item.key}` }));
-    change({ grants: [...kept, ...added] });
+    change({ grants: withFormFields(draft.grants, [...kept, ...added]) });
   };
   const errors = draftErrors(draft);
   const workflowIssues = workflowGaps(draft.grants, inventory);

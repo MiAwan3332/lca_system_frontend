@@ -59,7 +59,8 @@ test('view and manage add what the page needs with the row scope', () => {
   expect(areaState(area('batches'), grants)).toMatchObject({ level: 'view', scope: 'assigned' });
   expect(areaState(area('courses'), grants).level).toBe('view');
   expect(minimumLevel(area('batches'), grants)).toBe('view');
-  expect(grants.every((grant) => grant.scope === 'assigned' || /\.(export|print)$/.test(grant.permission))).toBe(true);
+  // Form-field grants are not record-scoped; they always use "all".
+  expect(grants.every((grant) => grant.scope === 'assigned' || /\.(export|print)$/.test(grant.permission) || grant.permission.startsWith('fields.'))).toBe(true);
   grants = setAreaLevel(grants, area('students'), 'view');
   expect(areaState(area('students'), grants).level).toBe('view');
   expect(grants.some((grant) => grant.permission === 'students.add.student')).toBe(false);
@@ -118,7 +119,12 @@ test('review text describes page changes in plain language', () => {
   let after = setAreaLevel(before, area('students'), 'manage');
   after = setAreaExtra(after, area('students'), 'delete', true);
   after = setFieldLevel(after, 'identity', 'view');
-  expect(pageChanges(before, after)).toEqual(['Students: View → Admit & edit', 'Students: + Delete', 'Identity: Hidden → View']);
+  const changes = pageChanges(before, after);
+  expect(changes.slice(0, 2)).toEqual(['Students: View → Admit & edit', 'Students: + Delete']);
+  // Form fields the new actions need are listed by name, and limited grants say so.
+  expect(changes).toContain('General record details: Hidden → View & edit (selected fields)');
+  expect(changes.find((line) => line.startsWith('General record details: can edit'))).toMatch(/father name/);
+  expect(changes.some((line) => line.startsWith('Identity: Hidden → View'))).toBe(true);
   expect(pageChanges(before, before)).toEqual([]);
 });
 test('every check-access ability and menu page is real', () => {
@@ -158,4 +164,17 @@ test('selecting financial decision actions includes only their precise supportin
  expect(grants.find(g=>g.permission==='fields.general.write').fields).toContain('comment');
  expect(grants.filter(g=>g.permission.startsWith('refund-requests.')&&g.permission.includes('approve')).every(g=>g.noSelfApproval)).toBe(true);
  expect(draftErrors({name:'Finance',grants})).toEqual([]);
+});
+
+test('granting a page brings the form fields its actions send, without unrelated access', () => {
+  const limited = [{ permission: 'fields.general.write', scope: 'all', fields: ['name'] }];
+  const next = setAreaLevel(limited, area('qualifiers'), 'manage');
+  const general = next.find((grant) => grant.permission === 'fields.general.write').fields;
+  for (const key of ['exam_type', 'css_pms_roll_no', 'class_type', 'province', 'father_name', 'latest_degree', 'no_of_attempts']) expect(general).toContain(key);
+  expect(next.find((grant) => grant.permission === 'fields.contact.write').fields).toContain('city');
+  expect(next.some((grant) => ['fees.discount.fee', 'qualifiers.toggle.qualifier.status'].includes(grant.permission))).toBe(false);
+  expect(general).not.toContain('is_active');
+  // Field grants that already allow every field stay unrestricted.
+  const open = setAreaLevel([{ permission: 'fields.general.write', scope: 'all' }], area('qualifiers'), 'manage');
+  expect(open.find((grant) => grant.permission === 'fields.general.write').fields).toBeUndefined();
 });

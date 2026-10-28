@@ -206,16 +206,20 @@ export function setAreaLevel(grants, area, level, fallbackScope = 'all') {
   if (level === 'none') return grants.filter((grant) => !ownedBy(area, grant));
   const wanted = levelPermissions(area, level);
   const kept = grants.filter((grant) => !ownedBy(area, grant) || !(area.manage || []).includes(grant.permission) || wanted.includes(grant.permission));
-  return applyNeeds(addMissing(kept, wanted, scope), areaNeeds(area, level), scope);
+  return withFormFields(grants, applyNeeds(addMissing(kept, wanted, scope), areaNeeds(area, level), scope));
 }
 export function setAreaExtra(grants, area, extraKey, enabled, fallbackScope = 'all') {
   const extra = area.extras.find((item) => item.key === extraKey), scope = rowScope(area, grants, fallbackScope);
   if (!enabled) return grants.filter((grant) => !(ownedBy(area, grant) && extra.permissions.includes(grant.permission)));
-  const next = applyNeeds(addMissing(grants, extra.permissions, scope), extra.needs, scope);
-  const newlyEnabled = extra.permissions.some(permission => !grants.some(g => g.permission === permission));
-  const workflows = (catalog.workflows || []).filter(rule => ['fee-discounts', 'expense-rejection', 'refund-decisions', 'refund-approval-amount'].includes(rule.id) && rule.any.some(p => extra.permissions.includes(p)));
-  if (!newlyEnabled || !workflows.length) return next;
-  return completeWorkflowAccess(next, { ...catalog, workflows }).map((grant, index) => grant.permission.startsWith('fields.') ? { ...grant,
+  return withFormFields(grants, applyNeeds(addMissing(grants, extra.permissions, scope), extra.needs, scope));
+}
+// Newly granted actions bring the form fields they send (catalog workflows), so a selected page never has locked inputs.
+// Only field names are added; existing actions, scopes and limits are untouched.
+export function withFormFields(before, after) {
+  const added = new Set(after.filter((grant) => !before.some((old) => old.permission === grant.permission)).map((grant) => grant.permission));
+  const workflows = (catalog.workflows || []).filter((rule) => rule.any.some((permission) => added.has(permission)));
+  if (!workflows.length) return after;
+  return completeWorkflowAccess(after, { ...catalog, workflows }).map((grant, index) => grant.permission.startsWith('fields.') ? { ...grant,
     _fieldMode: grant._fieldMode || (grant.fields?.length ? 'selected' : 'all'), _key: grant._key || `workflow-${grant.permission}-${index}` } : grant);
 }
 export function setAreaScope(grants, area, scope) {
@@ -235,7 +239,7 @@ export function setAreaSelfApproval(grants, area, extraKey, noSelfApproval) {
 }
 export function setAreaAction(grants, area, permission, enabled, fallbackScope = 'all') {
   if (!enabled) return grants.filter((grant) => !(ownedBy(area, grant) && grant.permission === permission));
-  return addMissing(grants, [permission], rowScope(area, grants, fallbackScope));
+  return withFormFields(grants, addMissing(grants, [permission], rowScope(area, grants, fallbackScope)));
 }
 // Areas currently relying on this one; their minimum level cannot be removed from the grid.
 export function requiredBy(area, grants) {
@@ -332,9 +336,16 @@ export function pageChanges(before, after) {
     }
   }
   const fieldLabel = { none: 'Hidden', view: 'View', edit: 'View & edit', custom: 'Custom' };
+  // Named fields a limited grant lists; null when any grant of that kind allows every field.
+  const named = (grants, permission) => { const held = grants.filter((grant) => grant.permission === permission); return held.some((grant) => !grant.fields?.length) ? null : held.flatMap((grant) => grant.fields); };
   for (const item of FIELD_AREAS) {
     const was = fieldState(item.key, before), now = fieldState(item.key, after);
-    if (was.level !== now.level) changes.push(`${item.label}: ${fieldLabel[was.level]} → ${fieldLabel[now.level]}`);
+    if (was.level !== now.level) changes.push(`${item.label}: ${fieldLabel[was.level]} → ${fieldLabel[now.level]}${now.limited ? ' (selected fields)' : ''}`);
+    for (const action of ['read', 'write']) {
+      const old = named(before, `fields.${item.key}.${action}`), next = named(after, `fields.${item.key}.${action}`);
+      const added = old && next ? next.filter((key) => !old.includes(key)) : [];
+      if (added.length) changes.push(`${item.label}: can ${action === 'write' ? 'edit' : 'see'} ${[...new Set(added)].map((key) => key.replace(/_/g, ' ')).join(', ')}`);
+    }
   }
   for (const item of ADMIN_AREAS) if (adminState(item, before) !== adminState(item, after)) changes.push(`${adminState(item, after) ? '+' : '−'} ${item.label}`);
   const gapsBefore = selfServiceGaps(before), gapsAfter = selfServiceGaps(after);
