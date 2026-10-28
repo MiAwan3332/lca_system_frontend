@@ -2,8 +2,11 @@ import { Input, Select } from '../../Components/AccessInputs';
 import AccessForm from '../../Components/AccessForm';
 import FormControl from '../../Components/AccessFormControl';
 import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
-import React, { useEffect, useRef, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box } from '@chakra-ui/react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, FormHelperText, VStack, Box } from '@chakra-ui/react';
+import { can } from '../../utlls/accessCapabilities';
+import { RoleChoice } from '../Roles/RoleChoice';
+import ScopePicker from '../Roles/ScopePicker';
 
 import * as Yup from "yup";
 import Cookies from "js-cookie";
@@ -23,17 +26,24 @@ const isExcludedUserFormRole = (roleName) => {
   return name === "teacher" || name === "student";
 };
 
+// Built-in login roles for other account categories are never right for a staff account.
+const staffRole = (role) => !['lca-v1-student', 'lca-v1-teacher', 'lca-v1-qualifier', 'lca-v1-panelist'].includes(role.code);
+
 function AddModel({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
   const [roles, setRoles] = useState([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [submission, setSubmission] = useState(null);
+  const [accessRole, setAccessRole] = useState(null), [accessBatchIds, setAccessBatches] = useState([]), [accessCourseIds, setAccessCourses] = useState([]), [accessError, setAccessError] = useState('');
+  const accessApi = useMemo(() => axios.create({ baseURL: `${config.BASE_URL}/access`, headers: { Authorization: `Bearer ${authToken}` }, timeout: 15000 }), [authToken]);
+  const canChooseAccess = can('access.assign');
+  const scopedRole = accessRole?.grants?.some((grant) => grant.scope === 'selected');
   const formRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
     const key = pendingCreationKey('user', authToken);
-    if (!key) formRef.current?.resetForm();
+    if (!key) { formRef.current?.resetForm(); setAccessRole(null); setAccessBatches([]); setAccessCourses([]); setAccessError(''); }
     setSubmission(key ? { idempotency_key: key, submission_status: 'unknown' } : null);
   }, [isOpen, authToken]);
 
@@ -87,8 +97,11 @@ function AddModel({ isOpen, onClose }) {
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
+      if (scopedRole && !accessBatchIds.length && !accessCourseIds.length) { setAccessError('Choose the batches or courses this access role applies to.'); return; }
+      setAccessError('');
       try {
-        const result = await dispatch(addUser({ formData: values, authToken })).unwrap();
+        const access = accessRole ? { accessRoleId: accessRole._id, accessBatchIds, accessCourseIds } : {};
+        const result = await dispatch(addUser({ formData: { ...values, ...access }, authToken })).unwrap();
         setSubmission(result);
         if (result.submission_status === 'complete') dispatch(fetchUsers({ authToken }));
       } catch { /* The shared request handler displays validation errors. */ }
@@ -171,9 +184,10 @@ function AddModel({ isOpen, onClose }) {
                 ) : null}
               </FormControl> */}
               <FormControl id="role" isRequired>
-                <FormLabel fontSize={14}>Role</FormLabel>
+                <FormLabel fontSize={14}>Job title</FormLabel>
                 <Select
-                  placeholder={rolesLoading ? "Loading roles..." : "Select Role"}
+                  aria-label="Job title"
+                  placeholder={rolesLoading ? "Loading job titles..." : "Select job title"}
                   borderRadius={"0.5rem"}
                   name="role"
                   value={formik.values.role}
@@ -191,7 +205,15 @@ function AddModel({ isOpen, onClose }) {
                     {formik.errors.role}
                   </Box>
                 ) : null}
+                <FormHelperText>Shown on their account. What they can open comes from their access role.</FormHelperText>
               </FormControl>
+              {canChooseAccess && <FormControl>
+                <FormLabel fontSize={14}>Access role</FormLabel>
+                <RoleChoice api={accessApi} value={accessRole} label="Access role" filter={staffRole} onChange={(role) => { setAccessRole(role); setAccessBatches([]); setAccessCourses([]); setAccessError(''); }} />
+                <FormHelperText>{accessRole ? `They can sign in and work as ${accessRole.name} straight away.` : 'Optional. Leave empty to use the new-account default; you can assign a role later.'}</FormHelperText>
+                {scopedRole && <Box mt={2}><ScopePicker api={accessApi} type="batches" selected={accessBatchIds} onChange={setAccessBatches} /><ScopePicker api={accessApi} type="courses" selected={accessCourseIds} onChange={setAccessCourses} /></Box>}
+                {accessError && <Box color="red" fontSize="sm" mt={1}>{accessError}</Box>}
+              </FormControl>}
             </VStack>
           </ModalBody>
 

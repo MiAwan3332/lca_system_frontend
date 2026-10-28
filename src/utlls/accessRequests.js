@@ -20,8 +20,10 @@ export function permittedRequestBody(body, route) {
   const form = typeof FormData !== 'undefined' && body instanceof FormData;
   if (!form && (typeof body !== 'object' || Array.isArray(body))) throw formAccessError('Unsupported form payload');
   const result = form ? new FormData() : {};
+  // The API authorizes Add User role choices through assignment permission, not field grants.
+  const assignment = route.handler === 'addUser' ? ['accessRoleId', 'accessBatchIds', 'accessCourseIds'] : [];
   for (const [key, value] of form ? body.entries() : Object.entries(body)) {
-    if (catalog.readOnlyFields?.includes(key) || (access.managed && !access.owner && !canUseField(key, 'write', true))) continue;
+    if (!assignment.includes(key) && (catalog.readOnlyFields?.includes(key) || (access.managed && !access.owner && !canUseField(key, 'write', true)))) continue;
     if (form) result.append(key, value); else result[key] = value;
   }
   const size = form ? [...result.keys()].length : Object.keys(result).length;

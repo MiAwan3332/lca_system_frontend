@@ -48,6 +48,7 @@ const addUser = createAsyncThunk(
         try {
             return await createWithRecovery('user', authToken, {
                 name: formData.name, email: formData.email, phone: formData.phone, role: formData.role,
+                ...(formData.accessRoleId ? { accessRoleId: formData.accessRoleId, accessBatchIds: formData.accessBatchIds || [], accessCourseIds: formData.accessCourseIds || [] } : {}),
             });
         } catch (error) {
             return rejectWithValue(

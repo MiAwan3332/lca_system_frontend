@@ -68,9 +68,15 @@ const resources = { '/student': 'students', '/deleted-students': 'students', '/u
 export function dynamicRoute(path) {
   if (!snapshot.ready || !snapshot.managed) return undefined;
   if (snapshot.error) return false;
+  return routeAllowed(path, snapshot);
+}
+// Pure page check shared by the live menu and Access Management previews of another person's access.
+export const routesForGrants = (grants, owner = false) => catalog.routes.filter((route) => !route.public && !route.blocked && (owner || grants.some((grant) => grant.permission === route.permission)));
+export function routeAllowed(path, access) {
+  const can = (permission) => access.owner || access.grants.some((grant) => grant.permission === permission);
   if (path === '/profile') return true;
   if (path === '/role' || path === '/permission' || path === '/access-management' || path.startsWith('/access-management/')) return can('access.read');
-  if (path.startsWith('/activity-logs')) return snapshot.routes.some((route) => route.resource === 'activity-logs');
+  if (path.startsWith('/activity-logs')) return access.routes.some((route) => route.resource === 'activity-logs');
   if (/^\/interview-panel-schedules\/[^/]+\/conduct\/[^/]+$/.test(path)) return can('interview-panels.get.conduct.interview');
   if (/^\/interview-panel\/[^/]+\/schedules$/.test(path)) return can('interview-panels.get.interview.panel');
   const pagePermissions = {
@@ -89,5 +95,5 @@ export function dynamicRoute(path) {
   };
   if (pagePermissions[path]) return can(pagePermissions[path]);
   const resource = resources[path];
-  return Boolean(resource && snapshot.routes.some((route) => route.resource === resource && route.method === 'GET'));
+  return Boolean(resource && access.routes.some((route) => route.resource === resource && route.method === 'GET'));
 }

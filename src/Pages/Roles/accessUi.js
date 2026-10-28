@@ -17,8 +17,10 @@ export const financialRule = (key) => /^(fees\.(pay|collect|discount)|expenses\.
 export const approvalRule = (key) => /^(expenses|refund-requests)\.(approve|reject)/.test(key);
 export const scopeChoices = (key) => ['access', 'whatsapp', 'roles', 'permissions', 'operations', 'activity-logs', 'files'].includes(key.split('.')[0]) || /\.(export|print)$/.test(key) ? ['all'] : ['own', 'assigned', 'selected', 'all'];
 export const wireGrants = (grants) => grants.map(({ permission, scope, maxAmount, noSelfApproval, fields }) => ({ permission, scope, ...(maxAmount != null ? { maxAmount: Number(maxAmount) } : {}), ...(noSelfApproval ? { noSelfApproval: true } : {}), ...(fields?.length ? { fields } : {}) }));
-export const rolePayload = (draft) => ({ name: draft.name.trim(), description: draft.description || '', active: draft.active, revision: draft.revision, grants: wireGrants(draft.grants) });
-export const fingerprint = (draft) => JSON.stringify(rolePayload(draft));
+export const rolePayload = (draft) => ({ name: draft.name.trim(), description: draft.description || '', active: draft.active, revision: draft.revision, grants: wireGrants(draft.grants),
+  ...(draft.profile !== undefined ? { profile: draft.profile || null } : {}) });
+// Grant order carries no meaning, so toggling a page off and on again is not an unsaved change.
+export const fingerprint = (draft) => { const payload = rolePayload(draft); return JSON.stringify({ ...payload, grants: payload.grants.map((grant) => JSON.stringify(grant)).sort() }); };
 export function draftErrors(draft) {
   const errors = [];
   if (!draft.name.trim()) errors.push('Enter a role name.');
