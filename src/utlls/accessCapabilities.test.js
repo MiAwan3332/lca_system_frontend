@@ -51,3 +51,15 @@ test('own profile reads do not expose staff-list or global finance pages', async
   expect(dynamicRoute('/user')).toBe(false); expect(dynamicRoute('/fees')).toBe(false); expect(dynamicRoute('/finance-report')).toBe(false);
   expect(dynamicRoute('/interview-panel-schedules/123/conduct/0')).toBe(true);
 });
+
+test('business messaging does not expose gateway or template administration pages', async () => {
+  axios.get.mockResolvedValueOnce({ data: { managed: true, owner: false, grants: [
+    { permission: 'whatsapp.list.whats.app.queue', scope: 'all' },
+    { permission: 'whatsapp.list.whats.app.templates', scope: 'all' },
+    { permission: 'whatsapp.enqueue.bulk.whats.app', scope: 'all' },
+  ], routes: [{ resource: 'whatsapp', method: 'GET' }] } });
+  await refreshAccess();
+  expect(dynamicRoute('/whatsapp-queue')).toBe(true);
+  expect(dynamicRoute('/whatsapp')).toBe(false);
+  expect(dynamicRoute('/whatsapp-templates')).toBe(false);
+});

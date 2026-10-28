@@ -84,6 +84,8 @@ export function dynamicRoute(path) {
     '/notifications': 'notifications.get.notifications', '/qualifiers': 'qualifiers.get.qualifiers', '/panelists': 'panelists.get.panelists',
     '/interview-panel': 'interview-panels.add.interview.panel', '/interview-panel-schedules': 'interview-panels.get.interview.panels',
     '/dashboard': 'statistics.get.statistics', '/google-workspace': 'google.get.google.status',
+    '/whatsapp': 'whatsapp.get.whats.app.config', '/whatsapp-templates': 'whatsapp.create.whats.app.template',
+    '/whatsapp-queue': 'whatsapp.list.whats.app.queue',
   };
   if (pagePermissions[path]) return can(pagePermissions[path]);
   const resource = resources[path];
