@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import axios from "axios";
 import {
   Badge,
@@ -12,6 +12,7 @@ import {
 import { Link2, PlugZap, RefreshCw, Unplug } from "lucide-react";
 import { config } from "../utlls/config";
 import { getAuthToken } from "../utlls/authSession";
+import { accessSnapshot, subscribeAccess, can } from '../utlls/accessCapabilities';
 
 const { toast } = createStandaloneToast();
 const BASE_URL = config.BASE_URL;
@@ -21,6 +22,8 @@ const authHeaders = (authToken) => ({
 });
 
 function GoogleAccountCard({ onStatusChange }) {
+  const access = useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const allowed = !access.managed || can('google.get.google.status');
   const authToken = getAuthToken();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,7 +32,7 @@ function GoogleAccountCard({ onStatusChange }) {
   const connected = Boolean(status?.connected);
 
   const loadStatus = useCallback(async () => {
-    if (!authToken) return;
+    if (!authToken || !allowed) return;
     setLoading(true);
     try {
       const response = await axios.get(`${BASE_URL}/google/status`, {
@@ -48,7 +51,7 @@ function GoogleAccountCard({ onStatusChange }) {
     } finally {
       setLoading(false);
     }
-  }, [authToken, onStatusChange]);
+  }, [authToken, onStatusChange, allowed]);
 
   useEffect(() => {
     loadStatus();
@@ -99,6 +102,7 @@ function GoogleAccountCard({ onStatusChange }) {
     }
   };
 
+  if (!allowed) return null;
   return (
     <Box borderWidth="1px" borderColor="#E0E8EC" borderRadius="xl" bg="white" p={5}>
       <HStack align="flex-start" justify="space-between" gap={4} mb={4}>
@@ -157,7 +161,7 @@ function GoogleAccountCard({ onStatusChange }) {
         )}
 
         <HStack spacing={3} flexWrap="wrap">
-          <Button
+          {(!access.managed || can('google.get.google.connect.url')) && <Button
             leftIcon={<Link2 size={16} />}
             bg="#FFCB82"
             color="#222222"
@@ -166,8 +170,8 @@ function GoogleAccountCard({ onStatusChange }) {
             onClick={connectGoogle}
           >
             {connected ? "Reconnect Google" : "Connect Google"}
-          </Button>
-          {connected && (
+          </Button>}
+          {connected && (!access.managed || can('google.disconnect.google')) && (
             <Button
               leftIcon={<Unplug size={16} />}
               variant="outline"
