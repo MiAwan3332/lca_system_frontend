@@ -27,6 +27,7 @@ function RejectModal({ isOpen, onClose, onReject, isLoading }) {
           <FormControl>
             <FormLabel fontSize={14}>Reason (optional)</FormLabel>
             <Textarea
+                permissionField="rejection_reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Why is this expense being rejected?"

@@ -75,6 +75,7 @@ function DecisionModal({
                   Refund Amount <Text as="span" color="red.500">*</Text>
                 </FormLabel>
                 <Input
+                  permissionField="amount"
                   type="number"
                   min={1}
                   value={amount}
@@ -96,6 +97,7 @@ function DecisionModal({
                 Comment <Text as="span" color="red.500">*</Text>
               </FormLabel>
               <Textarea
+                permissionField="comment"
                 value={comment}
                 onChange={(e) => {
                   setComment(e.target.value);

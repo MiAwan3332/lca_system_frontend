@@ -13,7 +13,7 @@ import {
   fetchRefundRequests,
 } from "../../Features/refundRequestSlice";
 import { fetchStudents } from "../../Features/studentSlice";
-import { canDecideRefundRequest } from "../../utlls/refundAccess";
+import { canProcessRefundRequest } from "../../utlls/refundAccess";
 import {
   FEE_PAYMENT_METHODS,
   requiresPaymentEvidence,
@@ -60,7 +60,7 @@ function ProcessRefundAction({ student }) {
     }
   }, [isOpen, approvedMax]);
 
-  if (!canDecideRefundRequest() || !refundRequest?._id) {
+  if (!canProcessRefundRequest() || !refundRequest?._id) {
     return null;
   }
 

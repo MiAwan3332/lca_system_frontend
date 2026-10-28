@@ -17,7 +17,7 @@ const role = { _id: 'r1', name: 'Admissions Officer', description: 'Admission du
 const desk = { _id: 'r2', code: 'lca-staff-information-desk', name: 'Information Desk', active: true, revision: 1, memberCount: 1, grants: [{ permission: 'students.get.students', scope: 'all' }] };
 const pending = { _id: 'r3', code: 'lca-v1-pending-staff', name: 'Staff - Pending Assignment', active: true, revision: 1, grants: [{ permission: 'users.get.user', scope: 'own' }] };
 const person = { _id: 'u1', name: 'Sara Staff', email: 'sara@example.invalid', accountType: 'staff', accessRoles: [{ _id: 'r3', name: pending.name, code: pending.code }] };
-const rules = [{ code: 'lca-staff-information-desk', name: 'Information Desk', rules: ['Cannot apply discounts (owner only)'] }];
+const rules = [{ code: 'lca-staff-information-desk', name: 'Information Desk', rules: ['Approvals and discounts follow assigned role permissions'] }];
 let api;
 const respond = (path) => {
   if (path === '/catalog') return { permissions: [{ key: 'students.get.students', group: 'students', label: 'Get students', type: 'action' }, { key: 'fields.contact.read', group: 'fields', type: 'field', fields: ['phone', 'email'] }] };
@@ -157,7 +157,7 @@ test('copying a built-in role from Create Role keeps its safeguards', async () =
   open(); fireEvent.click(await screen.findByRole('button', { name: 'Create Role' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Copy Information Desk' }));
   expect(await screen.findByLabelText('Role name')).toHaveValue('Information Desk Copy');
-  expect(await screen.findByText('Cannot apply discounts (owner only)')).toBeInTheDocument();
+  expect(await screen.findByText('Approvals and discounts follow assigned role permissions')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Review Changes' }));
   const dialog = await screen.findByRole('dialog'); reason(dialog);
   fireEvent.click(within(dialog).getByRole('button', { name: 'Create Role' }));

@@ -105,7 +105,7 @@ export default function RoleEditor({ api, role, seed, catalog, readOnly = false,
       <Text fontSize="sm">The selected actions have missing form fields or supporting choices. Keep these restrictions if partial access is intended.</Text>
       <Box as="ul" pl={5} my={2} fontSize="sm">{workflowIssues.map(issue => <li key={issue.id}>{issue.label}: {issue.fields.map(f => `${words(f.key)} (${f.action})`).concat(issue.permissions.map(g => permissionName(g.permission))).join(', ')}</li>)}</Box>
       {!readOnly && <Button size="sm" onClick={() => setGrants(editable({ grants: completeWorkflowAccess(draft.grants, inventory) }).grants)}>Add required workflow access</Button>}
-      <Text fontSize="xs" mt={2}>This adds specific fields and names-only assignment choices. It does not add approvals, discounts or direct balance editing.</Text>
+      <Text fontSize="xs" mt={2}>This adds fields and choices needed by your selected actions. Record scopes, amount limits and self-approval rules stay unchanged.</Text>
     </Box>}
     <nav className="access-mode-tabs" aria-label="Permission view">{[['simple', 'Pages & actions'], ['advanced', 'Advanced']].map(([key, label]) => <button key={key} type="button" aria-current={mode === key ? 'page' : undefined} onClick={() => setMode(key)}>{label}</button>)}</nav>
     {error && <Alert status="error" mb={4}><AlertIcon />{error}</Alert>}

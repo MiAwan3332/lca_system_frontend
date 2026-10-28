@@ -653,6 +653,7 @@ function GeneratePendingFeeSlipAction({
                 <Input
                   type="number"
                   name="discount_amount"
+                  permission="fees.discount.fee"
                   borderRadius="0.5rem"
                   placeholder="0"
                   isDisabled={hasPaid}

@@ -90,3 +90,12 @@ test('unauthorized critical workflow fields are rejected instead of silently dis
  expect(() => permittedRequestBody({is_active:false},{handler:'toggleStudentStatus'})).toThrow(/workflow needs permission/);
  expect(() => permittedRequestBody({batchId:'batch-id',courseIds:[]},{handler:'assignCoursesToBatch'})).toThrow(/workflow needs permission/);
 });
+
+test('discounts require their action permission and cannot be silently removed from a request', async () => {
+ const route={handler:'collectPendingFee'};
+ expect(()=>permittedRequestBody({discount_amount:10},route)).toThrow(/Discount permission/);
+ axios.get.mockResolvedValue({data:{managed:true,owner:false,grants:[{permission:'fees.discount.fee',scope:'all'}],routes:[]}});await refreshAccess();
+ expect(()=>permittedRequestBody({discount_amount:10},route)).toThrow(/write discount amount/);
+ axios.get.mockResolvedValue({data:{managed:true,owner:false,grants:[{permission:'fees.discount.fee',scope:'all'},{permission:'fields.financial.write',scope:'all',fields:['discount_amount']}],routes:[]}});await refreshAccess();
+ expect(permittedRequestBody({discount_amount:10},route)).toEqual({discount_amount:10});
+});

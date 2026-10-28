@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { config } from './config';
 import catalog from '../config/accessCatalog.generated.json';
-import { accessSnapshot, canUseField } from './accessCapabilities';
+import { accessSnapshot, canUseField, can } from './accessCapabilities';
 function formAccessError(message) {
   return Object.assign(new Error(message), { code: 'ACCESS_FORM_PERMISSION', response: { status: 403, data: { message } } });
 }
@@ -23,13 +23,15 @@ export function permittedRequestBody(body, route) {
   // The API authorizes Add User role choices through assignment permission, not field grants.
   const assignment = route.handler === 'addUser' ? ['accessRoleId', 'accessBatchIds', 'accessCourseIds'] : [];
   for (const [key, value] of form ? body.entries() : Object.entries(body)) {
+    const discount = ['discount_amount', 'discountAmount'].includes(key) && Number(value) > 0;
+    if (discount && access.managed && !access.owner && !can('fees.discount.fee')) throw formAccessError('Discount permission is required. Nothing was submitted.');
     if (!assignment.includes(key) && (catalog.readOnlyFields?.includes(key) || (access.managed && !access.owner && !canUseField(key, 'write', true)))) {
       const payment = route.handler === 'addStudent' && key === 'paying_now' && Number(value) > 0;
       const destination = ['addStudent', 'transferStudentBatch'].includes(route.handler) && key === 'batch' && value;
       const assignmentInput = ['assignCoursesToBatch', 'assignTeachersToBatch', 'assignTeacherCoursesToBatch'].includes(route.handler) && ['batchId', 'courseIds', 'teacherIds', 'assignments'].includes(key);
       const importRows = route.handler === 'bulkImportStudents' && ['batch_id', 'students'].includes(key);
       const status = ['toggleStudentStatus', 'toggleBatchStudentsStatus', 'toggleBatchStatus'].includes(route.handler) && key === 'is_active';
-      if (payment || destination || assignmentInput || importRows || status) throw formAccessError(`This workflow needs permission to write ${key.replace(/_/g, ' ')}. Ask the owner to add the required workflow access. Nothing was submitted.`);
+      if (discount || payment || destination || assignmentInput || importRows || status) throw formAccessError(`This workflow needs permission to write ${key.replace(/_/g, ' ')}. Ask an access administrator to add the required workflow access. Nothing was submitted.`);
       continue;
     }
     if (form) result.append(key, value); else result[key] = value;

@@ -1,5 +1,6 @@
 import catalog from '../../config/accessCatalog.generated.json';
 import { approvalRule, financialRule, scopeChoices } from './accessUi';
+import { completeWorkflowAccess } from '../../utlls/accessWorkflowRules';
 
 // Page-based view over role grants. The backend still stores and enforces individual grants;
 // these definitions only translate between sidebar pages and the permissions those pages need.
@@ -210,7 +211,12 @@ export function setAreaLevel(grants, area, level, fallbackScope = 'all') {
 export function setAreaExtra(grants, area, extraKey, enabled, fallbackScope = 'all') {
   const extra = area.extras.find((item) => item.key === extraKey), scope = rowScope(area, grants, fallbackScope);
   if (!enabled) return grants.filter((grant) => !(ownedBy(area, grant) && extra.permissions.includes(grant.permission)));
-  return applyNeeds(addMissing(grants, extra.permissions, scope), extra.needs, scope);
+  const next = applyNeeds(addMissing(grants, extra.permissions, scope), extra.needs, scope);
+  const newlyEnabled = extra.permissions.some(permission => !grants.some(g => g.permission === permission));
+  const workflows = (catalog.workflows || []).filter(rule => ['fee-discounts', 'expense-rejection', 'refund-decisions', 'refund-approval-amount'].includes(rule.id) && rule.any.some(p => extra.permissions.includes(p)));
+  if (!newlyEnabled || !workflows.length) return next;
+  return completeWorkflowAccess(next, { ...catalog, workflows }).map((grant, index) => grant.permission.startsWith('fields.') ? { ...grant,
+    _fieldMode: grant._fieldMode || (grant.fields?.length ? 'selected' : 'all'), _key: grant._key || `workflow-${grant.permission}-${index}` } : grant);
 }
 export function setAreaScope(grants, area, scope) {
   const seen = new Set();

@@ -31,6 +31,7 @@ import {
   setStatusFilter,
 } from "../../Features/refundRequestSlice";
 import { canAccessRequestManagement } from "../../utlls/refundAccess";
+import { accessSnapshot, can } from '../../utlls/accessCapabilities';
 
 const STATUS_OPTIONS = ["Pending", "Approved", "Rejected"];
 
@@ -308,7 +309,7 @@ function RequestManagement() {
                     <Td isNumeric>
                       {request.status === "Pending" ? (
                         <HStack justify="flex-end" spacing={1}>
-                          <Button
+                          {(!accessSnapshot().managed || can('refund-requests.approve.refund.request')) && <Button
                             size="sm"
                             borderRadius="lg"
                             backgroundColor="#82FFCB"
@@ -319,8 +320,8 @@ function RequestManagement() {
                             isLoading={decisionStatus === "loading"}
                           >
                             Approve
-                          </Button>
-                          <Button
+                          </Button>}
+                          {(!accessSnapshot().managed || can('refund-requests.reject.refund.request')) && <Button
                             size="sm"
                             borderRadius="lg"
                             backgroundColor="#FF8A8A"
@@ -331,7 +332,7 @@ function RequestManagement() {
                             isLoading={decisionStatus === "loading"}
                           >
                             Reject
-                          </Button>
+                          </Button>}
                         </HStack>
                       ) : request.status === "Approved" && !request.is_refunded ? (
                         <Text fontSize="xs" color="orange.500">

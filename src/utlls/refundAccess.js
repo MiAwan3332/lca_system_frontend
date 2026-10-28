@@ -96,6 +96,9 @@ export const canCreateRefundRequest = (role) => {
 /** Same roles — Request Management decisions. */
 export const canDecideRefundRequest = (role) => accessSnapshot().managed ? dynamicPermission(['approveRefundRequest', 'rejectRefundRequest']) : canCreateRefundRequest(role);
 
+/** Paying out an approved refund is its own permission, separate from approving it. */
+export const canProcessRefundRequest = (role) => accessSnapshot().managed ? dynamicPermission(['processRefundRequest']) : canDecideRefundRequest(role);
+
 export const canAccessRequestManagement = (role) => accessSnapshot().managed ? dynamicPermission(['getRefundRequests']) : canDecideRefundRequest(role);
 
 /** Super Admin only — edit Cash/Online + screenshot on refunded requests. */

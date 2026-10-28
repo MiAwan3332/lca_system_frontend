@@ -149,3 +149,13 @@ test('own-account checks include the fields each request writes, and Add basics 
   expect(selfServiceGaps(blank)).toEqual([]);
   expect(blank.filter((grant) => grant.permission.startsWith('fields.')).every((grant) => grant.fields?.length)).toBe(true);
 });
+
+test('selecting financial decision actions includes only their precise supporting fields', () => {
+ let grants=setAreaExtra(role('lca-staff-account-officer'),area('fees'),'discount',true);
+ expect(grants.find(g=>g.permission==='fields.financial.write').fields).toContain('discount_amount');
+ expect(grants.find(g=>g.permission==='fields.financial.write').fields).not.toContain('paid_fee');
+ grants=setAreaExtra(grants,area('refunds'),'approve',true);
+ expect(grants.find(g=>g.permission==='fields.general.write').fields).toContain('comment');
+ expect(grants.filter(g=>g.permission.startsWith('refund-requests.')&&g.permission.includes('approve')).every(g=>g.noSelfApproval)).toBe(true);
+ expect(draftErrors({name:'Finance',grants})).toEqual([]);
+});

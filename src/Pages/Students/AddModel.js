@@ -942,6 +942,7 @@ function AddStudnet({ isOpen, onClose }) {
         <Input
           type="number"
           name="discount_amount"
+          permission="fees.discount.fee"
           min={0}
           max={admissionFee}
           step="1"
