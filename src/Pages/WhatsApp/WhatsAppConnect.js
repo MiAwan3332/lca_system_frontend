@@ -19,7 +19,7 @@ import PageHeader, { DataTableShell } from "../../Components/PageHeader";
 import { config } from "../../utlls/config";
 import { isPlatformSuperAdminRole } from "../../utlls/useful";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
-import { resourceAccess } from '../../utlls/accessCapabilities';
+import { resourceAccess, accessSnapshot, can } from '../../utlls/accessCapabilities';
 
 const STATUS_COLOR = {
   ready: "green",
@@ -45,10 +45,11 @@ function WhatsAppConnect() {
   const authToken = Cookies.get("authToken");
   const toast = useToast();
   const pollRef = useRef(null);
-  const canView = resourceAccess('whatsapp', isPlatformSuperAdminRole());
+  const canView = resourceAccess('whatsapp', isPlatformSuperAdminRole()) && (!accessSnapshot().managed || can('whatsapp.get.whats.app.config'));
 
   const [gatewayConfig, setGatewayConfig] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [gatewayError, setGatewayError] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [sessionName, setSessionName] = useState("lca-portal");
   const [qrCode, setQrCode] = useState("");
@@ -95,12 +96,29 @@ function WhatsAppConnect() {
   );
 
   const refreshSessions = useCallback(async () => {
-    const [{ data: cfg }, { data: listPayload }] = await Promise.all([
-      axios.get(`${config.BASE_URL}/whatsapp/config`, { headers }),
-      axios.get(`${config.BASE_URL}/whatsapp/sessions`, { headers }),
-    ]);
-
-    setGatewayConfig(cfg);
+    let cfg;
+    try {
+      ({ data: cfg } = await axios.get(`${config.BASE_URL}/whatsapp/config`, { headers, timeout: 15000 }));
+      if (typeof cfg?.configured !== 'boolean') throw new Error('Unable to read the connection status.');
+      setGatewayConfig(cfg);
+      setGatewayError('');
+    } catch (error) {
+      setGatewayConfig(null);
+      setGatewayError('Unable to check the WhatsApp connection. Please try Refresh.');
+      throw error;
+    }
+    if (!cfg.configured) {
+      setSessions([]);
+      setSelectedId('');
+      return [];
+    }
+    let listPayload;
+    try {
+      ({ data: listPayload } = await axios.get(`${config.BASE_URL}/whatsapp/sessions`, { headers, timeout: 15000 }));
+    } catch (error) {
+      setGatewayError('Connection settings are saved, but WhatsApp sessions could not be loaded. Please try Refresh.');
+      throw error;
+    }
     if (cfg?.default_session_name) {
       setSessionName((prev) => prev || cfg.default_session_name);
     }
@@ -331,7 +349,7 @@ function WhatsAppConnect() {
     <Box>
       <PageHeader
         title="WhatsApp Connect"
-        subtitle="Link LCA Portal to WhatsApp via your self-hosted OpenWA gateway."
+        subtitle="Connect the academy’s WhatsApp account and check its connection."
       >
         <Button
           leftIcon={<RefreshCw size={16} />}
@@ -356,21 +374,22 @@ function WhatsAppConnect() {
                 Gateway
               </Text>
               <Text fontWeight="semibold" className="dash-text">
-                {gatewayConfig?.base_url || "Not configured"}
+                {gatewayConfig?.base_url || (gatewayConfig?.configured === false ? "Not configured" : "Connection status unavailable")}
               </Text>
             </Box>
             <Badge
-              colorScheme={gatewayConfig?.configured ? "green" : "red"}
+              colorScheme={gatewayConfig?.configured ? "green" : gatewayConfig?.configured === false ? "red" : "gray"}
               fontSize="0.8rem"
               px={3}
               py={1}
               borderRadius="md"
             >
-              {gatewayConfig?.configured ? "API key loaded" : "Missing env"}
+              {gatewayConfig?.configured ? "Settings saved" : gatewayConfig?.configured === false ? "Setup needed" : "Unable to check"}
             </Badge>
           </HStack>
 
-          {!gatewayConfig?.configured ? (
+          {gatewayError && <Box role="alert" borderWidth="1px" borderColor="orange.200" bg="orange.50" borderRadius="lg" p={4}><Text color="orange.800">{gatewayError}</Text></Box>}
+          {gatewayConfig?.configured === false ? (
             <Box
               borderWidth="1px"
               borderColor="red.200"
@@ -379,11 +398,10 @@ function WhatsAppConnect() {
               p={4}
             >
               <Text fontWeight="semibold" color="red.700">
-                OpenWA env not set
+                WhatsApp connection needs setup
               </Text>
               <Text fontSize="sm" color="red.600" mt={1}>
-                Add OPENWA_BASE_URL and OPENWA_API_KEY to the backend .env, then
-                restart the API server.
+                The connection settings have not been saved. Contact the system owner to complete setup.
               </Text>
             </Box>
           ) : null}
@@ -444,11 +462,11 @@ function WhatsAppConnect() {
                 })}
               </Wrap>
             </Box>
-          ) : (
+          ) : !gatewayError && gatewayConfig?.configured ? (
             <Text fontSize="sm" className="dash-text-muted">
               No sessions yet. Click Connect to create and start one.
             </Text>
-          )}
+          ) : null}
 
           {selectedSession ? (
             <Box
