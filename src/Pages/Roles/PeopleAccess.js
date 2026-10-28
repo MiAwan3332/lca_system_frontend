@@ -1,5 +1,6 @@
 import { DataTableShell } from '../../Components/PageHeader';
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertIcon, Badge, Box, Button, FormControl, FormLabel, HStack, Input, Select, Stack, Table, Tbody, Td, Text, Th, Thead, Tr, useToast } from '@chakra-ui/react';
 import { ArrowLeft, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { can, refreshAccess } from '../../utlls/accessCapabilities';
@@ -13,8 +14,12 @@ export function RoleChoice({ api, value, onChange, label = 'Role to assign' }) {
   return <LoadState state={state}><Select aria-label={label} value={value?._id || ''} onChange={(event) => onChange(state.data.docs.find((role) => role._id === event.target.value) || null)}><option value="">Choose a role</option>{value && !state.data?.docs.some((role) => role._id === value._id && role.active) && <option value={value._id}>{value.name}{value.active === false ? ' (Disabled)' : ''}</option>}{state.data?.docs.filter((role) => role.active).map((role) => <option key={role._id} value={role._id}>{role.name}</option>)}</Select><Pager data={state.data} onPage={setPage} label="roles" /></LoadState>;
 }
 export default function PeopleAccess({ api, userId, catalog, onSelect, onBack }) {
-  const [page, setPage] = useState(1), [query, setQuery] = useState(''), [version, setVersion] = useState(0), [assignmentPage, setAssignmentPage] = useState(1);
-  const list = useAccessData(api, userId ? null : '/users', { page, limit: 25, query }, version);
+  const [params, setParams] = useSearchParams();
+  const page = Math.max(1, Number(params.get('page')) || 1), query = params.get('query') || '';
+  const category = params.get('category') ?? 'staff', status = params.get('status') || '';
+  const filter = (changes) => setParams({ category, status, query, page: '1', ...changes }, { replace: true });
+  const [version, setVersion] = useState(0), [assignmentPage, setAssignmentPage] = useState(1);
+  const list = useAccessData(api, userId ? null : '/users', { page, limit: 25, query, category, status }, version);
   const person = useAccessData(api, userId ? `/users/${userId}/effective` : null, {}, version);
   const assignments = useAccessData(api, userId ? `/assignments/${userId}` : null, { page: assignmentPage, limit: 25 }, version);
   const [role, setRole] = useState(null), [batchIds, setBatches] = useState([]), [courseIds, setCourses] = useState([]), [expiresAt, setExpiry] = useState('');
@@ -32,8 +37,12 @@ export default function PeopleAccess({ api, userId, catalog, onSelect, onBack })
     } finally { setBusy(false); }
   };
   if (!userId) return <>
-    <SearchInput label="Search people by name or email" value={query} onChange={(value) => { setQuery(value); setPage(1); }} />
-    <LoadState state={list}><DataTableShell className="access-table access-people-table"><Table><Thead><Tr><Th>Person</Th><Th>Account category</Th><Th>Access roles</Th><Th /></Tr></Thead><Tbody>{list.data?.docs.map((user) => <Tr key={user._id}><Td><Button variant="link" onClick={() => onSelect(user._id)}>{user.name}</Button><Text fontSize="sm" color="var(--dash-muted)">{user.email}</Text></Td><Td>{words(user.accountType || user.role)}</Td><Td>{user.platformOwner ? <Badge colorScheme="purple">Protected owner</Badge> : user.accessRoles?.length ? user.accessRoles.map((role) => <Badge key={role._id} mr={1} mb={1} colorScheme={role.code === 'lca-v1-pending-staff' ? 'yellow' : 'gray'}>{role.name}</Badge>) : <Badge colorScheme="yellow">No assigned role</Badge>}</Td><Td><Button size="sm" onClick={() => onSelect(user._id)}>Manage Access</Button></Td></Tr>)}</Tbody></Table>{list.data?.docs.length === 0 && <Text py={8} textAlign="center">No matching people.</Text>}</DataTableShell><Pager data={list.data} onPage={setPage} label="people" /></LoadState>
+    <div className="access-people-filters">
+      <FormControl><FormLabel>Account category</FormLabel><Select aria-label="Filter account category" value={category} onChange={(event) => filter({ category: event.target.value })}><option value="">All categories</option>{['staff', 'student', 'teacher', 'qualifier', 'panelist'].map((type) => <option key={type} value={type}>{words(type)}</option>)}</Select></FormControl>
+      <FormControl><FormLabel>Account status</FormLabel><Select aria-label="Filter account status" value={status} onChange={(event) => filter({ status: event.target.value })}><option value="">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></Select></FormControl>
+      <SearchInput label="Search people by name or email" value={query} onChange={(value) => filter({ query: value })} />
+    </div>
+    <LoadState state={list}><DataTableShell className="access-table access-people-table"><Table><Thead><Tr><Th>Person</Th><Th>Account category</Th><Th>Access roles</Th><Th /></Tr></Thead><Tbody>{list.data?.docs.map((user) => <Tr key={user._id}><Td><Button variant="link" onClick={() => onSelect(user._id)}>{user.name}</Button><Text fontSize="sm" color="var(--dash-muted)">{user.email}</Text>{user.disabledAt && <Badge colorScheme="red">Inactive</Badge>}</Td><Td>{words(user.accountType || user.role)}</Td><Td>{user.platformOwner ? <Badge colorScheme="purple">Protected owner</Badge> : user.accessRoles?.length ? user.accessRoles.map((role) => <Badge key={role._id} mr={1} mb={1} colorScheme={role.code === 'lca-v1-pending-staff' ? 'yellow' : 'gray'}>{role.name}</Badge>) : <Badge colorScheme="yellow">No assigned role</Badge>}</Td><Td><Button size="sm" onClick={() => onSelect(user._id)}>Manage Access</Button></Td></Tr>)}</Tbody></Table>{list.data?.docs.length === 0 && <Text py={8} textAlign="center">No matching people.</Text>}</DataTableShell><Pager data={list.data} onPage={(value) => filter({ page: String(value) })} label="people" /></LoadState>
   </>;
   const user = person.data?.user;
   const effective = (person.data?.grants || []).filter((grant) => `${permissionName(grant.permission)} ${grant.permission}`.toLowerCase().includes(effectiveQuery.toLowerCase()));

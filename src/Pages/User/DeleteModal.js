@@ -37,10 +37,12 @@ const DeleteModal = ({ userId, getUsers }) => {
   return (
     <>
       <button
-        className="hover:bg-[#FF8A8A] hover:text-[#6D1F1F] font-medium p-[10px] rounded-xl transition-colors duration-300"
+        className="action-menu-btn action-menu-btn--red"
+        aria-label="Delete User"
         onClick={onOpen}
       >
         <Trash size={18} />
+        <span>Delete User</span>
       </button>
 
       <Modal isOpen={isOpen} onClose={onClose}>

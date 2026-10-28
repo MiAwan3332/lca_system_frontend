@@ -1,4 +1,8 @@
 .access-workspace { min-width: 0; color: var(--dash-text); }
+.access-people-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.access-people-filters > .chakra-form-control { width: 200px; max-width: 100%; }
+.access-people-filters .chakra-select { height: 44px; }
+.access-people-filters > .access-search { flex: 1 1 240px; }
 .access-workspace h2 { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
 .access-workspace h3 { font-size: 16px; font-weight: 600; }
 .access-tabs { display: flex; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid var(--dash-border); margin-bottom: 24px; }

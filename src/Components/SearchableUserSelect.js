@@ -176,7 +176,7 @@ function SearchableUserSelect({
           left={0}
           right={0}
           mt={1}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
@@ -192,8 +192,8 @@ function SearchableUserSelect({
               cursor="pointer"
               color="#718096"
               fontSize="sm"
-              bg={!value ? "#FFCB82" : "white"}
-              _hover={{ bg: "#FFCB82" }}
+              bg={!value ? "#FFCB82" : "var(--dash-surface)"}
+              _hover={{ bg: "#FFCB82", color: "#263238" }}
               onMouseDown={(e) => e.preventDefault()}
               onClick={handleClearSelection}
             >
@@ -223,8 +223,8 @@ function SearchableUserSelect({
                 px={4}
                 py={2}
                 cursor="pointer"
-                bg={isSelected ? "#FFCB82" : "white"}
-                _hover={{ bg: "#FFCB82" }}
+                bg={isSelected ? "#FFCB82" : "var(--dash-surface)"} color={isSelected ? "#263238" : "var(--dash-text)"}
+                _hover={{ bg: "#FFCB82", color: "#263238" }}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelectUser(user)}
               >
@@ -264,7 +264,7 @@ function SearchableUserSelect({
           left={0}
           right={0}
           mt={1}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"

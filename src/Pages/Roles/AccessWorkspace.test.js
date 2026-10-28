@@ -22,6 +22,16 @@ beforeEach(() => {
   axios.create.mockReturnValue(api);
 });
 const open = (url = '/access-management') => render(<ChakraProvider><MemoryRouter initialEntries={[url]}><AccessWorkspace /></MemoryRouter></ChakraProvider>);
+
+test('people opens on staff and filters on the server with pagination reset', async () => {
+  open('/access-management/people?page=4');
+  await screen.findByLabelText('Filter account category');
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/users', expect.objectContaining({ params: expect.objectContaining({ category: 'staff', page: 4, limit: 25 }) })));
+  fireEvent.change(screen.getByLabelText('Filter account category'), { target: { value: 'student' } });
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/users', expect.objectContaining({ params: expect.objectContaining({ category: 'student', page: 1 }) })));
+  fireEvent.change(screen.getByLabelText('Filter account status'), { target: { value: 'inactive' } });
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/users', expect.objectContaining({ params: expect.objectContaining({ category: 'student', status: 'inactive', page: 1 }) })));
+});
 test('create requires deliberate scope and reason, then reviews before publishing', async () => {
   open();
   fireEvent.click(await screen.findByRole('button', { name: 'Create Role' }));

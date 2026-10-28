@@ -190,7 +190,7 @@ function BatchSelectInput({
           top="calc(100% + 4px)"
           left={0}
           right={0}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
@@ -222,8 +222,8 @@ function BatchSelectInput({
                 px={4}
                 py={2}
                 cursor="pointer"
-                bg={isSelected ? "#FFCB82" : "white"}
-                _hover={{ bg: "#FFCB82" }}
+                bg={isSelected ? "#FFCB82" : "var(--dash-surface)"} color={isSelected ? "#263238" : "var(--dash-text)"}
+                _hover={{ bg: "#FFCB82", color: "#263238" }}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelectBatch(batch)}
               >
@@ -250,7 +250,7 @@ function BatchSelectInput({
           top="calc(100% + 4px)"
           left={0}
           right={0}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
@@ -270,7 +270,7 @@ function BatchSelectInput({
           top="calc(100% + 4px)"
           left={0}
           right={0}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"

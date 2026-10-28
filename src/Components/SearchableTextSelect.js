@@ -131,7 +131,7 @@ function SearchableTextSelect({
         placeholder={placeholder}
         isDisabled={isDisabled}
         borderRadius="0.5rem"
-        bg="white"
+        bg="var(--dash-surface)"
         autoComplete="off"
       />
       {showList ? (
@@ -140,7 +140,7 @@ function SearchableTextSelect({
           top="calc(100% + 4px)"
           left={0}
           right={0}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
@@ -155,8 +155,8 @@ function SearchableTextSelect({
               px={4}
               py={2}
               cursor="pointer"
-              bg={option === value ? "#FFCB82" : "white"}
-              _hover={{ bg: "#FFCB82" }}
+              bg={option === value ? "#FFCB82" : "var(--dash-surface)"} color={option === value ? "#263238" : "var(--dash-text)"}
+              _hover={{ bg: "#FFCB82", color: "#263238" }}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => handleSelect(option)}
             >
@@ -169,7 +169,7 @@ function SearchableTextSelect({
               px={4}
               py={2}
               cursor="pointer"
-              bg="white"
+              bg="var(--dash-surface)"
               color="#85652D"
               fontWeight="600"
               borderTop={
@@ -190,7 +190,7 @@ function SearchableTextSelect({
           top="calc(100% + 4px)"
           left={0}
           right={0}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"

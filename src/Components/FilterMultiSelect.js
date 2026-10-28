@@ -109,7 +109,7 @@ function FilterMultiSelect({
           left={0}
           right={0}
           minW="12rem"
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"

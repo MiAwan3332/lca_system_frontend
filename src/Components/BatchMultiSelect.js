@@ -99,7 +99,7 @@ function BatchMultiSelect({
       borderWidth="1px"
       borderColor="#E0E8EC"
       borderRadius="xl"
-      bg="white"
+      bg="var(--dash-surface)"
       overflow="hidden"
     >
       {selectedBatchItems.length > 0 && (

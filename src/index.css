@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Native popup colors must be paired; OS menus do not reliably inherit the field background. */
+:root select option,
+:root select optgroup {
+  background-color: var(--dash-surface, #fff);
+  color: var(--dash-text, #263238);
+}
+select { color-scheme: light; }
+.chakra-ui-dark select { color-scheme: dark; }
+.chakra-select.chakra-select {
+  background-color: var(--dash-surface, #fff);
+  color: var(--dash-text, #263238);
+}
+
 @layer base {
   html,
   body,

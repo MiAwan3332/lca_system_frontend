@@ -5,7 +5,8 @@ const { spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const catalog = require('../src/config/accessCatalog.generated.json');
 const users = [{ _id: '000000000000000000000001', name: 'Local Review Owner', email: 'owner@example.invalid', accountType: 'staff', role: 'superadmin', platformOwner: true },
-  { _id: '000000000000000000000002', name: 'Demo Admissions Staff', email: 'staff@example.invalid', accountType: 'staff' }];
+  { _id: '000000000000000000000002', name: 'Demo Admissions Staff', email: 'staff@example.invalid', accountType: 'staff', role: 'CEO', phone: '03000000000' },
+  { _id: '000000000000000000000003', name: 'Demo Student', email: 'student@example.invalid', accountType: 'student', disabledAt: new Date() }];
 const roles = [
   { _id: '100000000000000000000001', code: 'demo-admissions', managed: true, name: 'Admissions Officer', description: 'Admissions, enrollment and fee collection', active: true, revision: 3, grants: [{ permission: 'students.get.students', scope: 'all' }, { permission: 'students.add.student', scope: 'all' }, { permission: 'fees.pay.fee', scope: 'all', maxAmount: 100000 }, { permission: 'fields.contact.read', scope: 'all', fields: ['phone', 'email'] }] },
   { _id: '100000000000000000000002', code: 'demo-teacher', managed: true, name: 'Teacher', description: 'Teaching and coursework in assigned classes', active: true, revision: 1, grants: [{ permission: 'students.get.students', scope: 'assigned' }, { permission: 'assignments.get.assignments', scope: 'assigned' }] },
@@ -38,7 +39,8 @@ const server = http.createServer(async (req, res) => {
     if (route === '/access/me') return send({ managed: true, owner: true, userId: users[0]._id, accountType: 'staff', grants: [], roles: [], routes: catalog.routes });
     if (route === '/access/catalog') return send(catalog);
     if (/^\/access\/users\/[^/]+\/effective$/.test(route)) { const user = users.find((item) => item._id === route.split('/')[3]); const assigned = assignments.filter((item) => item.user === user?._id); return send({ user, owner: user?.platformOwner, disabled: false, roles: assigned.map((item) => item.role), grants: assigned.flatMap((item) => item.role.grants) }); }
-    if (route === '/access/users') return send(page(users.filter((user) => `${user.name} ${user.email}`.toLowerCase().includes((url.searchParams.get('query') || '').toLowerCase())).map((user) => ({ ...user, accessRoles: assignments.filter((item) => item.user === user._id).map((item) => item.role) }))));
+    if (route === '/access/users') return send(page(users.filter((user) => (!url.searchParams.get('category') || user.accountType === url.searchParams.get('category')) && (!url.searchParams.get('status') || (url.searchParams.get('status') === 'inactive' ? Boolean(user.disabledAt) : !user.disabledAt)) && `${user.name} ${user.email}`.toLowerCase().includes((url.searchParams.get('query') || '').toLowerCase())).map((user) => ({ ...user, accessRoles: assignments.filter((item) => item.user === user._id).map((item) => item.role) }))));
+    if (route === '/users') return send(page([users[1]]));
     if (route.startsWith('/users/')) return send(users[0]);
     if (route === '/access/audit') return send(page(audits));
     if (route.startsWith('/access/scopes/')) return send(page((scopeItems[route.split('/')[3]] || []).filter((item) => item.name.toLowerCase().includes((url.searchParams.get('query') || '').toLowerCase()))));
