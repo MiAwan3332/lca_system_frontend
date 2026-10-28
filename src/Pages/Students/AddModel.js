@@ -24,6 +24,7 @@ import { generateAdmissionFeeSlip } from "../../utlls/generateAdmissionFeeSlip";
 import { formatClassTimeRange } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
 import axios from "axios";
+import { accessSnapshot, can } from '../../utlls/accessCapabilities';
 import CreationProcessing from '../../Components/CreationProcessing';
 import StudentIdentityNotice from '../../Components/StudentIdentityNotice';
 import { pendingCreationKey } from '../../utlls/creationRecovery';
@@ -79,6 +80,7 @@ function AddStudnet({ isOpen, onClose }) {
   const { addStatus } = useSelector((state) => state.students);
   const batches = useSelector(selectActiveStudentBatches);
   const currentUser = useSelector(selectUser);
+  const canCollectPayment = !accessSnapshot().managed || can('fees.pay.fee') || can('fees.collect.pending.fee');
   const dispatch = useDispatch();
 
   const validationSchema = useMemo(
@@ -535,6 +537,7 @@ function AddStudnet({ isOpen, onClose }) {
     (isSpecialBatch ? specialTotalFee > 0 : batchFee > 0);
 
   const handlePaymentOptionChange = (option) => {
+    if (option !== 'later' && !canCollectPayment) return;
     setPaymentOption(option);
     if (option === "later") {
       formik.setFieldValue("paying_now", "");
@@ -749,6 +752,7 @@ function AddStudnet({ isOpen, onClose }) {
         const verifyResponse = await axios.post(
           `${config.BASE_URL}/admission-slips/issue`,
           {
+            student_id: studentId,
             student_name: formik.values.name,
             cnic: formik.values.cnic || "",
             phone: formik.values.phone || "",
@@ -999,7 +1003,7 @@ function AddStudnet({ isOpen, onClose }) {
           >
             Pay later
           </Button>
-          {payableFee > 1 && (
+          {canCollectPayment && payableFee > 1 && (
             <Button
               size="sm"
               borderRadius="lg"
@@ -1012,7 +1016,7 @@ function AddStudnet({ isOpen, onClose }) {
               Partial payment
             </Button>
           )}
-          {payableFee > 0 && (
+          {canCollectPayment && payableFee > 0 && (
             <Button
               size="sm"
               borderRadius="lg"

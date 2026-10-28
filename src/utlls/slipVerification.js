@@ -4,6 +4,9 @@ import { config } from "./config";
 export async function issueSlipVerificationQr({
   authToken,
   student_name,
+  student_id,
+  payment_log_id,
+  receipt_id,
   cnic = "",
   phone = "",
   batch_name = "",
@@ -25,6 +28,9 @@ export async function issueSlipVerificationQr({
       `${config.BASE_URL}/admission-slips/issue`,
       {
         student_name,
+        student_id,
+        payment_log_id,
+        receipt_id,
         cnic,
         phone,
         batch_name,

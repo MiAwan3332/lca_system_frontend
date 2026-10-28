@@ -1,9 +1,9 @@
 import { Input, Select, Textarea } from '../../Components/AccessInputs';
 import FormControl from '../../Components/AccessFormControl';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { resourceAccess } from '../../utlls/accessCapabilities';
+import { resourceAccess, accessSnapshot, subscribeAccess, can } from '../../utlls/accessCapabilities';
 import { Badge, Box, Button, ButtonGroup, FormLabel, HStack, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Text, useToast, VStack, Wrap, WrapItem } from '@chakra-ui/react';
 import {
   Ban,
@@ -159,6 +159,9 @@ function formatDate(value) {
 }
 
 function WhatsAppQueue() {
+  const access = useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const savedTemplatesOnly = Boolean(access.communication?.savedTemplatesOnly);
+  const isAccountsMessaging = access.communication?.processes?.length && access.communication.processes.every((p) => p.startsWith('fee_'));
   const authToken = Cookies.get("authToken");
   const toast = useToast();
   const dispatch = useDispatch();
@@ -197,7 +200,8 @@ function WhatsAppQueue() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
-  const [audience, setAudience] = useState("qualifiers");
+  const [audience, setAudience] = useState(isAccountsMessaging ? "pending_dues_students" : "qualifiers");
+  useEffect(() => { if (isAccountsMessaging) setAudience((current) => current === "qualifiers" ? "pending_dues_students" : current); }, [isAccountsMessaging]);
   const [batchId, setBatchId] = useState("");
   const [templates, setTemplates] = useState([]);
   const [tags, setTags] = useState([]);
@@ -593,7 +597,7 @@ function WhatsAppQueue() {
           >
             Refresh
           </Button>
-          <Button
+          {can('whatsapp.cancel.all.whats.app.queue') && <Button
             leftIcon={<Ban size={16} />}
             variant="outline"
             colorScheme="red"
@@ -602,7 +606,7 @@ function WhatsAppQueue() {
             isDisabled={!stats.in_queue}
           >
             Cancel All In-Queue
-          </Button>
+          </Button>}
         </FilterStack>
       </PageHeader>
 
@@ -649,14 +653,14 @@ function WhatsAppQueue() {
                   setAudience(next);
                   setBatchId("");
                   if (next === "pending_dues_students") {
-                    setCustomBody((prev) => prev.trim() || PENDING_DUES_DEFAULT_BODY);
+                    if (!savedTemplatesOnly) setCustomBody((prev) => prev.trim() || PENDING_DUES_DEFAULT_BODY);
                     setShowTags(true);
                     const feeReminder = templates.find(
                       (t) => t.process === "fee_reminder"
                     );
                     if (feeReminder?.key) setTemplateKey(feeReminder.key);
                   } else if (next === "overdue_students") {
-                    setCustomBody((prev) => prev.trim() || OVERDUE_DEFAULT_BODY);
+                    if (!savedTemplatesOnly) setCustomBody((prev) => prev.trim() || OVERDUE_DEFAULT_BODY);
                     setShowTags(true);
                     const overdueTpl = templates.find(
                       (t) =>
@@ -667,7 +671,7 @@ function WhatsAppQueue() {
                   }
                 }}
               >
-                <option value="qualifiers">Qualifiers</option>
+                {!isAccountsMessaging && <option value="qualifiers">Qualifiers</option>}
                 <option value="students">All students</option>
                 <option value="pending_dues_students">
                   Pending dues holders (students)
@@ -731,7 +735,7 @@ function WhatsAppQueue() {
             </Text>
           ) : null}
 
-          <FormControl>
+          {!savedTemplatesOnly && <FormControl>
             <FormLabel fontSize="sm">
               Custom message (optional — overrides template)
             </FormLabel>
@@ -745,9 +749,9 @@ function WhatsAppQueue() {
               fontFamily="mono"
               fontSize="sm"
             />
-          </FormControl>
+          </FormControl>}
 
-          {(showTags ||
+          {!savedTemplatesOnly && (showTags ||
             Boolean(customBody.trim()) ||
             isOverdueAudience ||
             isPendingDuesAudience) &&
@@ -903,7 +907,7 @@ function WhatsAppQueue() {
                               : "—"}
                         </Td>
                         <Td isNumeric>
-                          {item.status === "in_queue" ? (
+                          {item.status === "in_queue" && can('whatsapp.cancel.whats.app.queue.message') ? (
                             <Button
                               size="xs"
                               variant="outline"

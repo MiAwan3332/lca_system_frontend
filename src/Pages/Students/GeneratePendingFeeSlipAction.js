@@ -461,6 +461,8 @@ function GeneratePendingFeeSlipAction({
       const payload = { ...slipPayload, isDuplicate: duplicate };
       const { qrDataUrl, verifyUrl } = await issueSlipVerificationQr({
         authToken,
+        student_id: student._id,
+        receipt_id: payload.receiptId,
         student_name: payload.name,
         cnic: payload.cnic,
         phone: payload.phone,

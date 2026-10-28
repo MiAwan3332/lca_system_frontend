@@ -175,6 +175,8 @@ function ReprintFeeSlipAction({ student }) {
       const payload = buildSlipFromLog(selectedLog);
       const { qrDataUrl, verifyUrl } = await issueSlipVerificationQr({
         authToken,
+        student_id: student._id,
+        payment_log_id: selectedLog._id,
         student_name: payload.name,
         cnic: payload.cnic,
         phone: payload.phone,
