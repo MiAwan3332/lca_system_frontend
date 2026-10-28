@@ -19,7 +19,7 @@ import { isStudentViewOnly } from "../utlls/studentAccess";
 import { isTeacherRole } from "../utlls/teacherAccess";
 import { isQualifierRole } from "../utlls/qualifierAccess";
 import { hasPermission } from "../utlls/useful";
-import { accessSnapshot, can } from '../utlls/accessCapabilities';
+import { accessSnapshot, can, canUseField } from '../utlls/accessCapabilities';
 import DashboardHeader from "../Components/Dashboard/DashboardHeader";
 import KpiCard from "../Components/Dashboard/KpiCard";
 import QuickActions from "../Components/Dashboard/QuickActions";
@@ -59,6 +59,9 @@ const isExcludedCollectionRole = (role) => {
 
 function Home() {
   const permitted = (permission) => !accessSnapshot().managed || can(permission);
+  const financeCharts = accessSnapshot().managed ? can('statistics.get.statistics') && canUseField('fee_overview') : hasPermission(['view_total_fee_recovered']);
+  const batchCharts = accessSnapshot().managed ? can('statistics.get.statistics') && canUseField('batch_status') : hasPermission(['view_current_batches']);
+  const enrollmentCharts = accessSnapshot().managed ? can('statistics.get.statistics') && canUseField('enrollment_overview') : hasPermission(['view_total_enrolled_students']);
   const viewOnly = isStudentViewOnly();
   const isTeacher = isTeacherRole();
   const isQualifier = isQualifierRole();
@@ -324,7 +327,7 @@ function Home() {
           </div>
 
           <section className="chart-grid mb-4">
-            {hasPermission(["view_total_fee_recovered"]) && (
+            {financeCharts && (
               <DashboardChartCard
                 title="Fee Overview"
                 subtitle="Recovered vs pending"
@@ -335,7 +338,7 @@ function Home() {
                 loading={loading}
               />
             )}
-            {hasPermission(["view_current_batches"]) && (
+            {batchCharts && (
               <DashboardChartCard
                 title="Batch Status"
                 subtitle="Current vs previous"
@@ -346,7 +349,7 @@ function Home() {
                 loading={loading}
               />
             )}
-            {hasPermission(["view_total_enrolled_students"]) && (
+            {enrollmentCharts && (
               <DashboardChartCard
                 title="Student Enrollment"
                 subtitle="Enrolled vs unenrolled"
@@ -361,7 +364,7 @@ function Home() {
                 loading={loading}
               />
             )}
-            {hasPermission(["view_total_fee_recovered"]) && (
+            {financeCharts && (
               <DashboardChartCard
                 title="Expense Status"
                 type="donut"
@@ -375,7 +378,7 @@ function Home() {
                 loading={loading}
               />
             )}
-            {hasPermission(["view_total_fee_recovered"]) && (
+            {financeCharts && (
               <DashboardChartCard
                 title="Expense by Category"
                 type="bar"
@@ -446,7 +449,7 @@ function Home() {
           </section>
 
           <section className="analytics-grid mb-4">
-            {hasPermission(["view_total_fee_recovered"]) && (
+            {financeCharts && (
               <DashboardChartCard
                 title="Monthly Finance Trend"
                 subtitle="Recovered fees vs expenses"
@@ -477,13 +480,13 @@ function Home() {
             </div>
           </section>}
 
-          {hasPermission(["view_total_fee_recovered"]) && (
+          {financeCharts && permitted('statistics.get.batch.finance.stats') && (
             <section className="mb-4">
               <BatchFinanceSection filters={dashboardFilters} />
             </section>
           )}
 
-          {hasPermission(["view_total_enrolled_students"]) && (
+          {enrollmentCharts && (
             <section className="mb-4">
               <BatchStudentStatusSection filters={dashboardFilters} />
             </section>

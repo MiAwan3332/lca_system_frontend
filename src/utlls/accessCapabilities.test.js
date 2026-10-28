@@ -1,3 +1,4 @@
+import { canShiftStudentBatch } from './useful';
 import axios from 'axios';
 import { refreshAccess, resetAccess, can, dynamicPermission, dynamicRoute, canUseField, requireOutput } from './accessCapabilities';
 import { isTeacherRole } from './teacherAccess';
@@ -62,4 +63,11 @@ test('business messaging does not expose gateway or template administration page
   expect(dynamicRoute('/whatsapp-queue')).toBe(true);
   expect(dynamicRoute('/whatsapp')).toBe(false);
   expect(dynamicRoute('/whatsapp-templates')).toBe(false);
+});
+
+test('the actual transfer permission shows Batch Shift for non-owner staff', async () => {
+ axios.get.mockResolvedValueOnce({data:{managed:true,owner:false,grants:[{permission:'students.transfer.student.batch',scope:'all'}],routes:[]}});
+ await refreshAccess(); expect(canShiftStudentBatch()).toBe(true);
+ axios.get.mockResolvedValueOnce({data:{managed:true,owner:false,grants:[],routes:[]}});
+ await refreshAccess(); expect(canShiftStudentBatch()).toBe(false);
 });

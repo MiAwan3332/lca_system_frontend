@@ -136,7 +136,7 @@ const isStrictSuperAdminRole = () => accessSnapshot().managed ? Boolean(accessSn
 const canDeleteStudent = () => accessSnapshot().managed ? dynamicPermission(['Delete_Student']) : canDeleteStudentRoleName(getCurrentRoleName());
 
 /** Shift batch — same roles as delete student (includes Accounts). */
-const canShiftStudentBatch = () => accessSnapshot().managed ? dynamicPermission(['shiftStudentBatch']) : canDeleteStudentRoleName(getCurrentRoleName());
+const canShiftStudentBatch = () => accessSnapshot().managed ? dynamicPermission(['students.transfer.student.batch']) : canDeleteStudentRoleName(getCurrentRoleName());
 
 /** Full action rights (add/update/view/delete) without opening Roles/Permissions/Logs. */
 const hasUnrestrictedActionAccess = () => {

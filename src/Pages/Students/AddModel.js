@@ -24,7 +24,7 @@ import { generateAdmissionFeeSlip } from "../../utlls/generateAdmissionFeeSlip";
 import { formatClassTimeRange } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
 import axios from "axios";
-import { accessSnapshot, can } from '../../utlls/accessCapabilities';
+import { accessSnapshot, can, canUseField } from '../../utlls/accessCapabilities';
 import CreationProcessing from '../../Components/CreationProcessing';
 import StudentIdentityNotice from '../../Components/StudentIdentityNotice';
 import { pendingCreationKey } from '../../utlls/creationRecovery';
@@ -80,7 +80,7 @@ function AddStudnet({ isOpen, onClose }) {
   const { addStatus } = useSelector((state) => state.students);
   const batches = useSelector(selectActiveStudentBatches);
   const currentUser = useSelector(selectUser);
-  const canCollectPayment = !accessSnapshot().managed || can('fees.pay.fee') || can('fees.collect.pending.fee');
+  const canCollectPayment = !accessSnapshot().managed || (canUseField('paying_now', 'write') && (can('fees.pay.fee') || can('fees.collect.pending.fee')));
   const dispatch = useDispatch();
 
   const validationSchema = useMemo(

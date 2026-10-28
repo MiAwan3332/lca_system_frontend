@@ -5,6 +5,8 @@ import { ArrowLeft, Check, Plus, ShieldAlert, Trash2 } from 'lucide-react';
 import { refreshAccess, accessSnapshot } from '../../utlls/accessCapabilities';
 import { ConfirmChange, SearchInput, useAccessData } from './AccessCommon';
 import AccessGrid from './AccessGrid';
+import inventory from '../../config/accessCatalog.generated.json';
+import { workflowGaps, completeWorkflowAccess } from '../../utlls/accessWorkflowRules';
 import { defaultScope, pageChanges } from './accessAreas';
 import { moduleName, permissionName, words, scopeName, scopeChoices, editable, fingerprint, rolePayload, draftErrors, financialRule, approvalRule } from './accessUi';
 
@@ -63,6 +65,7 @@ export default function RoleEditor({ api, role, seed, catalog, readOnly = false,
     change({ grants: [...kept, ...added] });
   };
   const errors = draftErrors(draft);
+  const workflowIssues = workflowGaps(draft.grants, inventory);
   const modules = [...new Set(catalog.map((item) => item.group))].sort((a, b) => moduleName(a).localeCompare(moduleName(b)));
   const visible = catalog.filter((item) => (!group || item.group === group) && `${permissionName(item)} ${item.key}`.toLowerCase().includes(query.toLowerCase()));
   const moduleGroups = modules.map((name) => ({ name, items: visible.filter((item) => item.group === name) })).filter((item) => item.items.length);
@@ -97,6 +100,13 @@ export default function RoleEditor({ api, role, seed, catalog, readOnly = false,
     <fieldset disabled={readOnly}><div className="access-details-grid"><FormControl isRequired><FormLabel htmlFor="role-name">Role name</FormLabel><Input id="role-name" aria-label="Role name" maxLength={100} value={draft.name} onChange={(event) => change({ name: event.target.value })} /></FormControl><FormControl><FormLabel htmlFor="role-status">Status</FormLabel><HStack h="40px"><Switch id="role-status" isChecked={draft.active} onChange={(event) => change({ active: event.target.checked })} /><Text>{draft.active ? 'Active' : 'Disabled'}</Text></HStack></FormControl><FormControl className="access-description"><FormLabel htmlFor="role-description">Description</FormLabel><Textarea id="role-description" maxLength={2000} rows={2} value={draft.description || ''} onChange={(event) => change({ description: event.target.value })} /></FormControl></div></fieldset>
     {draft._id && draft.revision !== role.revision && <Alert status="warning" mb={3}><AlertIcon />This role changed in another session. Your draft has been retained; discard it to load the latest saved version.</Alert>}
     <BuiltInRules api={api} role={role} draft={draft} readOnly={readOnly} onChange={(profile) => change({ profile })} />
+    {workflowIssues.length > 0 && <Box className="access-rules" role="status" mb={3}>
+      <Text fontWeight="semibold">Some workflows need more access</Text>
+      <Text fontSize="sm">The selected actions have missing form fields or supporting choices. Keep these restrictions if partial access is intended.</Text>
+      <Box as="ul" pl={5} my={2} fontSize="sm">{workflowIssues.map(issue => <li key={issue.id}>{issue.label}: {issue.fields.map(f => `${words(f.key)} (${f.action})`).concat(issue.permissions.map(g => permissionName(g.permission))).join(', ')}</li>)}</Box>
+      {!readOnly && <Button size="sm" onClick={() => setGrants(editable({ grants: completeWorkflowAccess(draft.grants, inventory) }).grants)}>Add required workflow access</Button>}
+      <Text fontSize="xs" mt={2}>This adds specific fields and names-only assignment choices. It does not add approvals, discounts or direct balance editing.</Text>
+    </Box>}
     <nav className="access-mode-tabs" aria-label="Permission view">{[['simple', 'Pages & actions'], ['advanced', 'Advanced']].map(([key, label]) => <button key={key} type="button" aria-current={mode === key ? 'page' : undefined} onClick={() => setMode(key)}>{label}</button>)}</nav>
     {error && <Alert status="error" mb={4}><AlertIcon />{error}</Alert>}
     {mode === 'simple' && <AccessGrid grants={draft.grants} readOnly={readOnly} scope={gridScope} onScope={setGridScope} onChange={setGrants} />}

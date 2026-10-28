@@ -83,3 +83,10 @@ test('unmanaged compatibility preserves business data while dropping server-owne
   expect(permittedRequestBody({ _id: 'server-id', created_by: 'server-owner', name: 'Keep', fee: 500 }, { handler: 'updateCourse' }))
     .toEqual({ name: 'Keep', fee: 500 });
 });
+
+test('unauthorized critical workflow fields are rejected instead of silently discarded', () => {
+ expect(() => permittedRequestBody({paying_now:100},{handler:'addStudent'})).toThrow(/Nothing was submitted/);
+ expect(() => permittedRequestBody({batch:'batch-id'},{handler:'transferStudentBatch'})).toThrow(/workflow needs permission/);
+ expect(() => permittedRequestBody({is_active:false},{handler:'toggleStudentStatus'})).toThrow(/workflow needs permission/);
+ expect(() => permittedRequestBody({batchId:'batch-id',courseIds:[]},{handler:'assignCoursesToBatch'})).toThrow(/workflow needs permission/);
+});

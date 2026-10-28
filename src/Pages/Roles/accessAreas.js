@@ -55,6 +55,7 @@ export const AREAS = [
   { key: 'teachers', label: 'Teachers', pages: ['Teachers'], view: k('teachers', 'get.teachers', 'get.teacher'), manage: k('teachers', 'add.teacher', 'update.teacher'),
     extras: [{ key: 'delete', label: 'Delete', permissions: k('teachers', 'delete.teacher'), danger: true }, ...output('teachers')] },
   { key: 'batches', label: 'Batches', pages: ['Batches'], view: k('batches', 'get.batches', 'get.batch', 'get.batch.courses', 'get.batch.teachers', 'get.batch.teacher.assignments'),
+    advanced: k('batches', 'get.batch.assignment.options'),
     manage: k('batches', 'add.batch', 'update.batch', 'toggle.batch.status', 'assign.courses.to.batch', 'assign.teachers.to.batch', 'assign.teacher.courses.to.batch'),
     extras: [{ key: 'deleted', label: 'See deleted batches', permissions: k('batches', 'get.deleted.batches', 'get.deleted.batch.archive') },
       { key: 'delete', label: 'Delete', permissions: k('batches', 'delete.batch'), danger: true }, ...output('batches')] },
