@@ -16,8 +16,9 @@ test('retains selected old evidence and submits multiple new photos without anot
     payment_evidence: ['https://example.invalid/one.jpg', 'https://example.invalid/two.jpg'] }], hasNextPage: true } });
   axios.post.mockResolvedValue({ data: { submission_status: 'complete', idempotency_key: 'verification-key-123456789', processing_status: 'pending' } });
   const { container } = render(<StudentPaymentEvidenceEditor studentId="student-id" authToken="test-token" />);
-  await waitFor(() => expect(screen.getByRole('option', { name: /500/ })).toBeInTheDocument());
-  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'paid-log' } });
+  await waitFor(() => expect(axios.get).toHaveBeenCalled());
+  fireEvent.click(screen.getByLabelText('Payment Evidence'));
+  fireEvent.click(await screen.findByRole('menuitemradio', { name: /500/ }));
   fireEvent.click(screen.getByLabelText('Keep attachment 1'));
   fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [new File(['one'], 'one.png', { type: 'image/png' }), new File(['two'], 'two.png', { type: 'image/png' })] } });
   fireEvent.click(screen.getByRole('button', { name: 'Save Payment Evidence' }));

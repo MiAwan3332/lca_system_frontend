@@ -1,7 +1,8 @@
+import Select from '../../Components/InPageSelect';
 import { DataTableShell } from '../../Components/PageHeader';
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, AlertIcon, Badge, Box, Button, FormControl, FormLabel, HStack, Input, Menu, MenuButton, MenuItem, MenuList, Select, Stack, Table, Tbody, Td, Text, Th, Thead, Tr, useColorModeValue, useFormControlContext, useToast } from '@chakra-ui/react';
+import { Alert, AlertIcon, Badge, Box, Button, FormControl, FormLabel, HStack, Input, Menu, MenuButton, MenuItem, MenuList, Stack, Table, Tbody, Td, Text, Th, Thead, Tr, useColorModeValue, useFormControlContext, useToast } from '@chakra-ui/react';
 import { ArrowLeft, ChevronDown, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { can, refreshAccess } from '../../utlls/accessCapabilities';
 import { ConfirmChange, LoadState, Pager, SearchInput, useAccessData } from './AccessCommon';

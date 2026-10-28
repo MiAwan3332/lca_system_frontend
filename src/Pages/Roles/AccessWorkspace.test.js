@@ -27,9 +27,11 @@ test('people opens on staff and filters on the server with pagination reset', as
   open('/access-management/people?page=4');
   await screen.findByLabelText('Filter account category');
   await waitFor(() => expect(api.get).toHaveBeenCalledWith('/users', expect.objectContaining({ params: expect.objectContaining({ category: 'staff', page: 4, limit: 25 }) })));
-  fireEvent.change(screen.getByLabelText('Filter account category'), { target: { value: 'student' } });
+  fireEvent.click(screen.getByLabelText('Filter account category'));
+  fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Student', exact: true }));
   await waitFor(() => expect(api.get).toHaveBeenCalledWith('/users', expect.objectContaining({ params: expect.objectContaining({ category: 'student', page: 1 }) })));
-  fireEvent.change(screen.getByLabelText('Filter account status'), { target: { value: 'inactive' } });
+  fireEvent.click(screen.getByLabelText('Filter account status'));
+  fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Inactive', exact: true }));
   await waitFor(() => expect(api.get).toHaveBeenCalledWith('/users', expect.objectContaining({ params: expect.objectContaining({ category: 'student', status: 'inactive', page: 1 }) })));
 });
 test('create requires deliberate scope and reason, then reviews before publishing', async () => {
@@ -40,7 +42,8 @@ test('create requires deliberate scope and reason, then reviews before publishin
   expect(screen.getByLabelText('Scope students.get.students 0')).toHaveValue('');
   fireEvent.click(screen.getByRole('button', { name: 'Review Changes' }));
   expect(await screen.findByText(/Choose who view students applies to/)).toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText('Scope students.get.students 0'), { target: { value: 'own' } });
+  fireEvent.click(screen.getByLabelText('Scope students.get.students 0'));
+  fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Own records', exact: true }));
   fireEvent.click(screen.getByRole('button', { name: 'Review Changes' }));
   const dialog = await screen.findByRole('dialog');
   expect(within(dialog).getByRole('button', { name: 'Create Role' })).toBeDisabled();

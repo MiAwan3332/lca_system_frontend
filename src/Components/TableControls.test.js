@@ -25,8 +25,9 @@ test('shared pagination navigates first, previous, next and last pages', () => {
 test('custom page size is represented and changes remain controlled', () => {
   const onLimit = jest.fn();
   show(<DataPagination pagination={{ page: 1, limit: 100, totalDocs: 200 }} onPage={jest.fn()} onLimit={onLimit} />);
-  expect(screen.getByLabelText('Rows per page')).toHaveValue('100');
-  fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: '20' } });
+  expect(screen.getByLabelText('Rows per page')).toHaveTextContent('100');
+  fireEvent.click(screen.getByLabelText('Rows per page'));
+  fireEvent.click(screen.getByRole('menuitemradio', { name: '20', exact: true }));
   expect(onLimit).toHaveBeenCalledWith(20);
 });
 test('Redux pagination retains explicit page and filter payloads', () => {
@@ -36,7 +37,8 @@ test('Redux pagination retains explicit page and filter payloads', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Next records' }));
   expect(setPageFilter).toHaveBeenCalledWith(2);
   expect(method).toHaveBeenLastCalledWith({ authToken: 'test-token', page: 2, batch: 'batch-a' });
-  fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: '20' } });
+  fireEvent.click(screen.getByLabelText('Rows per page'));
+  fireEvent.click(screen.getByRole('menuitemradio', { name: '20', exact: true }));
   expect(method).toHaveBeenLastCalledWith({ authToken: 'test-token', page: 1, limit: 20, batch: 'batch-a' });
 });
 test('shared search supports typing, Enter and accessible clearing', () => {

@@ -1,5 +1,6 @@
+import Select from '../../Components/InPageSelect';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AlertIcon, Badge, Box, Button, Checkbox, FormControl, FormLabel, HStack, Input, Select, Stack, Switch, Text, Textarea, useToast } from '@chakra-ui/react';
+import { Alert, AlertIcon, Badge, Box, Button, Checkbox, FormControl, FormLabel, HStack, Input, Stack, Switch, Text, Textarea, useToast } from '@chakra-ui/react';
 import { ArrowLeft, Check, Plus, Trash2 } from 'lucide-react';
 import { refreshAccess, accessSnapshot } from '../../utlls/accessCapabilities';
 import { ConfirmChange, SearchInput } from './AccessCommon';

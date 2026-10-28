@@ -2,6 +2,7 @@ import React, { useSyncExternalStore } from 'react';
 import * as Chakra from '@chakra-ui/react';
 import { accessSnapshot, can, canUseField, subscribeAccess } from '../utlls/accessCapabilities';
 import { useAccessForm } from './AccessForm';
+import InPageSelect from './InPageSelect';
 
 function control(Component, native = false) {
   return React.forwardRef(function AccessInput({ permissionField, permission, name, isDisabled, disabled, isRequired, required, ...props }, ref) {
@@ -18,7 +19,7 @@ function control(Component, native = false) {
 }
 export const Input = control(Chakra.Input);
 export const Textarea = control(Chakra.Textarea);
-export const Select = control(Chakra.Select);
+export const Select = control(InPageSelect);
 export const Checkbox = control(Chakra.Checkbox);
 export const Switch = control(Chakra.Switch);
 export const Radio = control(Chakra.Radio);
