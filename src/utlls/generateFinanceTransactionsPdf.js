@@ -1,7 +1,7 @@
-import { accessFetch as fetch } from './accessRequests';
 import jsPDF from "jspdf";
 import moment from "moment";
 import { financeTotals } from "./generateFinanceTransactionsReport";
+import { drawExportHeader, loadExportLogo } from "./exportPdfHeader";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -22,53 +22,6 @@ const toNumber = (value) => {
 };
 
 
-const blobToDataUrl = (blob) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Could not read logo file."));
-    reader.readAsDataURL(blob);
-  });
-
-const svgIconToPngDataUrl = async (svgUrl, widthPx = 140) => {
-  const res = await fetch(svgUrl);
-  if (!res.ok) {
-    throw new Error("Could not load LCA logo.");
-  }
-
-  const svgText = await res.text();
-  const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
-  const svgDataUrl = await blobToDataUrl(svgBlob);
-
-  const img = new Image();
-  img.decoding = "async";
-  img.src = svgDataUrl;
-
-  await new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = () => reject(new Error("Could not render LCA logo."));
-  });
-
-  const iconFraction = 27 / 138;
-  const srcWidth = img.width * iconFraction;
-  const scale = widthPx / srcWidth;
-
-  const canvas = document.createElement("canvas");
-  canvas.width = widthPx;
-  canvas.height = Math.round(img.height * scale);
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("Canvas is not available for logo rendering.");
-  }
-
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0, srcWidth, img.height, 0, 0, canvas.width, canvas.height);
-
-  return canvas.toDataURL("image/png");
-};
-
 const clip = (doc, text, maxWidth) => {
   const value = String(text ?? "");
   if (!value) return "—";
@@ -87,6 +40,8 @@ export const exportFinanceTransactionsPdf = async ({
   transactions = [],
   period = "daily",
   date,
+  startDate,
+  endDate,
   batchName,
   collectedBy,
   totalCash = 0,
@@ -112,12 +67,11 @@ export const exportFinanceTransactionsPdf = async ({
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
 
-  let iconPng;
-  try {
-    iconPng = await svgIconToPngDataUrl("/logo_dark.svg", 120);
-  } catch {
-    iconPng = null;
-  }
+  const logo = await loadExportLogo();
+  const from = startDate || date, to = endDate || from;
+  const dateLabel = from && to && from !== to
+    ? `${moment(from).format("DD MMM YYYY")} – ${moment(to).format("DD MMM YYYY")}`
+    : moment(from || undefined).format("dddd, DD MMM YYYY");
 
   const drawFooter = () => {
     doc.setFont("helvetica", "normal");
@@ -133,52 +87,23 @@ export const exportFinanceTransactionsPdf = async ({
     });
   };
 
-  const drawHeader = () => {
-    const headerH = 14;
-    doc.setFillColor(...COLORS.gold);
-    doc.rect(0, 0, pageWidth, headerH, "F");
-
-    const logoBoxH = 9;
-    const logoBoxY = 2.5;
-    const logoBoxX = margin;
-    const iconW = 7;
-    const iconH = 6.5;
-
-    doc.setFillColor(...COLORS.white);
-    doc.roundedRect(logoBoxX, logoBoxY, 52, logoBoxH, 1, 1, "F");
-
-    if (iconPng) {
-      doc.addImage(iconPng, "PNG", logoBoxX + 1.5, logoBoxY + 1.2, iconW, iconH, undefined, "FAST");
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.goldDark);
-    doc.text("Lahore CSS Academy", logoBoxX + 10, logoBoxY + 6);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Finance Transactions", logoBoxX + 55, logoBoxY + 6);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(...COLORS.gray);
-    doc.text(
-      `${label.toUpperCase()} · ${safeDate} · Batch: ${batchName || "All"} · By: ${collectedByLabel}`,
-      pageWidth - margin,
-      logoBoxY + 6,
-      { align: "right" }
-    );
-
-    return headerH;
-  };
+  const HEADER_H = 18;
+  const drawHeader = () => drawExportHeader(doc, {
+    logo, margin, height: HEADER_H,
+    title: "Finance Transactions",
+    subtitle: `${label.charAt(0).toUpperCase()}${label.slice(1)} report  ·  ${dateLabel}`,
+    details: [
+      { label: "Batch", value: batchName || "All batches" },
+      { label: "Collected by", value: collectedByLabel },
+      { label: "Generated", value: moment().format("DD MMM YYYY, hh:mm A") },
+    ],
+  });
 
   const txns = Array.isArray(transactions) ? transactions : [];
   const totals = financeTotals(txns);
 
   drawHeader();
-  let y = 16;
+  let y = HEADER_H + 4;
 
   // --- Summary Cards (Highly Visible) ---
   const summaryCards = [
@@ -376,7 +301,7 @@ export const exportFinanceTransactionsPdf = async ({
     drawFooter();
     doc.addPage();
     drawHeader();
-    y = 16;
+    y = HEADER_H + 4;
     if (withTableHeader) drawTableHeader();
   };
 

@@ -1,7 +1,7 @@
-import { accessFetch as fetch } from './accessRequests';
 import jsPDF from "jspdf";
 import moment from "moment";
 import { formatStudentEmail } from "./studentEmail";
+import { drawExportHeader, loadExportLogo } from "./exportPdfHeader";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -29,50 +29,6 @@ const ACTION_COLORS = {
 
 const formatRs = (value) =>
   `${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 })} Rs.`;
-
-const blobToDataUrl = (blob) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Could not read logo file."));
-    reader.readAsDataURL(blob);
-  });
-
-const svgUrlToPngDataUrl = async (svgUrl, widthPx = 360) => {
-  try {
-    const res = await fetch(svgUrl);
-    if (!res.ok) return null;
-
-    const svgText = await res.text();
-    const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
-    const svgDataUrl = await blobToDataUrl(svgBlob);
-
-    const img = new Image();
-    img.decoding = "async";
-    img.src = svgDataUrl;
-
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
-    });
-
-    const canvas = document.createElement("canvas");
-    const scale = widthPx / (img.width || 1);
-    canvas.width = widthPx;
-    canvas.height = Math.round((img.height || 1) * scale);
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-    return canvas.toDataURL("image/png");
-  } catch {
-    return null;
-  }
-};
 
 const getActionLabel = (actionType) => {
   switch (actionType) {
@@ -126,7 +82,7 @@ export const generateStudentFeeDetailsReport = async (fee, feeLogs = [], mode = 
   const status = fee?.status || "N/A";
   const isPaid = status === "Paid";
 
-  const logoPng = await svgUrlToPngDataUrl("/logo_dark.svg", 320);
+  const logo = await loadExportLogo();
 
   const drawPageFooter = () => {
     doc.setFont("helvetica", "normal");
@@ -190,53 +146,17 @@ export const generateStudentFeeDetailsReport = async (fee, feeLogs = [], mode = 
   };
 
   // ── Header banner ──
-  doc.setFillColor(...COLORS.gold);
-  doc.rect(0, 0, pageWidth, 32, "F");
-  doc.setFillColor(...COLORS.goldDark);
-  doc.rect(0, 28, pageWidth, 4, "F");
-
-  if (logoPng) {
-    doc.addImage(logoPng, "PNG", margin, 8, 42, 11, undefined, "FAST");
-  } else {
-    doc.setFillColor(...COLORS.goldDark);
-    doc.roundedRect(margin, 9, 16, 9, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.white);
-    doc.text("LCA", margin + 8, 14.5, { align: "center" });
-  }
-
-  const textStartX = margin + (logoPng ? 50 : 22);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(...COLORS.goldDark);
-  doc.text("Lahore CSS Academy", textStartX, 12);
-
-  doc.setFontSize(11);
-  doc.text("Student Fees Details Report", textStartX, 17.5);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...COLORS.text);
-  doc.text("Finance Department", textStartX, 22.5);
-
-  doc.setFontSize(7.5);
-  doc.setTextColor(...COLORS.goldDark);
-  doc.text(
-    `Generated ${moment().format("DD MMM YYYY, hh:mm A")}`,
-    pageWidth - margin,
-    12,
-    { align: "right" }
-  );
-  doc.text("Official fee statement & transaction history", pageWidth - margin, 17, {
-    align: "right",
-  });
-  doc.text(`Ref: FEE-${String(fee._id || "").slice(-8).toUpperCase()}`, pageWidth - margin, 22, {
-    align: "right",
+  const headerH = drawExportHeader(doc, {
+    logo, margin, height: 20,
+    title: "Student Fees Details",
+    subtitle: "Finance Department  ·  Official fee statement",
+    details: [
+      { label: "Reference", value: `FEE-${String(fee._id || "").slice(-8).toUpperCase()}` },
+      { label: "Generated", value: moment().format("DD MMM YYYY, hh:mm A") },
+    ],
   });
 
-  y = 40;
+  y = headerH + 8;
 
   // ── Summary cards ──
   const cardGap = 4;

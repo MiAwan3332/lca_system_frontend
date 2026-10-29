@@ -1,10 +1,10 @@
-import { accessFetch as fetch } from './accessRequests';
 import jsPDF from "jspdf";
 import moment from "moment";
 import { ACADEMY_BRANDING } from "./academyBranding";
 import { normalizeEducationBackground } from "./qualifierEducation";
 import { isQualifierProfileComplete } from "./qualifierProfile";
 import { getMediaUrl } from "./useful";
+import { drawExportHeader, loadExportLogo } from "./exportPdfHeader";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -41,28 +41,6 @@ const loadImage = (src) =>
     img.onerror = reject;
     img.src = src;
   });
-
-const svgIconToPngDataUrl = async (svgUrl, widthPx = 140) => {
-  const res = await fetch(svgUrl);
-  if (!res.ok) throw new Error("Could not load LCA logo.");
-  const svgText = await res.text();
-  const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
-  const svgDataUrl = await blobToDataUrl(svgBlob);
-
-  const img = await loadImage(svgDataUrl);
-  const iconFraction = 27 / 138;
-  const srcWidth = img.width * iconFraction;
-  const scale = widthPx / srcWidth;
-  const canvas = document.createElement("canvas");
-  canvas.width = widthPx;
-  canvas.height = Math.round(img.height * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas is not available for logo rendering.");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0, srcWidth, img.height, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/png");
-};
 
 /** Square JPEG data URL for PDF, or null on failure. */
 const toJpegDataUrl = async (source, maxSide = 240) => {
@@ -191,15 +169,7 @@ export const exportQualifiersPdf = async ({
   const margin = 10;
   const contentWidth = pageWidth - margin * 2;
 
-  let logoPng = null;
-  try {
-    logoPng = await svgIconToPngDataUrl(
-      ACADEMY_BRANDING.logoSrc || "/logo_dark.svg",
-      140
-    );
-  } catch {
-    logoPng = null;
-  }
+  const logo = await loadExportLogo();
 
   // Preload every stored photo, regardless of who uploaded it.
   const photoById = {};
@@ -221,45 +191,16 @@ export const exportQualifiersPdf = async ({
   const onlineCount = list.filter((q) => q.class_type === "Online").length;
   const campusCount = list.filter((q) => q.class_type === "On Campus").length;
 
-  const drawHeader = () => {
-    doc.setFillColor(...COLORS.gold);
-    doc.rect(0, 0, pageWidth, 3, "F");
-
-    doc.setFillColor(...COLORS.navy);
-    doc.roundedRect(margin, 7, contentWidth, 22, 2.5, 2.5, "F");
-
-    if (logoPng) {
-      doc.setFillColor(...COLORS.white);
-      doc.roundedRect(margin + 3, 10, 14, 14, 2, 2, "F");
-      doc.addImage(logoPng, "PNG", margin + 4.5, 11.5, 11, 11, undefined, "FAST");
-    }
-
-    doc.setTextColor(...COLORS.white);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(ACADEMY_BRANDING.name || "Lahore CSS Academy", margin + 21, 15.5);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.gold);
-    doc.text("Qualifier Profiles Report", margin + 21, 21);
-
-    doc.setTextColor(...COLORS.white);
-    doc.setFontSize(8);
-    doc.text(stamp, pageWidth - margin - 3, 15.5, { align: "right" });
-    doc.setFontSize(7);
-    doc.setTextColor(...COLORS.goldSoft);
-    doc.text(
-      ACADEMY_BRANDING.phonesLine || "",
-      pageWidth - margin - 3,
-      21,
-      { align: "right" }
-    );
-
-    doc.setDrawColor(...COLORS.gold);
-    doc.setLineWidth(0.6);
-    doc.line(margin, 31, pageWidth - margin, 31);
-  };
+  const HEADER_H = 18;
+  const drawHeader = () => drawExportHeader(doc, {
+    logo, margin, height: HEADER_H,
+    title: "Qualifier Profiles Report",
+    subtitle: batchName || "All Interview Batches",
+    details: [
+      { label: "Generated", value: stamp },
+      { label: "Contact", value: ACADEMY_BRANDING.phonesLine },
+    ],
+  });
 
   const drawMeta = (y) => {
     doc.setFillColor(...COLORS.goldSoft);
@@ -382,7 +323,7 @@ export const exportQualifiersPdf = async ({
   };
 
   drawHeader();
-  let y = drawMeta(34);
+  let y = drawMeta(HEADER_H + 4);
   y = drawStats(y);
   y = drawTableHeader(y);
 
@@ -392,7 +333,7 @@ export const exportQualifiersPdf = async ({
     if (y + rowH > bottomLimit) {
       doc.addPage();
       drawHeader();
-      y = 36;
+      y = HEADER_H + 4;
       y = drawTableHeader(y);
     }
 

@@ -316,7 +316,7 @@ function FeeDueReportPanel({
       if (mode === "excel") {
         fileName = downloadFeeDueReportExcel(filteredReport);
       } else {
-        fileName = generateFeeDueReport(
+        fileName = await generateFeeDueReport(
           filteredReport,
           mode === "print" ? "print" : "download"
         );
