@@ -73,6 +73,8 @@ const TRANSACTION_TYPE_OPTIONS = [
 
 const ACTION_TYPE_OPTIONS = [
   { value: "Paid", label: "Paid" },
+  { value: "Discounted", label: "Discounted" },
+  { value: "Refund", label: "Refund" },
   { value: "Pending", label: "Pending" },
   { value: "Expense", label: "Expense" },
 ];
@@ -948,7 +950,9 @@ function FinanceReport() {
                               ? "red"
                               : transaction.action_type === "Pending"
                                 ? "yellow"
-                                : "gray"
+                                : transaction.action_type === "Discounted"
+                                  ? "blue"
+                                  : "gray"
                         }
                       >
                         {transaction.action_type}
