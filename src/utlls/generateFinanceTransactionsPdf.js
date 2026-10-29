@@ -297,28 +297,20 @@ export const exportFinanceTransactionsPdf = async ({
     y = bCardY + bCardH + 6;
   }
 
-  // Larger fonts → controlled entries per page
-  const ENTRIES_PER_PAGE = 18;
+  // The table spans the full page width; whatever the fixed columns leave goes to Details.
   const col = {
     no: 10,
     date: 30,
-    type: 16,
-    student: 48,
-    action: 20,
-    payment: 26,
-    amount: 26,
-    by: 28,
+    type: 13,
+    student: 54,
+    action: 25,
+    payment: 31,
+    amount: 30,
+    by: 36,
   };
-  const tableW =
-    col.no +
-    col.date +
-    col.type +
-    col.student +
-    col.action +
-    col.payment +
-    col.amount +
-    col.by;
-  const x0 = margin + Math.max(0, (contentWidth - tableW) / 2);
+  col.details = Math.max(30, contentWidth - Object.values(col).reduce((sum, width) => sum + width, 0));
+  const tableW = Object.values(col).reduce((sum, width) => sum + width, 0);
+  const x0 = margin;
   const headerH = 8.5;
   const rowH = 8.5;
   const batchTitleH = 9;
@@ -360,6 +352,7 @@ export const exportFinanceTransactionsPdf = async ({
     put("Payment", col.payment);
     put("Amount", col.amount, "right");
     put("By", col.by);
+    put("Details", col.details);
     y += headerH;
   };
 
@@ -392,7 +385,7 @@ export const exportFinanceTransactionsPdf = async ({
   let tableStarted = false;
 
   const ensureEntrySpace = (needed) => {
-    if (pageEntryCount >= ENTRIES_PER_PAGE || y + needed > pageHeight - margin - 5) {
+    if (y + needed > pageHeight - margin - 5) {
       startNewPage({ withTableHeader: true });
       pageEntryCount = 0;
       return true;
@@ -479,6 +472,7 @@ export const exportFinanceTransactionsPdf = async ({
         isExpense ? COLORS.expense : COLORS.text
       );
       cell(t.action_by || "—", col.by);
+      cell(t.description || "—", col.details, "left", COLORS.gray);
 
       y += rowH;
     });
