@@ -50,7 +50,7 @@ const AreaRow = memo(function AreaRow({ area, info, apply, scope, readOnly }) {
           placeholder={state.limits[extra.key] === 'mixed' ? 'Mixed limits' : 'No PKR limit'} value={typeof state.limits[extra.key] === 'number' ? state.limits[extra.key] : ''}
           onChange={(event) => { const amount = event.target.value === '' ? null : Math.max(0, Number(event.target.value)); onChange((grants) => setAreaLimit(grants, area, extra.key, amount)); }} />}
         {value === true && extra.selfApproval && <Checkbox size="sm" ml={6} mt={1} isDisabled={readOnly} isChecked={info.selfApproval[extra.key]}
-          onChange={(event) => { const checked = event.target.checked; onChange((grants) => setAreaSelfApproval(grants, area, extra.key, checked)); }}>Cannot approve own requests</Checkbox>}
+          onChange={(event) => { const checked = event.target.checked; onChange((grants) => setAreaSelfApproval(grants, area, extra.key, checked)); }}>{extra.selfApprovalLabel || 'Cannot approve own requests'}</Checkbox>}
       </Box>;
     })}</div>}
     {needs.length > 0 && <HStack className="access-area-warning" spacing={2}><AlertTriangle size={14} /><Text fontSize="sm">Screens on this page also need {needs.map((item) => `${item.area.label} (${levelName(item.area, item.level)})`).join(', ')}.</Text>

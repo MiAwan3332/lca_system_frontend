@@ -3,7 +3,7 @@ export const moduleName = (value = '') => ({ attendence: 'Attendance', pastPaper
 export function words(value = '') {
   return String(value).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_.-]+/g, ' ').replace(/\b(id|ids)\b/gi, 'ID').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
-const labels = { 'students.get.students': 'View students', 'students.add.student': 'Create students', 'students.basic.student.update': 'Edit student profiles', 'fees.pay.fee': 'Record fee payments', 'fees.collect.pending.fee': 'Collect pending fees', 'fees.discount.fee': 'Apply fee discounts', 'users.get.fee.collectors': 'View cashier names', 'fields.credentials.write': 'Change passwords', 'files.download': 'Download permitted files' };
+const labels = { 'students.get.students': 'View students', 'students.add.student': 'Create students', 'students.basic.student.update': 'Edit student profiles', 'fees.pay.fee': 'Record fee payments', 'fees.collect.pending.fee': 'Collect pending fees', 'fees.discount.fee': 'Apply fee discounts', 'fees.revert.payment': 'Undo recorded payments', 'users.get.fee.collectors': 'View cashier names', 'fields.credentials.write': 'Change passwords', 'files.download': 'Download permitted files' };
 export function permissionName(permission) {
   const key = typeof permission === 'string' ? permission : permission.key;
   if (labels[key]) return labels[key];
@@ -13,8 +13,8 @@ export function permissionName(permission) {
   return `${verb} ${parts.slice(1).join(' ')}`.trim();
 }
 export const scopeName = (scope) => ({ all: 'All records', own: 'Own records', assigned: 'Assigned classes', selected: 'Selected batches / courses' }[scope] || 'Choose access scope');
-export const financialRule = (key) => /^(fees\.(pay|collect|discount)|expenses\.(add|update|approve|reject)|refund-requests\.(create|approve|reject|process|update))/.test(key);
-export const approvalRule = (key) => /^(expenses|refund-requests)\.(approve|reject)/.test(key);
+export const financialRule = (key) => /^(fees\.(pay|collect|discount|revert)|expenses\.(add|update|approve|reject)|refund-requests\.(create|approve|reject|process|update))/.test(key);
+export const approvalRule = (key) => /^((expenses|refund-requests)\.(approve|reject)|fees\.revert\.payment)/.test(key);
 export const scopeChoices = (key) => ['access', 'whatsapp', 'roles', 'permissions', 'operations', 'activity-logs', 'files'].includes(key.split('.')[0]) || /\.(export|print)$/.test(key) ? ['all'] : ['own', 'assigned', 'selected', 'all'];
 export const wireGrants = (grants) => grants.map(({ permission, scope, maxAmount, noSelfApproval, fields }) => ({ permission, scope, ...(maxAmount != null ? { maxAmount: Number(maxAmount) } : {}), ...(noSelfApproval ? { noSelfApproval: true } : {}), ...(fields?.length ? { fields } : {}) }));
 export const rolePayload = (draft) => ({ name: draft.name.trim(), description: draft.description || '', active: draft.active, revision: draft.revision, grants: wireGrants(draft.grants),

@@ -1,7 +1,7 @@
 
 import AccessForm from '../../Components/AccessForm';
-import React, { useMemo, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Tabs, TabList, TabPanels, Tab, TabPanel, Box, Flex, Text, Badge, SimpleGrid, VStack, HStack, Image, Divider, Link, Progress } from "@chakra-ui/react";
+import React, { useMemo, useState, useSyncExternalStore } from "react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Tabs, TabList, TabPanels, Tab, TabPanel, Box, Flex, Text, Badge, SimpleGrid, VStack, HStack, Image, Divider, Link, Progress, useToast } from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import moment from "moment";
 import { formatStudentEmail } from "../../utlls/studentEmail";
@@ -27,6 +27,8 @@ import {
 } from "../../Features/studentSlice";
 import { getMediaUrl } from "../../utlls/useful.js";
 import PaymentEvidenceGallery from "../../Components/PaymentEvidenceGallery";
+import RevertPaymentModal, { finishReversal } from "./RevertPaymentModal";
+import { accessSnapshot, can, subscribeAccess } from "../../utlls/accessCapabilities";
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -59,6 +61,13 @@ const ACTION_STYLES = {
   Deleted: { color: "red", label: "Deleted" },
   Refund: { color: "purple", label: "Refunded" },
 };
+
+/** Fee events and payment reversals, newest first. A reverted payment's entry is gone; its reversal stands in for it. */
+export const paymentTimeline = (history) =>
+  [
+    ...(history?.payment_logs || []).map((item) => ({ kind: "log", at: item.action_date, item })),
+    ...(history?.payment_reversals || []).map((item) => ({ kind: "reversal", at: item.reverted_at, item })),
+  ].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
 
 const getRefundStatusStyle = (status) => {
   if (status === "Refunded") return { color: "purple", label: "Refunded" };
@@ -176,6 +185,19 @@ function StudentHistoryModal({ student }) {
   const dispatch = useDispatch();
 
   const history = useSelector(selectStudentHistory);
+  useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const canRevert = can("fees.revert.payment");
+  const toast = useToast();
+  const refreshHistory = () => dispatch(fetchStudentHistory({ authToken, studentId: student._id }));
+  const finish = async (reversal) => {
+    try {
+      await finishReversal(reversal.payment_log);
+      toast({ title: "Payment reverted", status: "success", duration: 4000, isClosable: true });
+    } catch (error) {
+      toast({ title: "Payment not reverted", description: error?.response?.data?.message || error.message, status: "error", duration: 8000, isClosable: true });
+    }
+    refreshHistory();
+  };
   const { fetchStudentHistoryStatus } = useSelector((state) => state.students);
   const isLoading = fetchStudentHistoryStatus === "loading";
   const isReady =
@@ -950,11 +972,48 @@ function StudentHistoryModal({ student }) {
                         title="Payment timeline"
                         subtitle="Created, paid, discounted, refunded, and deleted fee events"
                       />
-                      {!history.payment_logs?.length ? (
+                      {!paymentTimeline(history).length ? (
                         <EmptyState message="No payment history yet." />
                       ) : (
                         <VStack align="stretch" spacing={0}>
-                          {history.payment_logs.map((log, index) => {
+                          {paymentTimeline(history).map(({ kind, item }, index, list) => {
+                            const isLast = index === list.length - 1;
+                            if (kind === "reversal") {
+                              return (
+                                <Box key={`reversal-${item._id}`} opacity={0.75}>
+                                  <TimelineItem
+                                    title="Payment reverted"
+                                    meta={`${formatDate(item.reverted_at)}${item.reverted_by?.name ? ` · ${item.reverted_by.name}` : ""}`}
+                                    badge={
+                                      <Badge colorScheme="gray" borderRadius="full" textDecoration="line-through">
+                                        {formatRs(item.amount)}
+                                      </Badge>
+                                    }
+                                    isLast={isLast}
+                                  >
+                                    <Text fontSize="xs" color="gray.600" mt={1}>
+                                      {formatRs(item.amount)} paid {formatDate(item.payment_date)}
+                                      {item.payment_method ? ` via ${item.payment_method}` : ""}
+                                      {item.collected_by?.name ? `, collected by ${item.collected_by.name}` : ""}
+                                    </Text>
+                                    <Text fontSize="xs" color="gray.600" mt={1}>
+                                      Reason: {item.reason_category} · {item.reason_note}
+                                    </Text>
+                                    {item.status !== "completed" ? (
+                                      <HStack mt={2} spacing={2}>
+                                        <Badge colorScheme="red">Not finished</Badge>
+                                        {canRevert ? (
+                                          <Button size="xs" colorScheme="red" variant="outline" onClick={() => finish(item)}>
+                                            Finish reverting
+                                          </Button>
+                                        ) : null}
+                                      </HStack>
+                                    ) : null}
+                                  </TimelineItem>
+                                </Box>
+                              );
+                            }
+                            const log = item;
                             const style =
                               ACTION_STYLES[log.action_type] || ACTION_STYLES.Paid;
                             return (
@@ -980,7 +1039,7 @@ function StudentHistoryModal({ student }) {
                                     )}
                                   </Badge>
                                 }
-                                isLast={index === history.payment_logs.length - 1}
+                                isLast={isLast}
                               >
                                 {log.description ? (
                                   <Text fontSize="xs" color="gray.600" mt={1}>
@@ -997,6 +1056,9 @@ function StudentHistoryModal({ student }) {
                                     value={log.payment_evidence}
                                     paymentMethod={log.payment_method}
                                   />
+                                ) : null}
+                                {log.action_type === "Paid" && canRevert ? (
+                                  <RevertPaymentModal log={log} onReverted={refreshHistory} />
                                 ) : null}
                               </TimelineItem>
                             );

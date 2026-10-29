@@ -178,3 +178,14 @@ test('granting a page brings the form fields its actions send, without unrelated
   const open = setAreaLevel([{ permission: 'fields.general.write', scope: 'all' }], area('qualifiers'), 'manage');
   expect(open.find((grant) => grant.permission === 'fields.general.write').fields).toBeUndefined();
 });
+
+test('undoing payments is its own fees option, off by default, with an amount limit and no undoing own collections', () => {
+  let grants = setAreaLevel([], area('fees'), 'manage');
+  expect(grants.some((grant) => grant.permission === 'fees.revert.payment')).toBe(false);
+  grants = setAreaExtra(grants, area('fees'), 'revert', true);
+  const revert = grants.find((grant) => grant.permission === 'fees.revert.payment');
+  expect(revert.noSelfApproval).toBe(true);
+  grants = setAreaLimit(grants, area('fees'), 'revert', 5000);
+  expect(grants.find((grant) => grant.permission === 'fees.revert.payment').maxAmount).toBe(5000);
+  expect(grants.some((grant) => grant.permission === 'fields.general.write' && ['reason', 'note'].every((key) => grant.fields?.includes(key)))).toBe(true);
+});

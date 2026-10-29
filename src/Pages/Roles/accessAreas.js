@@ -37,6 +37,7 @@ export const AREAS = [
     manage: k('fees', 'create.fee'), manageLabel: 'Assign fees',
     extras: [{ key: 'collect', label: 'Collect fees', permissions: [...k('fees', 'pay.fee', 'collect.pending.fee'), ...k('students', 'get.or.create.pending.fee.slip', 'edit.payment.evidence')], limit: true, needs: { students: 'view' } },
       { key: 'discount', label: 'Apply discounts', permissions: k('fees', 'discount.fee'), limit: true },
+      { key: 'revert', label: 'Undo recorded payments', permissions: k('fees', 'revert.payment'), limit: true, selfApproval: true, selfApprovalLabel: 'Cannot undo payments they collected', danger: true },
       { key: 'due', label: 'Fee-due report', permissions: k('notifications', 'get.fee.due.report') },
       { key: 'delete', label: 'Delete fee records', permissions: k('fees', 'delete.fee'), danger: true }, ...output('fees')],
     needs: { view: { students: 'view' } } },
