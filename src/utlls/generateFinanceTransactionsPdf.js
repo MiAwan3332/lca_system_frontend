@@ -1,6 +1,7 @@
 import { accessFetch as fetch } from './accessRequests';
 import jsPDF from "jspdf";
 import moment from "moment";
+import { financeTotals } from "./generateFinanceTransactionsReport";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -19,6 +20,7 @@ const toNumber = (value) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 };
+
 
 const blobToDataUrl = (blob) =>
   new Promise((resolve, reject) => {
@@ -173,17 +175,7 @@ export const exportFinanceTransactionsPdf = async ({
   };
 
   const txns = Array.isArray(transactions) ? transactions : [];
-  const totals = txns.reduce(
-    (acc, t) => {
-      const isExpense = t.type === "expense";
-      const amount = toNumber(t.action_amount ?? t.amount);
-      if (isExpense) acc.expense += amount;
-      else acc.fee += amount;
-      acc.count += 1;
-      return acc;
-    },
-    { count: 0, fee: 0, expense: 0 }
-  );
+  const totals = financeTotals(txns);
 
   drawHeader();
   let y = 16;
@@ -192,6 +184,8 @@ export const exportFinanceTransactionsPdf = async ({
   const summaryCards = [
     { label: "No Of Entries", value: String(totals.count) },
     { label: "Fee Collection", value: `Rs. ${formatAmount(totals.fee)}` },
+    { label: "Refunds", value: `Rs. ${formatAmount(totals.refund)}` },
+    { label: "Discounts", value: `Rs. ${formatAmount(totals.discount)}` },
     { label: "Expenses", value: `Rs. ${formatAmount(totals.expense)}` },
     { label: "Net Balance", value: `Rs. ${formatAmount(totals.fee - totals.expense)}` },
     { label: "Cash", value: `Rs. ${formatAmount(cashTotal)}` },
@@ -266,12 +260,13 @@ export const exportFinanceTransactionsPdf = async ({
       const metrics = [
         { label: "Cash", value: `Rs. ${formatAmount(b.total_cash)}` },
         { label: "Online", value: `Rs. ${formatAmount(b.total_online)}` },
+        { label: "Refund", value: `Rs. ${formatAmount(b.total_refund)}` },
         { label: "Pending", value: `Rs. ${formatAmount(b.total_pending)}` },
         { label: "Total", value: `Rs. ${formatAmount(b.total)}` },
       ];
       const innerGap = 1.2;
       const innerPad = 2;
-      const innerW = (bCardW - innerPad * 2 - innerGap * 3) / 4;
+      const innerW = (bCardW - innerPad * 2 - innerGap * (metrics.length - 1)) / metrics.length;
       const innerH = 16;
       const innerY = bCardY + 9;
 

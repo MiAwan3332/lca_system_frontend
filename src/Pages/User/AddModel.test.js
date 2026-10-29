@@ -20,7 +20,6 @@ const desk = { _id: 'r2', name: 'Information Desk', active: true, grants: [{ per
 beforeEach(() => {
   jest.clearAllMocks(); document.cookie = 'authToken=test-only-token; path=/';
   can.mockImplementation(() => true); addUser.mockImplementation((payload) => ({ type: 'users/addUser', payload }));
-  axios.get.mockResolvedValue({ data: { docs: [{ _id: 'c1', name: 'Staff' }] } });
   axios.create.mockReturnValue({ get: jest.fn(async () => ({ data: { docs: [desk], page: 1, totalDocs: 1, totalPages: 1 } })) });
 });
 const fill = async () => {
@@ -28,17 +27,16 @@ const fill = async () => {
   fireEvent.change(screen.getByLabelText(/^Name/), { target: { name: 'name', value: 'New Desk' } });
   fireEvent.change(screen.getByLabelText(/^Email/), { target: { name: 'email', value: 'desk@example.invalid' } });
   fireEvent.change(screen.getByLabelText(/^Contact Number/), { target: { name: 'phone', value: '03001234567' } });
-  await waitFor(() => expect(screen.getByRole('button', { name: /Job title/ })).not.toBeDisabled());
-  fireEvent.click(screen.getByRole('button', { name: /Job title/ }));
-  fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Staff' }));
 };
-test('Add User can give the access role in the same step', async () => {
+test('Add User asks for the access role, not the old job title', async () => {
   await fill();
+  expect(screen.queryByLabelText(/Job title/)).not.toBeInTheDocument();
   fireEvent.click(await screen.findByRole('button', { name: 'Access role' }));
   fireEvent.click(await screen.findByRole('menuitem', { name: 'Information Desk' }, { timeout: 5000 }));
   expect(screen.getByText(/work as Information Desk straight away/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /^Add/ }));
-  await waitFor(() => expect(addUser).toHaveBeenCalledWith(expect.objectContaining({ formData: expect.objectContaining({ role: 'Staff', accessRoleId: 'r2', accessBatchIds: [], accessCourseIds: [] }) })));
+  await waitFor(() => expect(addUser).toHaveBeenCalledWith(expect.objectContaining({ formData: expect.objectContaining({ accessRoleId: 'r2', accessBatchIds: [], accessCourseIds: [] }) })));
+  expect(addUser.mock.calls[0][0].formData.role).toBeUndefined();
 });
 test('people who cannot assign roles keep the default onboarding behaviour', async () => {
   can.mockImplementation((key) => key !== 'access.assign');

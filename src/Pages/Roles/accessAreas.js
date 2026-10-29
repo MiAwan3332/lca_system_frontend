@@ -44,7 +44,7 @@ export const AREAS = [
   { key: 'financeReport', label: 'Finance Report', pages: ['Finance Report'], view: [...k('fees', 'get.finance.report'), ...k('users', 'get.fee.collectors')], needs: { view: { batches: 'view' } } },
   { key: 'users', label: 'Users', pages: ['Users'], view: k('users', 'get.users', 'get.user'),
     manage: k('users', 'add.user', 'update.user', 'get.creation.by.key', 'get.creation.status', 'retry.creation'),
-    extras: [{ key: 'delete', label: 'Delete accounts', permissions: k('users', 'delete.user'), danger: true }, ...output('users')],
+    extras: [{ key: 'password', label: 'Set passwords', permissions: k('users', 'set.user.password'), danger: true }, { key: 'delete', label: 'Delete accounts', permissions: k('users', 'delete.user'), danger: true }, ...output('users')],
     advanced: k('users', 'reset.password.for.all.students') },
   { key: 'expenses', label: 'Expenses', pages: ['Expenses'], view: k('expenses', 'get.expenses', 'get.expense'), manage: k('expenses', 'add.expense', 'update.expense'),
     extras: [{ key: 'approve', label: 'Approve / reject', permissions: k('expenses', 'approve.expense', 'reject.expense'), limit: true, selfApproval: true },

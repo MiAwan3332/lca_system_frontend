@@ -47,7 +47,7 @@ const addUser = createAsyncThunk(
         const { formData, authToken } = payload;
         try {
             return await createWithRecovery('user', authToken, {
-                name: formData.name, email: formData.email, phone: formData.phone, role: formData.role,
+                name: formData.name, email: formData.email, phone: formData.phone,
                 ...(formData.accessRoleId ? { accessRoleId: formData.accessRoleId, accessBatchIds: formData.accessBatchIds || [], accessCourseIds: formData.accessCourseIds || [] } : {}),
             });
         } catch (error) {

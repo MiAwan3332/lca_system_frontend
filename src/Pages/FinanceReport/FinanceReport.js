@@ -46,6 +46,7 @@ import { exportFinanceTransactionsExcel } from "../../utlls/generateFinanceTrans
 import { exportFinanceTransactionsPdf } from "../../utlls/generateFinanceTransactionsPdf";
 import { config } from "../../utlls/config";
 import { accessSnapshot, can } from '../../utlls/accessCapabilities';
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
 
 const BASE_URL = config.BASE_URL;
 
@@ -631,7 +632,7 @@ function FinanceReport() {
             {adminUsers.map((user) => (
               <option key={user._id} value={user._id}>
                 {user.name}
-                {user.role ? ` (${user.role})` : ""}
+                {accessRoleLabel(user, "") ? ` (${accessRoleLabel(user, "")})` : ""}
               </option>
             ))}
           </Select>
@@ -733,7 +734,7 @@ function FinanceReport() {
                   {adminUsers.map((user) => (
                     <option key={user._id} value={user._id}>
                       {user.name}
-                      {user.role ? ` (${user.role})` : ""}
+                      {accessRoleLabel(user, "") ? ` (${accessRoleLabel(user, "")})` : ""}
                     </option>
                   ))}
                 </Select>

@@ -3,7 +3,7 @@ export const moduleName = (value = '') => ({ attendence: 'Attendance', pastPaper
 export function words(value = '') {
   return String(value).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_.-]+/g, ' ').replace(/\b(id|ids)\b/gi, 'ID').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
-const labels = { 'students.get.students': 'View students', 'students.add.student': 'Create students', 'students.basic.student.update': 'Edit student profiles', 'fees.pay.fee': 'Record fee payments', 'fees.collect.pending.fee': 'Collect pending fees', 'fees.discount.fee': 'Apply fee discounts', 'fees.revert.payment': 'Undo recorded payments', 'users.get.fee.collectors': 'View cashier names', 'fields.credentials.write': 'Change passwords', 'files.download': 'Download permitted files' };
+const labels = { 'students.get.students': 'View students', 'students.add.student': 'Create students', 'students.basic.student.update': 'Edit student profiles', 'fees.pay.fee': 'Record fee payments', 'fees.collect.pending.fee': 'Collect pending fees', 'fees.discount.fee': 'Apply fee discounts', 'fees.revert.payment': 'Undo recorded payments', 'users.set.user.password': 'Set passwords for others', 'users.get.fee.collectors': 'View cashier names', 'fields.credentials.write': 'Change passwords', 'files.download': 'Download permitted files' };
 export function permissionName(permission) {
   const key = typeof permission === 'string' ? permission : permission.key;
   if (labels[key]) return labels[key];

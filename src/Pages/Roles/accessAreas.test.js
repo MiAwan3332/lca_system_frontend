@@ -189,3 +189,10 @@ test('undoing payments is its own fees option, off by default, with an amount li
   expect(grants.find((grant) => grant.permission === 'fees.revert.payment').maxAmount).toBe(5000);
   expect(grants.some((grant) => grant.permission === 'fields.general.write' && ['reason', 'note'].every((key) => grant.fields?.includes(key)))).toBe(true);
 });
+
+test('Set passwords is its own Users option, off unless chosen', () => {
+  let grants = setAreaLevel([], area('users'), 'manage');
+  expect(grants.some((grant) => grant.permission === 'users.set.user.password')).toBe(false);
+  grants = setAreaExtra(grants, area('users'), 'password', true);
+  expect(grants.some((grant) => grant.permission === 'users.set.user.password')).toBe(true);
+});

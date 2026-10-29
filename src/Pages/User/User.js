@@ -84,7 +84,7 @@ function User() {
                 <Th data-searchable>Avatar/Name</Th>
                 <Th data-searchable>Email</Th>
                 <Th data-searchable>Phone</Th>
-                <Th>User Role</Th>
+                <Th>Access Role</Th>
                 {!viewOnly && <Th isNumeric>Actions</Th>}
               </Tr>
             </Thead>
