@@ -1,3 +1,4 @@
+import {DEFAULT_STAFF_PASSWORD} from '../../utlls/creationDefaults';
 import { Input, Select, Textarea } from '../../Components/AccessInputs';
 import AccessForm from '../../Components/AccessForm';
 import FormControl from '../../Components/AccessFormControl';
@@ -26,7 +27,6 @@ function AddPanelistModal({ isOpen, onClose }) {
       name: "",
       phone: "",
       email: "",
-      password: "",
       description: "",
       is_active: "true",
       photo: null,
@@ -38,10 +38,8 @@ function AddPanelistModal({ isOpen, onClose }) {
     }),
     onSubmit: async (values) => {
       if(checking || identityError)return;
-      if(identity?.needs_login && values.password.length<8){formik.setFieldError('password','Set a password of at least eight characters');return;}
       const formData = new FormData();
       if(values.email.trim())formData.append('email',values.email.trim());
-      if(identity?.needs_login && values.password)formData.append('password',values.password);
       formData.append("name", values.name.trim());
       formData.append("phone", values.phone.trim());
       formData.append("description", values.description.trim());
@@ -53,7 +51,7 @@ function AddPanelistModal({ isOpen, onClose }) {
       dispatch(addPanelist({ formData, authToken }))
         .unwrap()
         .then((data) => {
-          toast({title:data.login?.created?'Panelist login created':'Panelist access added',description:data.login?.created?'They can log in with their phone or '+data.login.email+' and the password you set.':'Their existing login, password and other roles are unchanged.',status:'success',duration:9000,isClosable:true});
+          toast({title:data.login?.created?'Panelist login created':'Panelist access added',description:data.login?.created?'They can log in with their phone or '+data.login.email+' and the default password shown in this form.':'Their existing login, password and other roles are unchanged.',status:'success',duration:9000,isClosable:true});
           formik.resetForm();
           setPreview("");
           onClose();
@@ -122,7 +120,7 @@ function AddPanelistModal({ isOpen, onClose }) {
               {identityError && <Alert status="error"><AlertIcon />{identityError}</Alert>}
               {identity?.found && <Alert status="info"><AlertIcon /><Box><Text>Use the existing login for {identity.existing_user?.name}.</Text><Text fontSize="sm">Current roles: {(identity.existing_user?.accessRoleNames||[]).join(', ')||'Existing access'}. Interview Panelist will be added; their password and current roles stay unchanged.</Text></Box></Alert>}
               {identity?.existing_panelist && <Text fontSize="sm">This person already has a panelist profile. We will complete its login/access setup without creating a duplicate.</Text>}
-              {identity?.needs_login && <FormControl id="panelist-password" isRequired><FormLabel>Initial login password</FormLabel><Input name="password" type="password" autoComplete="new-password" value={formik.values.password} onChange={formik.handleChange} placeholder="At least eight characters" />{formik.errors.password && <Text color="red.500">{formik.errors.password}</Text>}<Text fontSize="sm">Share this password privately with the new user. An Interview Panelist login will be created automatically.</Text></FormControl>}
+              {identity?.needs_login && <Box w="full" borderWidth="1px" borderRadius="md" p={3}><Text fontSize="sm">New login password</Text><Text as="code" fontWeight="bold" userSelect="all">{DEFAULT_STAFF_PASSWORD}</Text><Text fontSize="sm">This is the same default password used when creating staff users.</Text></Box>}
               <FormControl id="description" isRequired>
                 <FormLabel fontSize={14}>Description</FormLabel>
                 <Textarea
