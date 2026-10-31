@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  updateInterviewPanel,
+  saveInterviewSchedules,
   fetchInterviewPanelScheduleBoard,
   fetchInterviewPanels,
 } from "../../Features/interviewPanelSlice";
@@ -222,12 +222,13 @@ function AddPanelScheduleModal({
 
     try {
       await dispatch(
-        updateInterviewPanel({
+        saveInterviewSchedules({
           authToken,
           id: panelId,
+          append:true,
           values: {
             // Server merges onto the latest DB schedules (avoids stale client overwrite)
-            append_schedules: true,
+            expected_revision:selectedPanel?.__v,
             schedules: nextSchedules,
           },
         })

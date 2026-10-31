@@ -7,7 +7,7 @@ import Cookies from "js-cookie";
 import { Plus, Trash2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  updateInterviewPanel,
+  saveInterviewSchedules,
   fetchInterviewPanel,
   fetchInterviewPanels,
   fetchInterviewPanelScheduleBoard,
@@ -75,11 +75,12 @@ function ScheduleInterviewPanelModal({ isOpen, onClose, panel }) {
     setSchedulesError("");
     try {
       await dispatch(
-        updateInterviewPanel({
+        saveInterviewSchedules({
           authToken,
           id: panel._id,
           values: {
             schedules: formRowsToSchedulesPayload(schedules),
+            expected_revision:panel.__v,
           },
         })
       ).unwrap();

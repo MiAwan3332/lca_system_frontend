@@ -40,6 +40,7 @@ const EMPTY_FORM = {
   title: "",
   description: "",
   status: "active",
+  panel_type: "solo",
 };
 
 function AddInterviewPanelModal({ isOpen, onClose }) {
@@ -81,7 +82,7 @@ function AddInterviewPanelModal({ isOpen, onClose }) {
     initialValues: EMPTY_FORM,
     validationSchema,
     onSubmit: async (values) => {
-      const memberError = getMembersValidationError(members);
+      const memberError = getMembersValidationError(members,values.panel_type);
       if (memberError) {
         setMembersError(memberError);
         return;
@@ -92,6 +93,7 @@ function AddInterviewPanelModal({ isOpen, onClose }) {
           addInterviewPanel({
             authToken,
             values: {
+              panel_type:values.panel_type,
               title: values.title,
               description: values.description,
               status: values.status,
@@ -230,6 +232,8 @@ function AddInterviewPanelModal({ isOpen, onClose }) {
           }}
         >
           <VStack spacing={4} align="stretch">
+            <FormControl isRequired><FormLabel>Panel type</FormLabel><Select name="panel_type" value={formik.values.panel_type} onChange={e=>{formik.setFieldValue('panel_type',e.target.value);setMembers(prev=>e.target.value==='solo'?prev.slice(0,1):prev.length<2?[...prev,createEmptyMemberRow(prev.length)]:prev);}}><option value="solo">Solo — one panelist</option><option value="team">Team — two or more panelists</option></Select><Text fontSize="sm">Each assigned panelist submits their own evaluation. The interview completes when all have submitted.</Text></FormControl>
+
             <FormControl isRequired>
               <FormLabel fontSize={14}>Title</FormLabel>
               <Input
@@ -301,7 +305,7 @@ function AddInterviewPanelModal({ isOpen, onClose }) {
                   type="button"
                   size="sm"
                   leftIcon={<Plus size={14} />}
-                  onClick={addMember}
+                  onClick={addMember} isDisabled={formik.values.panel_type==='solo'}
                   variant="outline"
                   borderRadius="0.6rem"
                   colorScheme="purple"

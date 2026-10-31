@@ -83,7 +83,7 @@ export const formRowsToMembersPayload = (rows = []) =>
     .filter((row) => row.name || row.description || row.panelist_id);
 
 /** Returns an error message if any member is incomplete; otherwise null. */
-export const getMembersValidationError = (rows = []) => {
+export const getMembersValidationError = (rows = [], panelType) => {
   const filled = (rows || []).filter(
     (row) =>
       String(row.panelist_id || "").trim() ||
@@ -93,6 +93,8 @@ export const getMembersValidationError = (rows = []) => {
   if (filled.length === 0) {
     return "Add at least one panelist";
   }
+  if(panelType==='solo'&&filled.length!==1)return 'A Solo panel requires exactly one panelist';
+  if(panelType==='team'&&filled.length<2)return 'A Team panel requires at least two panelists';
   for (const row of filled) {
     if (!String(row.panelist_id || "").trim() && !String(row.name || "").trim()) {
       return "Select a panelist for each member row";
@@ -137,6 +139,7 @@ export const panelToScheduleRows = (panel) => {
   if (existing.length > 0) {
     return existing.map((item, index) => ({
       id: `existing_schedule_${index}`,
+      _id:item._id,
       date: item.date || "",
       start_time: item.start_time || item.time || "",
       end_time: item.end_time || "",
@@ -179,48 +182,9 @@ export const panelToScheduleRows = (panel) => {
   return [createEmptyScheduleRow(0)];
 };
 
-export const formRowsToSchedulesPayload = (rows = []) =>
-  (rows || [])
-    .map((row) => {
-      const bookingStatus =
-        String(row.booking_status || "available").toLowerCase() === "booked"
-          ? "booked"
-          : "available";
-      return {
-        date: String(row.date || "").trim(),
-        start_time: String(row.start_time || "").trim(),
-        end_time: String(row.end_time || "").trim(),
-        venue: String(row.venue || "").trim(),
-        notes: String(row.notes || "").trim(),
-        booking_status: bookingStatus,
-        booked_for:
-          bookingStatus === "booked"
-            ? String(row.booked_for || "").trim()
-            : "",
-        booked_phone:
-          bookingStatus === "booked"
-            ? String(row.booked_phone || "").trim()
-            : "",
-        booked_notes:
-          bookingStatus === "booked"
-            ? String(row.booked_notes || "").trim()
-            : "",
-        booked_user_id:
-          bookingStatus === "booked" && row.booked_user_id
-            ? row.booked_user_id
-            : null,
-        booked_at: bookingStatus === "booked" ? row.booked_at || new Date() : null,
-      };
-    })
-    .filter(
-      (row) =>
-        row.date ||
-        row.start_time ||
-        row.end_time ||
-        row.venue ||
-        row.notes ||
-        row.booking_status === "booked"
-    );
+export const formRowsToSchedulesPayload = (rows=[]) => rows.map(row=>({
+  ...(row._id?{_id:row._id}:{}),date:String(row.date||'').trim(),start_time:String(row.start_time||'').trim(),end_time:String(row.end_time||'').trim(),venue:String(row.venue||'').trim(),notes:String(row.notes||'').trim()
+})).filter(row=>row.date||row.start_time||row.end_time||row.venue||row.notes);
 
 export const getSchedulesValidationError = (rows = []) => {
   const filled = formRowsToSchedulesPayload(rows);
@@ -252,6 +216,7 @@ export const flattenAllPanelSchedules = (panels = []) => {
     const members = Array.isArray(panel.members)
       ? panel.members
           .map((member) => ({
+            panelist_id:member.panelist_id,
             name: String(member?.name || "").trim(),
             role: String(member?.role || "").trim() || "Panelist",
             description: String(member?.description || "").trim(),
@@ -274,6 +239,9 @@ export const flattenAllPanelSchedules = (panels = []) => {
         schedule_index: originalIndex + 1,
         schedule_array_index: originalIndex,
         date: slot.date || "",
+          schedule_id:slot._id,
+          panel_revision:panel.__v,
+          panel_type:panel.panel_type||(members.length===1?'solo':'team'),
         start_time: slot.start_time || "",
         end_time: slot.end_time || "",
         venue: slot.venue || panel.venue || "",

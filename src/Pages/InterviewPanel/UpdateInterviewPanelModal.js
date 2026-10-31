@@ -35,7 +35,7 @@ import {
 
 const validationSchema = Yup.object({
   title: Yup.string().required("Required"),
-  date: Yup.string().required("Required"),
+  date: Yup.string(),
   description: Yup.string(),
   start_time: Yup.string(),
   end_time: Yup.string().test(
@@ -89,17 +89,19 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
   const formik = useFormik({
     initialValues: {
       title: "",
+      panel_type: "solo",
       description: "",
       date: "",
       start_time: "",
       end_time: "",
       venue: "",
       status: "active",
+  panel_type: "solo",
     },
     validationSchema,
     onSubmit: async (values) => {
       if (!panel?._id) return;
-      const memberError = getMembersValidationError(members);
+      const memberError = getMembersValidationError(members,values.panel_type);
       if (memberError) {
         setMembersError(memberError);
         return;
@@ -111,7 +113,7 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
             authToken,
             id: panel._id,
             values: {
-              ...values,
+              title:values.title,description:values.description,status:values.status,panel_type:values.panel_type,expected_revision:panel.__v,
               members: formRowsToMembersPayload(members),
             },
           })
@@ -130,6 +132,7 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
     const range = getPanelTimeRange(panel);
     formik.setValues({
       title: panel.title || "",
+      panel_type:panel.panel_type || (panel.members?.length===1?"solo":"team"),
       description: panel.description || "",
       date: panel.date || "",
       start_time: range.start_time || "",
@@ -275,6 +278,8 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
           }}
         >
             <VStack spacing={4} align="stretch">
+            <FormControl isRequired><FormLabel>Panel type</FormLabel><Select name="panel_type" value={formik.values.panel_type} onChange={e=>{formik.setFieldValue('panel_type',e.target.value);setMembers(prev=>e.target.value==='solo'?prev.slice(0,1):prev.length<2?[...prev,createEmptyMemberRow(prev.length)]:prev);}}><option value="solo">Solo — one panelist</option><option value="team">Team — two or more panelists</option></Select><Text fontSize="sm">Each assigned panelist submits their own evaluation. The interview completes when all have submitted.</Text></FormControl>
+
               <FormControl isRequired>
                 <FormLabel fontSize={14}>Title</FormLabel>
                 <Input
@@ -303,10 +308,10 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel fontSize={14}>Date</FormLabel>
+                <FormLabel fontSize={14}>Date (change through Schedules)</FormLabel>
                 <Input
                   type="date"
-                  name="date"
+                  name="date" isReadOnly
                   borderRadius="0.5rem"
                   value={formik.values.date}
                   onChange={formik.handleChange}
@@ -341,7 +346,7 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
                     <FormLabel fontSize={13}>From</FormLabel>
                     <Input
                       type="time"
-                      name="start_time"
+                      name="start_time" isReadOnly
                       borderRadius="0.5rem"
                       value={formik.values.start_time}
                       onChange={formik.handleChange}
@@ -357,7 +362,7 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
                     <FormLabel fontSize={13}>To</FormLabel>
                     <Input
                       type="time"
-                      name="end_time"
+                      name="end_time" isReadOnly
                       borderRadius="0.5rem"
                       value={formik.values.end_time}
                       onChange={formik.handleChange}
@@ -394,7 +399,7 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
                 <FormControl>
                   <FormLabel fontSize={14}>Venue</FormLabel>
                   <Input
-                    name="venue"
+                    name="venue" isReadOnly
                     borderRadius="0.5rem"
                     value={formik.values.venue}
                     onChange={formik.handleChange}
@@ -443,7 +448,7 @@ function UpdateInterviewPanelModal({ isOpen, onClose, panel }) {
                     type="button"
                     size="sm"
                     leftIcon={<Plus size={14} />}
-                    onClick={addMember}
+                    onClick={addMember} isDisabled={formik.values.panel_type==='solo'}
                     variant="outline"
                     borderRadius="0.6rem"
                     colorScheme="purple"

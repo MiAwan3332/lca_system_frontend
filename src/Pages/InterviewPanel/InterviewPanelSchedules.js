@@ -19,7 +19,7 @@ import {
   clearCurrentInterviewPanel,
   fetchInterviewPanel,
   fetchInterviewPanels,
-  updateInterviewPanel,
+  saveInterviewSchedules,
 } from "../../Features/interviewPanelSlice";
 import {
   createEmptyScheduleRow,
@@ -102,10 +102,10 @@ function InterviewPanelSchedules() {
     try {
       const payload = formRowsToSchedulesPayload(schedules);
       await dispatch(
-        updateInterviewPanel({
+        saveInterviewSchedules({
           authToken,
           id: panel._id,
-          values: { schedules: payload },
+          values: { schedules: payload,expected_revision:panel.__v },
         })
       ).unwrap();
       setInitializedFor("");

@@ -39,17 +39,17 @@ function DeletePanelistModal({ panelistId }) {
       <ActionButton
         variant="red"
         icon={<Trash size={16} />}
-        label="Delete"
+        label="Deactivate"
         onClick={onOpen}
       />
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <AccessForm component={ModalContent}>
-          <ModalHeader>Delete panelist</ModalHeader>
+          <ModalHeader>Deactivate panelist</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <p>Are you sure you want to permanently delete this panelist?</p>
+            <p>Deactivate this panelist’s interview access? Their login, other roles and interview history will be preserved.</p>
           </ModalBody>
           <ModalFooter>
             <Button
@@ -67,10 +67,10 @@ function DeletePanelistModal({ panelistId }) {
               _hover={{ backgroundColor: "#E48080", color: "#561616" }}
               fontWeight="500"
               onClick={handleDelete}
-              loadingText="Deleting"
+              loadingText="Deactivating"
               isLoading={deleteStatus === "loading"}
             >
-              Delete
+              Deactivate
             </Button>
           </ModalFooter>
         </AccessForm>

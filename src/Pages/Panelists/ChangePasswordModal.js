@@ -28,7 +28,7 @@ function ChangePasswordModal({ panelist }) {
     },
     validationSchema: Yup.object({
       password: Yup.string()
-        .min(6, "Password must be at least 6 characters")
+        .min(8, "Password must be at least 8 characters")
         .required("Required"),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref("password")], "Passwords must match")
@@ -61,7 +61,7 @@ function ChangePasswordModal({ panelist }) {
       <ActionButton
         variant="blue"
         icon={<KeyRound size={16} />}
-        label="Update Password"
+        label={panelist.login_setup_required ? "Set initial password" : "Update Password"}
         onClick={onOpen}
         title="Update Login Password"
       />

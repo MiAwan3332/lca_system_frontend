@@ -1,3 +1,5 @@
+import CancelScheduleModal from './CancelScheduleModal';
+import {accessSnapshot,can} from '../../utlls/accessCapabilities';
 import { Select, Input } from '../../Components/AccessInputs';
 import FormControl from '../../Components/AccessFormControl';
 import { Box, Button, SimpleGrid, Text, Badge, HStack, VStack, Flex, Center, useDisclosure, useToast, AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay } from '@chakra-ui/react';
@@ -52,12 +54,14 @@ const INTERVIEW_PROGRESS_OPTIONS = [
   { value: "booked", label: "Booked" },
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 const getInterviewProgressMeta = (interviewStatus, bookingStatus) => {
   const status = String(interviewStatus || "not_started").toLowerCase();
   const booked =
     String(bookingStatus || "available").toLowerCase() === "booked";
+  if (status === "cancelled") return {value:"cancelled",label:"Cancelled",colorScheme:"red"};
   if (status === "completed") {
     return { value: "completed", label: "Completed", colorScheme: "green" };
   }
@@ -101,9 +105,11 @@ function AllInterviewPanelSchedules() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const toast = useToast();
-  const isQualifier = isQualifierRole();
+  const permitted=p=>!accessSnapshot().managed||can(p);
+  const [cancelRow,setCancelRow]=useState(null);
+  const isQualifier = isQualifierRole() && !can('interview-panels.start.interview');
   const isPanelist = isPanelistRole();
-  const isReadOnlyRole = isQualifier || isPanelist;
+  const isReadOnlyRole = !permitted('interview-panels.add.interview.schedules');
   const [authToken] = useState(Cookies.get("authToken"));
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
@@ -170,7 +176,11 @@ function AllInterviewPanelSchedules() {
 
   const allSchedules = useMemo(() => {
     const rows = flattenAllPanelSchedules(scheduleBoardPanels);
-    if (!isQualifier) return rows;
+    if (!isQualifier) {
+      const access=accessSnapshot(),own=access.panelistId;
+      const global=access.owner||access.grants?.some(g=>g.permission==='interview-panels.get.interview.panels'&&g.scope==='all');
+      return own&&!global?rows.filter(row=>row.members?.some(m=>String(m.panelist_id)===String(own))):rows;
+    }
     return rows.filter((row) => isQualifierVisibleSchedule(row, myQualifier));
   }, [scheduleBoardPanels, isQualifier, myQualifier]);
 
@@ -286,13 +296,13 @@ function AllInterviewPanelSchedules() {
 
   const openConductPage = (row) => {
     navigate(
-      getInterviewConductPath(row.panel_id, row.schedule_array_index)
+      getInterviewConductPath(row.panel_id, row.schedule_id || row.schedule_array_index)
     );
   };
 
   const handleStartInterviewClick = (row) => {
     const status = String(row.interview_status || "not_started");
-    if (status === "in_progress" || status === "completed") {
+    if (status === "completed") {
       openConductPage(row);
       return;
     }
@@ -308,6 +318,7 @@ function AllInterviewPanelSchedules() {
         authToken,
         panelId: row.panel_id,
         schedule_index: row.schedule_array_index,
+        schedule_id: row.schedule_id,
       })
     );
     onStartConfirmClose();
@@ -337,7 +348,7 @@ function AllInterviewPanelSchedules() {
             : "All Panel Schedules"
         }
       >
-        {!isReadOnlyRole && (
+        {permitted('interview-panels.add.interview.schedules') && (
           <FilterStack className="filter-stack--actions w-full sm:w-auto">
             <button
               className="table-action-btn table-action-btn--primary w-full sm:w-auto justify-center"
@@ -577,7 +588,7 @@ function AllInterviewPanelSchedules() {
                     ? "No panel schedules match your filters."
                     : "Select a panel and add a schedule to get started."}
               </Text>
-              {!isReadOnlyRole && (
+              {permitted('interview-panels.add.interview.schedules') && (
               <Flex
                 direction={{ base: "column", sm: "row" }}
                 gap={3}
@@ -895,7 +906,8 @@ function AllInterviewPanelSchedules() {
                     minW={0}
                     w="full"
                   >
-                    {(isBooked || isCompleted) && (
+                    {permitted('interview-panels.cancel.interview.schedule') && !['in_progress','completed','cancelled'].includes(row.interview_status) && <Button size="sm" variant="outline" colorScheme="red" onClick={()=>setCancelRow(row)}>Cancel schedule</Button>}
+                    {permitted('interview-panels.get.interview.evaluation.details') && (isBooked || isCompleted) && (
                       <Button
                         size="sm"
                         leftIcon={<Eye size={14} />}
@@ -911,7 +923,7 @@ function AllInterviewPanelSchedules() {
                         View Detail
                       </Button>
                     )}
-                    {!isQualifier && isBooked && !isCompleted && (
+                    {permitted('interview-panels.start.interview') && isBooked && !isCompleted && row.interview_status!=='cancelled' && (
                       <Button
                         size="sm"
                         leftIcon={<Play size={14} />}
@@ -931,7 +943,7 @@ function AllInterviewPanelSchedules() {
                         {getStartInterviewLabel(row)}
                       </Button>
                     )}
-                    {!isPanelist && (isQualifier ? !isBooked : true) && (
+                    {permitted('interview-panels.book.interview.slot') && !isBooked && row.interview_status!=='cancelled' && (
                       <Button
                         size="sm"
                         leftIcon={<CalendarCheck2 size={14} />}
@@ -961,7 +973,7 @@ function AllInterviewPanelSchedules() {
                             : "Book Interview"}
                       </Button>
                     )}
-                    {!isReadOnlyRole && (
+                    {permitted('interview-panels.update.interview.schedules') && (
                       <Button
                         size="sm"
                         leftIcon={<ExternalLink size={14} />}
@@ -998,7 +1010,7 @@ function AllInterviewPanelSchedules() {
           boardFilters={boardFilters}
         />
       )}
-      {!isPanelist && (
+      {permitted('interview-panels.book.interview.slot') && (
         <BookInterviewModal
           isOpen={isBookOpen}
           onClose={closeBookModal}
@@ -1034,7 +1046,8 @@ function AllInterviewPanelSchedules() {
                   <Text mt={2} fontSize="sm" color="gray.600">
                     {pendingStartRow.panel_title} · {pendingStartRow.date}
                   </Text>
-                </>
+                  <CancelScheduleModal row={cancelRow} onClose={()=>setCancelRow(null)} onSaved={()=>loadSchedules()} />
+    </>
               ) : (
                 "Start this interview session?"
               )}

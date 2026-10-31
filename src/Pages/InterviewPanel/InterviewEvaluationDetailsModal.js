@@ -87,10 +87,10 @@ function InterviewEvaluationDetailsModal({ isOpen, onClose, scheduleRow }) {
   );
 
   const panelId = scheduleRow?.panel_id;
-  const scheduleIndex = scheduleRow?.schedule_array_index;
+  const scheduleIndex = scheduleRow?.schedule_id || scheduleRow?.schedule_array_index;
 
   useEffect(() => {
-    if (!isOpen || !authToken || !panelId || !Number.isInteger(scheduleIndex)) {
+    if (!isOpen || !authToken || !panelId || (scheduleIndex===undefined||scheduleIndex===null)) {
       return undefined;
     }
     dispatch(

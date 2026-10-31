@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { accessSnapshot, can } from './accessCapabilities';
 import { extractRoleFromToken } from "./useful";
 import {
   isFullAccessRoleName,
@@ -83,7 +84,7 @@ export const getCurrentRoleName = () => {
 };
 
 export const canAccessInterviewPanel = () =>
-  isInterviewPanelAllowedRoleName(getCurrentRoleName());
+  accessSnapshot().managed ? can('interview-panels.get.interview.panels') : isInterviewPanelAllowedRoleName(getCurrentRoleName());
 
 export const isInterviewPanelRoute = (path) => {
   const normalized = String(path || "");
@@ -96,6 +97,7 @@ export const isInterviewPanelRoute = (path) => {
 
 /** Panelists appears in sidebar for interview-panel staff and full-access admins. */
 export const canAccessPanelists = () => {
+  if (accessSnapshot().managed) return can('panelists.get.panelists');
   const role = getCurrentRoleName();
   return (
     isInterviewPanelAllowedRoleName(role) ||
