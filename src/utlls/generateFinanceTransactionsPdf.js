@@ -46,6 +46,11 @@ export const exportFinanceTransactionsPdf = async ({
   collectedBy,
   totalCash = 0,
   totalOnline = 0,
+  // Period totals from the server, so the cards match the batch figures whatever rows are filtered.
+  totalCollected,
+  totalRefunded,
+  totalDiscounted,
+  totalExpenses,
   batchWise = [],
   mode = "download",
 }) => {
@@ -105,22 +110,27 @@ export const exportFinanceTransactionsPdf = async ({
   drawHeader();
   let y = HEADER_H + 4;
 
-  // --- Summary Cards (Highly Visible) ---
+  // --- Summary Cards: money in, money back, what is left, then expenses last ---
+  const pick = (value, fallback) => (value === undefined || value === null ? fallback : toNumber(value));
+  const collected = pick(totalCollected, totals.fee + totals.refund);
+  const refunded = pick(totalRefunded, totals.refund);
+  const discounted = pick(totalDiscounted, totals.discount);
+  const expenses = pick(totalExpenses, totals.expense);
   const summaryCards = [
-    { label: "No Of Entries", value: String(totals.count) },
-    { label: "Fee Collection", value: `Rs. ${formatAmount(totals.fee)}` },
-    { label: "Refunds", value: `Rs. ${formatAmount(totals.refund)}` },
-    { label: "Discounts", value: `Rs. ${formatAmount(totals.discount)}` },
-    { label: "Expenses", value: `Rs. ${formatAmount(totals.expense)}` },
-    { label: "Net Balance", value: `Rs. ${formatAmount(totals.fee - totals.expense)}` },
-    { label: "Cash", value: `Rs. ${formatAmount(cashTotal)}` },
-    { label: "Online", value: `Rs. ${formatAmount(onlineTotal)}` },
+    { label: "Entries", value: String(totals.count), note: "rows in this report" },
+    { label: "Fee Collected", value: `Rs. ${formatAmount(collected)}`, note: "payments received" },
+    { label: "Refunds", value: `Rs. ${formatAmount(refunded)}`, note: "paid back", color: COLORS.expense },
+    { label: "Discounts", value: `Rs. ${formatAmount(discounted)}`, note: "not charged" },
+    { label: "Net Balance", value: `Rs. ${formatAmount(cashTotal + onlineTotal - expenses)}`, note: "cash + online - expenses" },
+    { label: "Cash", value: `Rs. ${formatAmount(cashTotal)}`, note: "after refunds" },
+    { label: "Online", value: `Rs. ${formatAmount(onlineTotal)}`, note: "after refunds" },
+    { label: "Expenses", value: `Rs. ${formatAmount(expenses)}`, note: "approved", color: COLORS.expense },
   ];
 
   const cardGap = 1.5;
   const cardY = y;
   const cardW = contentWidth / summaryCards.length - cardGap;
-  const cardH = 15;
+  const cardH = 18;
 
   summaryCards.forEach((card, index) => {
     const cardX = margin + index * (cardW + cardGap);
@@ -137,8 +147,13 @@ export const exportFinanceTransactionsPdf = async ({
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.setTextColor(33, 37, 41);
+    doc.setTextColor(...(card.color || [33, 37, 41]));
     doc.text(card.value, cardX + cardW / 2, cardY + 11.5, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...COLORS.gray);
+    doc.text(card.note, cardX + cardW / 2, cardY + 15.6, { align: "center" });
   });
 
   y += cardH + 5;
@@ -227,11 +242,12 @@ export const exportFinanceTransactionsPdf = async ({
     no: 10,
     date: 30,
     type: 13,
-    student: 54,
-    action: 25,
-    payment: 31,
-    amount: 30,
-    by: 36,
+    student: 50,
+    action: 24,
+    payment: 30,
+    amount: 28,
+    discount: 26,
+    by: 32,
   };
   col.details = Math.max(30, contentWidth - Object.values(col).reduce((sum, width) => sum + width, 0));
   const tableW = Object.values(col).reduce((sum, width) => sum + width, 0);
@@ -276,6 +292,7 @@ export const exportFinanceTransactionsPdf = async ({
     put("Action", col.action);
     put("Payment", col.payment);
     put("Amount", col.amount, "right");
+    put("Discount", col.discount, "right");
     put("By", col.by);
     put("Details", col.details);
     y += headerH;
@@ -345,7 +362,10 @@ export const exportFinanceTransactionsPdf = async ({
       }
 
       const isExpense = t.type === "expense";
-      const amount =
+      // A discount moves no money: its amount shows under Discount, and Amount is zero (e.g. a 100% discount).
+      const isDiscount = t.action_type === "Discounted";
+      const discountAmount = isDiscount ? Math.abs(toNumber(t.action_amount ?? t.amount)) : 0;
+      const amount = isDiscount ? 0 :
         (isExpense ? -1 : 1) * toNumber(t.action_amount ?? t.amount);
       const amountLabel = amount.toLocaleString("en-PK", {
         maximumFractionDigits: 0,
@@ -396,6 +416,7 @@ export const exportFinanceTransactionsPdf = async ({
         "right",
         isExpense ? COLORS.expense : COLORS.text
       );
+      cell(discountAmount ? `Rs. ${formatAmount(discountAmount)}` : "—", col.discount, "right", discountAmount ? COLORS.fee : COLORS.gray);
       cell(t.action_by || "—", col.by);
       cell(t.description || "—", col.details, "left", COLORS.gray);
 

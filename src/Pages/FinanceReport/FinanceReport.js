@@ -407,6 +407,10 @@ function FinanceReport() {
     collectedBy: collectedByLabel,
     totalCash: summary.total_cash,
     totalOnline: summary.total_online,
+    totalCollected: summary.total_fee_recovered,
+    totalRefunded: summary.total_fee_refunded,
+    totalDiscounted: summary.total_fee_discounted,
+    totalExpenses: summary.total_approved_expenses,
     batchWise: summary.batch_wise || [],
   });
 
@@ -504,7 +508,8 @@ function FinanceReport() {
           return false;
         }
       }
-      if (typeSet.size && !typeSet.has(String(transaction.type))) {
+      // Refunds are fee money, so the Fee type includes them.
+      if (typeSet.size && !typeSet.has(transaction.type === "refund" ? "fee" : String(transaction.type))) {
         return false;
       }
       if (actionSet.size && !actionSet.has(String(transaction.action_type))) {

@@ -194,6 +194,8 @@ export const exportFinanceTransactionsExcel = ({
   collectedBy,
   totalCash = 0,
   totalOnline = 0,
+  totalRefunded,
+  totalDiscounted,
   batchWise = [],
 }) => {
   requireOutput('fees', 'export');
@@ -270,8 +272,8 @@ export const exportFinanceTransactionsExcel = ({
     ["Total Cash", formatRs(totalCash)],
     ["Total Online", formatRs(totalOnline)],
     ["Combined", formatRs(toNumber(totalCash) + toNumber(totalOnline))],
-    ["Refunds", formatRs(totals.refund)],
-    ["Discounts", formatRs(totals.discount)],
+    ["Refunds", formatRs(totalRefunded ?? totals.refund)],
+    ["Discounts", formatRs(totalDiscounted ?? totals.discount)],
   ]);
   metaSheet["!cols"] = [{ wch: 28 }, { wch: 42 }];
 
