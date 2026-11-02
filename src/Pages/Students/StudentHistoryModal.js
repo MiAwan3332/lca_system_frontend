@@ -62,12 +62,21 @@ const ACTION_STYLES = {
   Refund: { color: "purple", label: "Refunded" },
 };
 
-/** Fee events and payment reversals, newest first. A reverted payment's entry is gone; its reversal stands in for it. */
+/** Fee events and undone steps, newest first; steps saved at the same moment keep the order they were saved in.
+ *  An undone step's entry is gone; its undo record stands in for it. */
 export const paymentTimeline = (history) =>
   [
     ...(history?.payment_logs || []).map((item) => ({ kind: "log", at: item.action_date, item })),
     ...(history?.payment_reversals || []).map((item) => ({ kind: "reversal", at: item.reverted_at, item })),
-  ].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+  ].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0) || String(b.item._id).localeCompare(String(a.item._id)));
+
+/** Only the newest step can be undone, so steps are undone in the reverse of the order they were made. */
+export const UNDOABLE_STEPS = ["Paid", "Discounted", "Refund", "Created"];
+export const newestUndoableId = (timeline) => {
+  const newest = timeline.find(({ kind, item }) => kind === "log" && item.action_type !== "Deleted");
+  return newest && UNDOABLE_STEPS.includes(newest.item.action_type) ? String(newest.item._id) : null;
+};
+const UNDONE_TITLES = { Paid: "Payment undone", Discounted: "Discount undone", Refund: "Refund undone", Created: "Fee assignment undone" };
 
 const getRefundStatusStyle = (status) => {
   if (status === "Refunded") return { color: "purple", label: "Refunded" };
@@ -192,7 +201,7 @@ function StudentHistoryModal({ student }) {
   const finish = async (reversal) => {
     try {
       await finishReversal(reversal.payment_log);
-      toast({ title: "Payment reverted", status: "success", duration: 4000, isClosable: true });
+      toast({ title: "Entry undone", status: "success", duration: 4000, isClosable: true });
     } catch (error) {
       toast({ title: "Payment not reverted", description: error?.response?.data?.message || error.message, status: "error", duration: 8000, isClosable: true });
     }
@@ -977,12 +986,13 @@ function StudentHistoryModal({ student }) {
                       ) : (
                         <VStack align="stretch" spacing={0}>
                           {paymentTimeline(history).map(({ kind, item }, index, list) => {
+                            const newestStepId = newestUndoableId(list);
                             const isLast = index === list.length - 1;
                             if (kind === "reversal") {
                               return (
                                 <Box key={`reversal-${item._id}`} opacity={0.75}>
                                   <TimelineItem
-                                    title="Payment reverted"
+                                    title={UNDONE_TITLES[item.step_type || "Paid"]}
                                     meta={`${formatDate(item.reverted_at)}${item.reverted_by?.name ? ` · ${item.reverted_by.name}` : ""}`}
                                     badge={
                                       <Badge colorScheme="gray" borderRadius="full" textDecoration="line-through">
@@ -992,9 +1002,9 @@ function StudentHistoryModal({ student }) {
                                     isLast={isLast}
                                   >
                                     <Text fontSize="xs" color="gray.600" mt={1}>
-                                      {formatRs(item.amount)} paid {formatDate(item.payment_date)}
+                                      {formatRs(item.amount)} {(item.step_type || "Paid") === "Paid" ? "paid" : "recorded"} {formatDate(item.payment_date)}
                                       {item.payment_method ? ` via ${item.payment_method}` : ""}
-                                      {item.collected_by?.name ? `, collected by ${item.collected_by.name}` : ""}
+                                      {item.collected_by?.name ? `, by ${item.collected_by.name}` : ""}
                                     </Text>
                                     <Text fontSize="xs" color="gray.600" mt={1}>
                                       Reason: {item.reason_category} · {item.reason_note}
@@ -1004,7 +1014,7 @@ function StudentHistoryModal({ student }) {
                                         <Badge colorScheme="red">Not finished</Badge>
                                         {canRevert ? (
                                           <Button size="xs" colorScheme="red" variant="outline" onClick={() => finish(item)}>
-                                            Finish reverting
+                                            Finish undoing
                                           </Button>
                                         ) : null}
                                       </HStack>
@@ -1057,7 +1067,7 @@ function StudentHistoryModal({ student }) {
                                     paymentMethod={log.payment_method}
                                   />
                                 ) : null}
-                                {log.action_type === "Paid" && canRevert ? (
+                                {canRevert && String(log._id) === newestStepId ? (
                                   <RevertPaymentModal log={log} onReverted={refreshHistory} />
                                 ) : null}
                               </TimelineItem>

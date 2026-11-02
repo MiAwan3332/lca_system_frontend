@@ -15,26 +15,39 @@ export const MIN_NOTE = 10;
 const revertUrl = (logId) => `${config.BASE_URL}/fees/payments/${logId}/revert`;
 const errorText = (error) => error?.response?.data?.message || error?.message || "Something went wrong.";
 
-/** Items the reversal removes or changes, in the words shown to the owner. */
+export const STEP_NAMES = { Paid: "payment", Discounted: "discount", Refund: "refund", Created: "fee assignment" };
+
+/** Items undoing the step removes or changes, in the words shown to the person undoing it. */
 export function removalLines(preview) {
   if (!preview) return [];
+  const { step } = preview;
+  const where = step.batch ? ` · ${step.batch}` : "";
+  const entry = {
+    Paid: `Payment entry ${formatRs(step.amount)}${where} · ${step.payment_method || "Cash"}`,
+    Discounted: `Discount entry ${formatRs(step.amount)}${where}${step.description ? ` (${step.description})` : ""}`,
+    Refund: `Refund entry ${formatRs(step.amount)} · ${step.payment_method || "Cash"}`,
+    Created: `Fee assignment ${formatRs(step.amount)}${where}: the fee record is removed`,
+  }[step.type];
   return [
-    ...preview.entries.map((entry) => `Payment entry ${formatRs(entry.amount)}${entry.batch ? ` · ${entry.batch}` : ""} · ${entry.payment_method || "Cash"}`),
+    entry,
     ...preview.receipts.map((receipt) => `Fee receipt of ${formatDate(receipt.created_at)} (${formatRs(receipt.amount)})`),
     ...preview.slips.map((slip) => `Fee slip issued ${formatDate(slip.issued_at)} (${formatRs(slip.amount)}): its verification link will show it as cancelled`),
-    ...preview.fee_changes.map((change) => `Fee balance${change.batch ? ` (${change.batch})` : ""}: ${formatRs(change.before_amount)} → ${formatRs(change.after_amount)}, ${change.after_status}`),
+    ...(preview.refund_request ? [`Refund request of ${formatRs(preview.refund_request.amount)} goes back to approved, not yet paid out`] : []),
+    ...(step.type === "Refund" ? ["The student is marked active again"] : []),
+    ...preview.fee_changes.filter((change) => !change.removes_fee).map((change) => `Fee balance${change.batch ? ` (${change.batch})` : ""}: ${formatRs(change.before_amount)} → ${formatRs(change.after_amount)}, ${change.after_status}`),
   ];
 }
 
 export const canSubmitReversal = ({ preview, reason, note, acknowledged, understood }) =>
   Boolean(preview && !preview.blockers.length && reason && note.trim().length >= MIN_NOTE && understood && (!preview.warnings.length || acknowledged));
 
-/** Finishes a reversal that stopped part-way; the saved reason is reused. */
+/** Finishes an undo that stopped part-way; the saved reason is reused. */
 export async function finishReversal(logId) {
   return axios.post(revertUrl(logId), {}, { headers: { Authorization: `Bearer ${Cookies.get("authToken")}` } });
 }
 
 export default function RevertPaymentModal({ log, onReverted }) {
+  const name = STEP_NAMES[log.action_type] || "entry";
   const [isOpen, setIsOpen] = useState(false);
   const [preview, setPreview] = useState(null);
   const [loadError, setLoadError] = useState("");
@@ -60,11 +73,11 @@ export default function RevertPaymentModal({ log, onReverted }) {
     setSubmitting(true);
     try {
       const { data } = await axios.post(revertUrl(log._id), { reason, note: note.trim(), acknowledged }, { headers });
-      toast({ title: data?.message || "Payment reverted", status: "success", duration: 4000, isClosable: true });
+      toast({ title: data?.message || "Entry undone", status: "success", duration: 4000, isClosable: true });
       setIsOpen(false);
       onReverted?.();
     } catch (error) {
-      toast({ title: "Payment not reverted", description: errorText(error), status: "error", duration: 8000, isClosable: true });
+      toast({ title: `The ${name} was not undone`, description: errorText(error), status: "error", duration: 8000, isClosable: true });
       onReverted?.();
     } finally {
       setSubmitting(false);
@@ -74,11 +87,11 @@ export default function RevertPaymentModal({ log, onReverted }) {
   const ready = canSubmitReversal({ preview, reason, note, acknowledged, understood });
   return (
     <>
-      <Button size="xs" variant="outline" colorScheme="red" leftIcon={<Undo2 size={12} />} mt={2} onClick={open}>Undo payment</Button>
+      <Button size="xs" variant="outline" colorScheme="red" leftIcon={<Undo2 size={12} />} mt={2} onClick={open}>Undo {name}</Button>
       <Modal isOpen={isOpen} onClose={() => !submitting && setIsOpen(false)} size="2xl" scrollBehavior="inside">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Undo payment</ModalHeader>
+          <ModalHeader>Undo {name}</ModalHeader>
           <ModalCloseButton isDisabled={submitting} />
           <ModalBody>
             {loadError ? <Alert status="error" borderRadius="lg"><AlertIcon /><AlertDescription>{loadError}</AlertDescription></Alert> : null}
@@ -90,10 +103,11 @@ export default function RevertPaymentModal({ log, onReverted }) {
                   <Text fontSize="sm" color="gray.500">{[preview.student.roll_number, preview.student.batch].filter(Boolean).join(" · ")}</Text>
                 </Box>
                 <Box p={3} borderRadius="lg" bg="gray.50" border="1px solid" borderColor="gray.200">
-                  <Text fontSize="xl" fontWeight="700">{formatRs(preview.payment.amount)}</Text>
-                  <Text fontSize="sm" color="gray.600">{formatDate(preview.payment.date)} · {preview.payment.methods.join(", ")}{preview.payment.collected_by ? ` · collected by ${preview.payment.collected_by}` : ""}</Text>
-                  {preview.payment.description ? <Text fontSize="sm" color="gray.600" mt={1}>Remarks: {preview.payment.description}</Text> : null}
-                  <PaymentEvidenceGallery value={preview.payment.payment_evidence} paymentMethod={preview.payment.methods[0]} />
+                  <Text fontSize="sm" color="gray.500">{preview.step.label}{preview.step.batch ? ` · ${preview.step.batch}` : ""}</Text>
+                  <Text fontSize="xl" fontWeight="700">{formatRs(preview.step.amount)}</Text>
+                  <Text fontSize="sm" color="gray.600">{formatDate(preview.step.date)}{preview.step.payment_method ? ` · ${preview.step.payment_method}` : ""}{preview.step.by ? ` · by ${preview.step.by}` : ""}</Text>
+                  {preview.step.description ? <Text fontSize="sm" color="gray.600" mt={1}>Remarks: {preview.step.description}</Text> : null}
+                  {preview.step.payment_evidence ? <PaymentEvidenceGallery value={preview.step.payment_evidence} paymentMethod={preview.step.payment_method} /> : null}
                 </Box>
                 {preview.blockers.length ? (
                   <Alert status="error" borderRadius="lg" alignItems="flex-start"><AlertIcon />
@@ -147,7 +161,7 @@ export default function RevertPaymentModal({ log, onReverted }) {
           </ModalBody>
           <ModalFooter gap={2}>
             <Button variant="ghost" onClick={() => setIsOpen(false)} isDisabled={submitting}>Cancel</Button>
-            <Button colorScheme="red" onClick={submit} isDisabled={!ready} isLoading={submitting}>Revert payment</Button>
+            <Button colorScheme="red" onClick={submit} isDisabled={!ready} isLoading={submitting}>Undo {name}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
