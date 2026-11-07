@@ -1,4 +1,5 @@
 import moment from "moment";
+import { requireOutput } from './accessCapabilities';
 import { formatStudentEmail } from "./studentEmail";
 import { compareStudentsByRollAscending } from "./rollNumber";
 
@@ -102,6 +103,7 @@ export const downloadStudentsExcel = ({
   highlightPending = true,
   fileName,
 } = {}) => {
+  requireOutput('students', 'export');
   const sorted = [...students].sort(compareStudentsByRollAscending);
   if (!sorted.length) {
     throw new Error("No students match the current filters.");

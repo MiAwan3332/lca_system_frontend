@@ -1,24 +1,8 @@
+import { Input, Textarea, Switch } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Switch,
-  VStack,
-  Text,
-  Link,
-  Badge,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, FormLabel, VStack, Text, Link, Badge, useToast } from '@chakra-ui/react';
 import { useDispatch } from "react-redux";
 import { gradeSubmission } from "../../Features/assignmentSlice";
 import {
@@ -114,7 +98,7 @@ function GradeSubmissionModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...responsiveModalProps} {...getResponsiveModalSize("lg")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>
           {submission.marks_obtained != null ? "Edit Marks" : "Add Marks"}
         </ModalHeader>
@@ -176,7 +160,7 @@ function GradeSubmissionModal({
             Save Marks
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

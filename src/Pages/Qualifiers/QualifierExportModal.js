@@ -1,7 +1,11 @@
+
+import { Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Select, Text, HStack, Badge, useToast, Box, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Avatar } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Text, HStack, Badge, useToast, Box, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Avatar } from '@chakra-ui/react';
 import { Download, FileSpreadsheet, FileText, FileX } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -20,6 +24,7 @@ import { isQualifierProfileComplete } from "../../utlls/qualifierProfile";
 import { downloadQualifiersExcel } from "../../utlls/exportQualifiersExcel";
 import { exportQualifiersPdf } from "../../utlls/generateQualifiersPdf";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
+import { fetchAllPaginated } from "../../utlls/fetchAllPaginated";
 
 const defaultAvatar =
   "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9";
@@ -51,12 +56,23 @@ function QualifierExportModal({ isOpen, onClose }) {
 
   const selectedBatch = interviewBatches.find((b) => b._id === batchId);
 
+  const buildQualifierParams = useCallback(
+    () => ({
+      batch: batchId || undefined,
+      profile_updated: profileUpdated || undefined,
+      class_type: classType || undefined,
+      exam_type: examType || undefined,
+      is_active: isActive || undefined,
+    }),
+    [batchId, profileUpdated, classType, examType, isActive]
+  );
+
   useEffect(() => {
     if (!isOpen || !authToken) return;
     dispatch(
       fetchBatches({
         authToken,
-        queryParams: { limit: 200, page: 1, query: "", is_active: "true" },
+        queryParams: { limit: 100, page: 1, query: "", is_active: "true" },
       })
     );
   }, [isOpen, authToken, dispatch]);
@@ -80,19 +96,11 @@ function QualifierExportModal({ isOpen, onClose }) {
     try {
       const { data } = await axios.get(`${config.BASE_URL}/qualifiers`, {
         headers,
-        params: {
-          page: 1,
-          limit: 5000,
-          batch: batchId || undefined,
-          profile_updated: profileUpdated || undefined,
-          class_type: classType || undefined,
-          exam_type: examType || undefined,
-          is_active: isActive || undefined,
-        },
+        params: { ...buildQualifierParams(), page: 1, limit: 50 },
       });
-      setPreview(Array.isArray(data.docs) ? data.docs : []);
+      setPreview(Array.isArray(data?.docs) ? data.docs : []);
       setExamTypeCounts({
-        total: Number(data?.exam_type_counts?.total) || 0,
+        total: Number(data?.exam_type_counts?.total) || Number(data?.totalDocs) || 0,
         css: Number(data?.exam_type_counts?.css) || 0,
         pms: Number(data?.exam_type_counts?.pms) || 0,
       });
@@ -110,7 +118,14 @@ function QualifierExportModal({ isOpen, onClose }) {
     } finally {
       setLoading(false);
     }
-  }, [headers, batchId, profileUpdated, classType, examType, isActive, toast]);
+  }, [headers, buildQualifierParams, toast]);
+
+  const loadExportRecords = () =>
+    fetchAllPaginated({
+      url: `${config.BASE_URL}/qualifiers`,
+      headers,
+      params: buildQualifierParams(),
+    });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -147,13 +162,14 @@ function QualifierExportModal({ isOpen, onClose }) {
     }
     setExporting("excel");
     try {
+      const exportRecords = await loadExportRecords();
       downloadQualifiersExcel({
-        qualifiers: preview,
+        qualifiers: exportRecords,
         batchName: selectedBatch?.name || "",
       });
       toast({
         title: "Excel exported",
-        description: `${preview.length} qualifier profile(s) downloaded.`,
+        description: `${exportRecords.length} qualifier profile(s) downloaded.`,
         status: "success",
         duration: 3500,
         isClosable: true,
@@ -184,8 +200,9 @@ function QualifierExportModal({ isOpen, onClose }) {
     }
     setExporting("pdf");
     try {
+      const exportRecords = await loadExportRecords();
       await exportQualifiersPdf({
-        qualifiers: preview,
+        qualifiers: exportRecords,
         batchName: selectedBatch?.name || "",
         profileFilterLabel,
         classTypeLabel,
@@ -193,7 +210,7 @@ function QualifierExportModal({ isOpen, onClose }) {
       });
       toast({
         title: "PDF exported",
-        description: `${preview.length} qualifier profile(s) downloaded.`,
+        description: `${exportRecords.length} qualifier profile(s) downloaded.`,
         status: "success",
         duration: 3500,
         isClosable: true,
@@ -226,7 +243,7 @@ function QualifierExportModal({ isOpen, onClose }) {
       {...getResponsiveModalSize("5xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader className="text-xl font-semibold">
           Export Qualifier Profiles
         </ModalHeader>
@@ -275,7 +292,7 @@ function QualifierExportModal({ isOpen, onClose }) {
 
             <FormControl maxW="150px">
               <FormLabel fontSize="sm">Status</FormLabel>
-              <Select
+              <Select permissionField="is_active"
                 value={isActive}
                 onChange={(e) => setIsActive(e.target.value)}
               >
@@ -479,7 +496,7 @@ function QualifierExportModal({ isOpen, onClose }) {
             Export PDF
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

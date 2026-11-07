@@ -1,3 +1,4 @@
+import AccessForm from '../../AccessForm';
 import React, { useState } from "react";
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, IconButton } from "@chakra-ui/react";
 import { useDisclosure } from "@chakra-ui/react";
@@ -42,7 +43,7 @@ function QrCodeModal({ student }) {
       />
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Student QR Code
           </ModalHeader>
@@ -84,7 +85,7 @@ function QrCodeModal({ student }) {
               Update
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

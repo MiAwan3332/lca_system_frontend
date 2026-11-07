@@ -42,6 +42,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "verify:access-forms": "node scripts/checkAccessForms.cjs",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

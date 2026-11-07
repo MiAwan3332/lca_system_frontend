@@ -1,7 +1,11 @@
+
+import { Input, Select, Switch, Textarea } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { Badge, Box, Button, FormControl, FormHelperText, FormLabel, HStack, Input, Select, Switch, Text, Textarea, useToast, VStack, Wrap, WrapItem } from "@chakra-ui/react";
+import { resourceAccess } from '../../utlls/accessCapabilities';
+import { Badge, Box, Button, FormHelperText, FormLabel, HStack, Text, useToast, VStack, Wrap, WrapItem } from '@chakra-ui/react';
 import {
   Eye,
   MessageSquareText,
@@ -31,7 +35,7 @@ function WhatsAppTemplates() {
   const authToken = Cookies.get("authToken");
   const toast = useToast();
   const textareaRef = useRef(null);
-  const canView = isPlatformSuperAdminRole();
+  const canView = resourceAccess('whatsapp', isPlatformSuperAdminRole());
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -471,7 +475,7 @@ function WhatsAppTemplates() {
                       <FormLabel htmlFor="wa-active" mb="0" mr={2} fontSize="sm">
                         Active
                       </FormLabel>
-                      <Switch
+                      <Switch permissionField="is_active"
                         id="wa-active"
                         isChecked={isActive}
                         onChange={(e) => setIsActive(e.target.checked)}
@@ -493,12 +497,12 @@ function WhatsAppTemplates() {
 
                 <FormControl>
                   <FormLabel fontSize="sm">Template name</FormLabel>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} />
+                  <Input permissionField="name" value={name} onChange={(e) => setName(e.target.value)} />
                 </FormControl>
 
                 <FormControl>
                   <FormLabel fontSize="sm">Process</FormLabel>
-                  <Select
+                  <Select permissionField="process"
                     value={process}
                     onChange={(e) => setProcess(e.target.value)}
                     maxW="360px"
@@ -519,7 +523,7 @@ function WhatsAppTemplates() {
 
                 <FormControl>
                   <FormLabel fontSize="sm">Description</FormLabel>
-                  <Input
+                  <Input permissionField="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                   />
@@ -553,7 +557,7 @@ function WhatsAppTemplates() {
 
                 <FormControl>
                   <FormLabel fontSize="sm">Message body</FormLabel>
-                  <Textarea
+                  <Textarea permissionField="body"
                     ref={textareaRef}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}

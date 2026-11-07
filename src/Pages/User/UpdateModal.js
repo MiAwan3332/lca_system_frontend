@@ -1,80 +1,35 @@
-import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Select,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
+import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { can } from '../../utlls/accessCapabilities';
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, FormHelperText, VStack, Box, useToast } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
-import axios from "axios";
 import { Pen } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, updateUser } from "../../Features/userSlice";
-import { config } from "../../utlls/config";
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
+import axios from 'axios';
+import { config } from '../../utlls/config';
 
-const isExcludedUserFormRole = (roleName) => {
-  const name = String(roleName || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ");
-  return name === "teacher" || name === "student";
-};
+export const MIN_PASSWORD_LENGTH = 8;
 
 function UpdateModal({ user }) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
 
   const [authToken] = useState(Cookies.get("authToken"));
-  const [roles, setRoles] = useState([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
 
   const { updateStatus } = useSelector((state) => state.users);
+  const canSetPassword = can('users.set.user.password');
+  const toast = useToast();
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (!isOpen || !authToken) return;
-
-    let cancelled = false;
-    const loadRoles = async () => {
-      setRolesLoading(true);
-      try {
-        const response = await axios.get(`${config.BASE_URL}/roles`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-          params: { page: 1, limit: 1000, query: "" },
-        });
-        if (!cancelled) {
-          setRoles(
-            (response.data?.docs || []).filter(
-              (role) => !isExcludedUserFormRole(role.name)
-            )
-          );
-        }
-      } catch {
-        if (!cancelled) setRoles([]);
-      } finally {
-        if (!cancelled) setRolesLoading(false);
-      }
-    };
-
-    loadRoles();
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, authToken]);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -83,55 +38,50 @@ function UpdateModal({ user }) {
       email: user.email,
       phone: user.phone || "",
       password: "",
-      role: user.role,
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
       phone: Yup.string().trim().required("Contact number is required"),
-      role: Yup.string().required("Required"),
+      password: Yup.string().test("length", `At least ${MIN_PASSWORD_LENGTH} characters`, (value) => !value || value.trim().length >= MIN_PASSWORD_LENGTH),
     }),
     onSubmit: async (values) => {
-      dispatch(updateUser({ userId: user._id, values, authToken }))
-        .unwrap()
-        .then(() => {
-          onClose();
-          dispatch(fetchUsers({ authToken }));
-        });
+      const { password, ...profileValues } = values;
+      try {
+        await dispatch(updateUser({ userId: user._id, values: profileValues, authToken })).unwrap();
+      } catch { return; /* The shared request handler displays validation errors. */ }
+      if (canSetPassword && password) {
+        try {
+          const { data } = await axios.post(`${config.BASE_URL}/users/${user._id}/password`, { newPassword: password }, { headers: { Authorization: `Bearer ${authToken}` } });
+          toast({ title: data?.message || "Password updated", status: "success", duration: 4000, isClosable: true });
+        } catch (error) {
+          toast({ title: "Password not changed", description: error?.response?.data?.message || error.message, status: "error", duration: 8000, isClosable: true });
+          return;
+        }
+      }
+      onClose();
+      dispatch(fetchUsers({ authToken }));
     },
   });
-
-  const roleOptions = React.useMemo(() => {
-    const docs = [...roles];
-    if (
-      user?.role &&
-      !isExcludedUserFormRole(user.role) &&
-      !docs.some(
-        (role) =>
-          String(role.name).toLowerCase() === String(user.role).toLowerCase()
-      )
-    ) {
-      docs.unshift({ _id: `current-${user.role}`, name: user.role });
-    }
-    return docs;
-  }, [roles, user?.role]);
 
   return (
     <>
       <button
-        className="hover:bg-[#FFCB82] hover:text-[#85652D] font-medium p-[10px] rounded-xl transition-colors duration-300"
+        aria-label={`Edit ${user.name}`}
+        className="action-menu-btn action-menu-btn--gold"
         onClick={onOpen}
       >
         <Pen size={18} />
+        <span>Edit User</span>
       </button>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Update User
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl id="name">
@@ -181,9 +131,14 @@ function UpdateModal({ user }) {
                   ) : null}
                 </FormControl>
                 <FormControl id="password">
-                  <FormLabel fontSize={14}>Password</FormLabel>
+                  <FormLabel fontSize={14}>New password</FormLabel>
                   <Input
                     type="password"
+                    isDisabled={!canSetPassword}
+                    autoComplete="new-password"
+                    permissionField="newPassword"
+                    permission="users.set.user.password"
+                    placeholder={canSetPassword ? "Leave empty to keep the current password" : ""}
                     name="password"
                     borderRadius={"0.5rem"}
                     value={formik.values.password}
@@ -194,31 +149,16 @@ function UpdateModal({ user }) {
                       {formik.errors.password}
                     </Box>
                   ) : null}
+                  <FormHelperText>{canSetPassword ? `At least ${MIN_PASSWORD_LENGTH} characters. Tell them the new password yourself.` : "Needs the \"Set passwords\" access."}</FormHelperText>
                 </FormControl>
-                <FormControl id="role">
-                  <FormLabel fontSize={14}>Role</FormLabel>
-                  <Select
-                    placeholder={
-                      rolesLoading ? "Loading roles..." : "Select Role"
-                    }
-                    name="role"
-                    borderRadius={"0.5rem"}
-                    onChange={formik.handleChange}
-                    value={formik.values.role}
-                    isDisabled={rolesLoading}
-                  >
-                    {roleOptions.map((role) => (
-                      <option key={role._id} value={role.name}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </Select>
-                  {formik.touched.role && formik.errors.role ? (
-                    <Box color="red" fontSize="sm">
-                      {formik.errors.role}
-                    </Box>
-                  ) : null}
-                </FormControl>
+                <Box width="100%">
+                  <Box fontSize={14} fontWeight="medium" mb={2}>Access role</Box>
+                  <Box color="var(--dash-text)">{accessRoleLabel(user)}</Box>
+                  {can('access.read') && can('access.assign') && <Button mt={3} type="button" className="table-action-btn" onClick={() => {
+                    if (formik.dirty && !window.confirm('Leave without saving these profile changes?')) return;
+                    onClose(); navigate(`/access-management/people/${user._id}?category=staff`);
+                  }}>Manage Access</Button>}
+                </Box>
               </VStack>
             </ModalBody>
 
@@ -247,8 +187,8 @@ function UpdateModal({ user }) {
                 Update
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

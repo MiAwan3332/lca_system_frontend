@@ -1,32 +1,10 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import moment from "moment";
 import axios from "axios";
-import {
-  Badge,
-  Button,
-  ButtonGroup,
-  FormControl,
-  FormLabel,
-  IconButton,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Select,
-  Stat,
-  StatHelpText,
-  StatLabel,
-  StatNumber,
-  Table,
-  TableContainer,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Text,
-  useToast,
-} from "@chakra-ui/react";
+import { Badge, Button, ButtonGroup, FormLabel, IconButton, InputGroup, InputLeftElement, Stat, StatHelpText, StatLabel, StatNumber, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, useToast } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import {
   AlertTriangle,
@@ -53,9 +31,8 @@ import {
   setLimitFilter,
 } from "../../Features/batchSlice";
 import {
-  fetchUsers,
-  selectAllUsers,
-  setLimitFilter as setUserLimitFilter,
+  fetchFeeCollectors,
+  selectFeeCollectors,
 } from "../../Features/userSlice";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import FilterMultiSelect from "../../Components/FilterMultiSelect";
@@ -68,6 +45,8 @@ import BatchFinanceSection from "../../Components/Dashboard/BatchFinanceSection"
 import { exportFinanceTransactionsExcel } from "../../utlls/generateFinanceTransactionsReport";
 import { exportFinanceTransactionsPdf } from "../../utlls/generateFinanceTransactionsPdf";
 import { config } from "../../utlls/config";
+import { accessSnapshot, can } from '../../utlls/accessCapabilities';
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
 
 const BASE_URL = config.BASE_URL;
 
@@ -94,6 +73,8 @@ const TRANSACTION_TYPE_OPTIONS = [
 
 const ACTION_TYPE_OPTIONS = [
   { value: "Paid", label: "Paid" },
+  { value: "Discounted", label: "Discounted" },
+  { value: "Refund", label: "Refund" },
   { value: "Pending", label: "Pending" },
   { value: "Expense", label: "Expense" },
 ];
@@ -234,7 +215,7 @@ function FinanceReport() {
   const dispatch = useDispatch();
   const { report, status } = useSelector((state) => state.financeReport);
   const batches = useSelector(selectActiveBatches);
-  const users = useSelector(selectAllUsers);
+  const users = useSelector(selectFeeCollectors);
 
   const adminUsers = useMemo(
     () =>
@@ -426,6 +407,10 @@ function FinanceReport() {
     collectedBy: collectedByLabel,
     totalCash: summary.total_cash,
     totalOnline: summary.total_online,
+    totalCollected: summary.total_fee_recovered,
+    totalRefunded: summary.total_fee_refunded,
+    totalDiscounted: summary.total_fee_discounted,
+    totalExpenses: summary.total_approved_expenses,
     batchWise: summary.batch_wise || [],
   });
 
@@ -486,9 +471,8 @@ function FinanceReport() {
 
   useEffect(() => {
     dispatch(setLimitFilter(100));
-    dispatch(setUserLimitFilter(100));
     dispatch(fetchBatches({ authToken }));
-    dispatch(fetchUsers({ authToken }));
+    if (!accessSnapshot().managed || can('users.get.fee.collectors')) dispatch(fetchFeeCollectors({ authToken }));
     loadReport({
       period: "daily",
       start_date: moment().format("YYYY-MM-DD"),
@@ -524,7 +508,8 @@ function FinanceReport() {
           return false;
         }
       }
-      if (typeSet.size && !typeSet.has(String(transaction.type))) {
+      // Refunds are fee money, so the Fee type includes them.
+      if (typeSet.size && !typeSet.has(transaction.type === "refund" ? "fee" : String(transaction.type))) {
         return false;
       }
       if (actionSet.size && !actionSet.has(String(transaction.action_type))) {
@@ -654,7 +639,7 @@ function FinanceReport() {
             {adminUsers.map((user) => (
               <option key={user._id} value={user._id}>
                 {user.name}
-                {user.role ? ` (${user.role})` : ""}
+                {accessRoleLabel(user, "") ? ` (${accessRoleLabel(user, "")})` : ""}
               </option>
             ))}
           </Select>
@@ -756,7 +741,7 @@ function FinanceReport() {
                   {adminUsers.map((user) => (
                     <option key={user._id} value={user._id}>
                       {user.name}
-                      {user.role ? ` (${user.role})` : ""}
+                      {accessRoleLabel(user, "") ? ` (${accessRoleLabel(user, "")})` : ""}
                     </option>
                   ))}
                 </Select>
@@ -970,7 +955,9 @@ function FinanceReport() {
                               ? "red"
                               : transaction.action_type === "Pending"
                                 ? "yellow"
-                                : "gray"
+                                : transaction.action_type === "Discounted"
+                                  ? "blue"
+                                  : "gray"
                         }
                       >
                         {transaction.action_type}

@@ -1,22 +1,10 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
+import { resourceAccess } from '../../utlls/accessCapabilities';
 import moment from "moment";
-import {
-  Badge,
-  Button,
-  FormControl,
-  Input,
-  Select,
-  Table,
-  TableContainer,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Text,
-  Box,
-} from "@chakra-ui/react";
+import { Badge, Button, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Text, Box } from '@chakra-ui/react';
 import { FileX, FilterX } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import TableSearch from "../../Components/TableSearch";
@@ -61,7 +49,7 @@ export function ActivityLogsPage() {
     (state) => state.activityLogs
   );
 
-  const canView = isPlatformSuperAdminRole();
+  const canView = resourceAccess('activity-logs', isPlatformSuperAdminRole());
 
   // TableSearch / TablePagination only update filters; this effect loads from the API.
   const skipClientFetch = () => ({ type: "activityLogs/skipClientFetch" });

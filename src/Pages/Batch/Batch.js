@@ -1,25 +1,11 @@
+
+import { Switch, Select, Input } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Switch,
-  Badge,
-  HStack,
-  FormControl,
-  Select,
-  Input,
-  Button,
-  ButtonGroup,
-  Link,
-  createStandaloneToast,
-} from "@chakra-ui/react";
+import { resourceAccess, accessSnapshot } from '../../utlls/accessCapabilities';
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Badge, HStack, Button, ButtonGroup, Link, createStandaloneToast } from '@chakra-ui/react';
 import AddModel from "./AddModel";
 import DeleteModal from "./DeleteModal";
 import UpdateModal from "./UpdateModal";
@@ -69,11 +55,11 @@ const LIST_VIEWS = {
 
 function Batch() {
   const viewOnly = isStudentViewOnly();
-  const canManageInstitution = isInstitutionAdmin();
+  const canManageInstitution = resourceAccess('batches', isInstitutionAdmin(), true);
   const isTeacher = isTeacherRole();
   const showFeeAndDates = !isTeacher;
   const showDeletedBatches = canDeleteStudent();
-  const canDeleteBatch = canDeleteStudent();
+  const canDeleteBatch = accessSnapshot().managed ? hasPermission(['Delete_Batch']) : canDeleteStudent();
   const tableSearchRef = useRef();
   const [authToken, setAuthToken] = useState(Cookies.get("authToken"));
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -194,8 +180,8 @@ function Batch() {
     }
   };
 
-  const canUseGoogleSync = !viewOnly && (canManageInstitution || isTeacher);
-  const canSendWhatsApp = !viewOnly && isPlatformSuperAdminRole();
+  const canUseGoogleSync = !viewOnly && resourceAccess('google', canManageInstitution || isTeacher, true);
+  const canSendWhatsApp = !viewOnly && resourceAccess('whatsapp', isPlatformSuperAdminRole(), true);
   const statusColumnCount = !viewOnly && canManageInstitution ? 1 : 0;
   const actionColumnCount =
     !viewOnly && (canManageInstitution || canUseGoogleSync || canSendWhatsApp) ? 1 : 0;
@@ -451,7 +437,7 @@ function Batch() {
                             {isActive ? "Active" : "Inactive"}
                           </Badge>
                           {hasPermission(["Update_Batch"]) && (
-                            <Switch
+                            <Switch permissionField="is_active" permission="batches.toggle.batch.status"
                               isChecked={isActive}
                               onChange={() => handleToggleStatus(batch)}
                               colorScheme="yellow"

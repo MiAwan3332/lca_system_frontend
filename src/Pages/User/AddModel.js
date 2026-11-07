@@ -1,75 +1,43 @@
-import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Select,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, FormHelperText, VStack, Box } from '@chakra-ui/react';
+import { can } from '../../utlls/accessCapabilities';
+import { RoleChoice } from '../Roles/RoleChoice';
+import ScopePicker from '../Roles/ScopePicker';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, addUser } from "../../Features/userSlice";
 import { config } from "../../utlls/config";
+import CreationProcessing from '../../Components/CreationProcessing';
+import { pendingCreationKey } from '../../utlls/creationRecovery';
 
-const isExcludedUserFormRole = (roleName) => {
-  const name = String(roleName || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ");
-  return name === "teacher" || name === "student";
-};
+// Built-in login roles for other account categories are never right for a staff account.
+const staffRole = (role) => !['lca-v1-student', 'lca-v1-teacher', 'lca-v1-qualifier', 'lca-v1-panelist'].includes(role.code);
 
 function AddModel({ isOpen, onClose }) {
   const [authToken] = useState(Cookies.get("authToken"));
-  const [roles, setRoles] = useState([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
+  const [submission, setSubmission] = useState(null);
+  const [accessRole, setAccessRole] = useState(null), [accessBatchIds, setAccessBatches] = useState([]), [accessCourseIds, setAccessCourses] = useState([]), [accessError, setAccessError] = useState('');
+  const accessApi = useMemo(() => axios.create({ baseURL: `${config.BASE_URL}/access`, headers: { Authorization: `Bearer ${authToken}` }, timeout: 15000 }), [authToken]);
+  const canChooseAccess = can('access.assign');
+  const scopedRole = accessRole?.grants?.some((grant) => grant.scope === 'selected');
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const key = pendingCreationKey('user', authToken);
+    if (!key) { formRef.current?.resetForm(); setAccessRole(null); setAccessBatches([]); setAccessCourses([]); setAccessError(''); }
+    setSubmission(key ? { idempotency_key: key, submission_status: 'unknown' } : null);
+  }, [isOpen, authToken]);
 
   const { addStatus } = useSelector((state) => state.users);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (!isOpen || !authToken) return;
-
-    let cancelled = false;
-    const loadRoles = async () => {
-      setRolesLoading(true);
-      try {
-        const response = await axios.get(`${config.BASE_URL}/roles`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-          params: { page: 1, limit: 1000, query: "" },
-        });
-        if (!cancelled) {
-          setRoles(
-            (response.data?.docs || []).filter(
-              (role) => !isExcludedUserFormRole(role.name)
-            )
-          );
-        }
-      } catch {
-        if (!cancelled) setRoles([]);
-      } finally {
-        if (!cancelled) setRolesLoading(false);
-      }
-    };
-
-    loadRoles();
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, authToken]);
 
   const formik = useFormik({
     initialValues: {
@@ -77,36 +45,39 @@ function AddModel({ isOpen, onClose }) {
       email: "",
       phone: "",
       // password: "",
-      role: "",
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Required"),
       email: Yup.string().email("Invalid email address").required("Required"),
       phone: Yup.string().trim().required("Contact number is required"),
       // password: Yup.string().required("Required"),
-      role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
-      dispatch(addUser({ formData: values, authToken }))
-        .unwrap()
-        .then(() => {
-          formik.resetForm();
-          onClose();
-          dispatch(fetchUsers({ authToken }));
-        })
-        .catch(() => {});
+      if (scopedRole && !accessBatchIds.length && !accessCourseIds.length) { setAccessError('Choose the batches or courses this access role applies to.'); return; }
+      setAccessError('');
+      try {
+        const access = accessRole ? { accessRoleId: accessRole._id, accessBatchIds, accessCourseIds } : {};
+        const result = await dispatch(addUser({ formData: { ...values, ...access }, authToken })).unwrap();
+        setSubmission(result);
+        if (result.submission_status === 'complete') dispatch(fetchUsers({ authToken }));
+      } catch { /* The shared request handler displays validation errors. */ }
     },
   });
+  formRef.current = formik;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader className="text-xl font-semibold">Add User</ModalHeader>
         <ModalCloseButton />
-        <form onSubmit={formik.handleSubmit}>
+        <AccessForm onSubmit={formik.handleSubmit}>
           <ModalBody>
-            <VStack spacing={4}>
+            {submission && <Box mb={4}><CreationProcessing kind="user" authToken={authToken}
+              submissionKey={submission.idempotency_key} initial={submission}
+              onReset={() => setSubmission(null)}
+              onResolved={() => dispatch(fetchUsers({ authToken }))} /></Box>}
+            <VStack as="fieldset" disabled={addStatus === 'loading' || Boolean(submission)} spacing={4} width="100%">
               <FormControl id="name" isRequired>
                 <FormLabel fontSize={14}>Name</FormLabel>
                 <Input
@@ -168,28 +139,13 @@ function AddModel({ isOpen, onClose }) {
                   </Box>
                 ) : null}
               </FormControl> */}
-              <FormControl id="role" isRequired>
-                <FormLabel fontSize={14}>Role</FormLabel>
-                <Select
-                  placeholder={rolesLoading ? "Loading roles..." : "Select Role"}
-                  borderRadius={"0.5rem"}
-                  name="role"
-                  value={formik.values.role}
-                  onChange={formik.handleChange}
-                  isDisabled={rolesLoading}
-                >
-                  {roles.map((role) => (
-                    <option key={role._id} value={role.name}>
-                      {role.name}
-                    </option>
-                  ))}
-                </Select>
-                {formik.touched.role && formik.errors.role ? (
-                  <Box color="red" fontSize="sm">
-                    {formik.errors.role}
-                  </Box>
-                ) : null}
-              </FormControl>
+              {canChooseAccess && <FormControl>
+                <FormLabel fontSize={14}>Access role</FormLabel>
+                <RoleChoice api={accessApi} value={accessRole} label="Access role" filter={staffRole} onChange={(role) => { setAccessRole(role); setAccessBatches([]); setAccessCourses([]); setAccessError(''); }} />
+                <FormHelperText>{accessRole ? `They can sign in and work as ${accessRole.name} straight away.` : 'Optional. Leave empty to use the new-account default; you can assign a role later.'}</FormHelperText>
+                {scopedRole && <Box mt={2}><ScopePicker api={accessApi} type="batches" selected={accessBatchIds} onChange={setAccessBatches} /><ScopePicker api={accessApi} type="courses" selected={accessCourseIds} onChange={setAccessCourses} /></Box>}
+                {accessError && <Box color="red" fontSize="sm" mt={1}>{accessError}</Box>}
+              </FormControl>}
             </VStack>
           </ModalBody>
 
@@ -214,12 +170,13 @@ function AddModel({ isOpen, onClose }) {
               type="submit"
               loadingText="Adding"
               isLoading={addStatus === "loading"}
+              isDisabled={Boolean(submission)}
             >
               Add
             </Button>
           </ModalFooter>
-        </form>
-      </ModalContent>
+        </AccessForm>
+      </AccessForm>
     </Modal>
   );
 }

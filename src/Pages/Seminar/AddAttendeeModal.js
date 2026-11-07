@@ -1,23 +1,11 @@
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Box,
-  SimpleGrid,
-  VStack,
-  Text,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Box, SimpleGrid, VStack, Text } from '@chakra-ui/react';
 import Cookies from "js-cookie";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { UserPlus } from "lucide-react";
@@ -89,10 +77,10 @@ function AddAttendeeModal({ seminar, isOpen, onClose, onAdded }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader className="text-xl font-semibold">Add Attendee</ModalHeader>
         <ModalCloseButton />
-        <form onSubmit={formik.handleSubmit}>
+        <AccessForm onSubmit={formik.handleSubmit}>
           <ModalBody>
             <Text fontSize="sm" color="gray.500" mb={4}>
               Adding attendees for <strong>{seminar.name}</strong>. The form
@@ -209,8 +197,8 @@ function AddAttendeeModal({ seminar, isOpen, onClose, onAdded }) {
               Add Attendee
             </Button>
           </ModalFooter>
-        </form>
-      </ModalContent>
+        </AccessForm>
+      </AccessForm>
     </Modal>
   );
 }

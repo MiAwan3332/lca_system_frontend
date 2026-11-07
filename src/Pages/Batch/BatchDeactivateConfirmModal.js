@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React from "react";
 import {
   Modal,
@@ -22,7 +23,7 @@ function BatchDeactivateConfirmModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader className="text-xl font-semibold">
           Deactivate batch
         </ModalHeader>
@@ -53,7 +54,7 @@ function BatchDeactivateConfirmModal({
             Yes, deactivate
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

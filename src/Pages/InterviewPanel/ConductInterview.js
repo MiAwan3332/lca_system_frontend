@@ -1,14 +1,20 @@
+import {can} from '../../utlls/accessCapabilities';
+
+import { Input, Radio, RadioGroup, Textarea } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo } from "react";
-import { Box, Button, Center, Divider, Flex, FormControl, FormLabel, Grid, GridItem, Heading, Image, Input, Radio, RadioGroup, SimpleGrid, Stack, Tag, Text, Textarea, VStack, Wrap, WrapItem } from "@chakra-ui/react";
+import { Box, Button, Center, Divider, Flex, FormLabel, Grid, GridItem, Heading, Image, SimpleGrid, Stack, Tag, Text, VStack, Wrap, WrapItem } from '@chakra-ui/react';
 import { ArrowLeft, GraduationCap, UserRound } from "lucide-react";
 import Cookies from "js-cookie";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../../Components/PageHeader";
 import {
   fetchConductInterview,
+  startInterviewSession,
   submitInterviewEvaluation,
 } from "../../Features/interviewPanelSlice";
 import { getMediaUrl } from "../../utlls/useful";
@@ -75,12 +81,12 @@ function ConductInterview() {
     (state) => state.interviewPanels
   );
 
-  const scheduleIdx = Number(scheduleIndex);
+  const scheduleIdx = /^[a-f0-9]{24}$/i.test(String(scheduleIndex))?scheduleIndex:Number(scheduleIndex);
   const isCompleted =
     conductData?.evaluation?.status === "completed";
 
   useEffect(() => {
-    if (authToken && panelId && Number.isInteger(scheduleIdx)) {
+    if (authToken && panelId && (Number.isInteger(scheduleIdx)||typeof scheduleIdx==='string')) {
       dispatch(
         fetchConductInterview({
           authToken,
@@ -103,7 +109,8 @@ function ConductInterview() {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      schedule_index: scheduleIdx,
+      schedule_index: typeof scheduleIdx==='number'?scheduleIdx:undefined,
+      schedule_id:typeof scheduleIdx==='string'?scheduleIdx:undefined,
       knowledge: evaluation?.knowledge ?? "",
       analytical_ability: evaluation?.analytical_ability ?? "",
       communication: evaluation?.communication ?? "",
@@ -134,7 +141,8 @@ function ConductInterview() {
           panelId,
           values: {
             ...values,
-            schedule_index: scheduleIdx,
+            schedule_index: typeof scheduleIdx==='number'?scheduleIdx:undefined,
+      schedule_id:typeof scheduleIdx==='string'?scheduleIdx:undefined,
           },
         })
       );
@@ -183,6 +191,7 @@ function ConductInterview() {
           Back to Schedules
         </Button>
       </PageHeader>
+      {!evaluation && slot?.booking_status==='booked' && can('interview-panels.start.interview') && <Button mt={3} onClick={()=>dispatch(startInterviewSession({authToken,panelId,schedule_id:slot._id}))}>Start my evaluation</Button>}
 
       <Grid
         templateColumns={{ base: "1fr", xl: "minmax(0, 1fr) minmax(0, 1.2fr)" }}
@@ -425,7 +434,7 @@ function ConductInterview() {
 
             <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4} mb={8}>
               {INTERVIEW_SCORE_FIELDS.map((field) => (
-                <FormControl key={field.key} isDisabled={isCompleted}>
+                <FormControl key={field.key} isDisabled={isCompleted || !evaluation}>
                   <FormLabel {...fieldLabelStyles}>{field.label}</FormLabel>
                   <Input
                     type="number"
@@ -464,7 +473,7 @@ function ConductInterview() {
             </Flex>
 
             <Stack spacing={4} mb={8}>
-              <FormControl isDisabled={isCompleted}>
+              <FormControl isDisabled={isCompleted || !evaluation}>
                 <FormLabel {...fieldLabelStyles}>Key Strength</FormLabel>
                 <Textarea
                   name="key_strength"
@@ -475,7 +484,7 @@ function ConductInterview() {
                   rows={3}
                 />
               </FormControl>
-              <FormControl isDisabled={isCompleted}>
+              <FormControl isDisabled={isCompleted || !evaluation}>
                 <FormLabel {...fieldLabelStyles}>Major Weakness</FormLabel>
                 <Textarea
                   name="major_weakness"
@@ -486,7 +495,7 @@ function ConductInterview() {
                   rows={3}
                 />
               </FormControl>
-              <FormControl isDisabled={isCompleted}>
+              <FormControl isDisabled={isCompleted || !evaluation}>
                 <FormLabel {...fieldLabelStyles}>
                   Improvement Since Last Mock (Optional)
                 </FormLabel>
@@ -518,9 +527,9 @@ function ConductInterview() {
 
               <FormControl
                 isInvalid={formik.touched.verdict && !!formik.errors.verdict}
-                isDisabled={isCompleted}
+                isDisabled={isCompleted || !evaluation}
               >
-                <RadioGroup
+                <RadioGroup permissionField="verdict"
                   value={formik.values.verdict}
                   onChange={(value) => formik.setFieldValue("verdict", value)}
                 >
@@ -543,7 +552,7 @@ function ConductInterview() {
                 ) : null}
               </FormControl>
 
-              <FormControl mt={5} isDisabled={isCompleted}>
+              <FormControl mt={5} isDisabled={isCompleted || !evaluation}>
                 <FormLabel {...fieldLabelStyles}>Final Remarks</FormLabel>
                 <Textarea
                   name="final_remarks"
@@ -566,6 +575,7 @@ function ConductInterview() {
                 color="#FFCB82"
                 _hover={{ bg: "#2D3748" }}
                 isLoading={submitEvaluationStatus === "loading"}
+                isDisabled={!evaluation || !can('interview-panels.submit.interview.evaluation')}
               >
                 Submit Mock Evaluation
               </Button>

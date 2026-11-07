@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React from "react";
 import {
   Modal,
@@ -38,7 +39,7 @@ function SubmissionsListModal({ isOpen, onClose, submissions, assignment, onGrad
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...responsiveModalProps} {...getResponsiveModalSize("3xl")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>
           Submissions — {assignment?.title}
           {maxMarks ? ` (Max ${maxMarks} marks)` : ""}
@@ -108,7 +109,7 @@ function SubmissionsListModal({ isOpen, onClose, submissions, assignment, onGrad
         <ModalFooter>
           <Button onClick={onClose}>Close</Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

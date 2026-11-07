@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useEffect, useState } from "react";
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Box, Text, Badge, SimpleGrid, VStack, HStack, Divider, Table, Thead, Tbody, Tr, Th, Td, TableContainer } from "@chakra-ui/react";
 import moment from "moment";
@@ -78,7 +80,7 @@ function DeletedBatchDetailModal({ archiveId, isOpen, onClose }) {
       {...getResponsiveModalSize("4xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>
           Deleted batch
           {batch.name ? (
@@ -219,7 +221,7 @@ function DeletedBatchDetailModal({ archiveId, isOpen, onClose }) {
             Close
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

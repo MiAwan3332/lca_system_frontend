@@ -1,25 +1,9 @@
+
+import { Textarea, Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  Button,
-  Text,
-  VStack,
-  HStack,
-  Badge,
-  Link,
-  FormControl,
-  FormLabel,
-  Textarea,
-  Input,
-  Divider,
-  Box,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, Text, VStack, HStack, Badge, Link, FormLabel, Divider, Box } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAssignmentSubmissions,
@@ -119,7 +103,7 @@ function AssignmentDetailModal({ isOpen, onClose, authToken, assignment }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>View Assignment</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -355,7 +339,7 @@ function AssignmentDetailModal({ isOpen, onClose, authToken, assignment }) {
         <ModalFooter>
           <Button onClick={onClose}>Close</Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { accessSnapshot } from './accessCapabilities';
 import { extractRoleFromToken } from "./useful";
 
 /** Screens allowed for the Qualifier role. */
@@ -20,6 +21,7 @@ export const isQualifierRoleName = (role) =>
   normalizeRole(role) === "qualifier";
 
 export const isQualifierRole = () => {
+  if (accessSnapshot().ready && accessSnapshot().managed) return accessSnapshot().accountType === 'qualifier';
   const storedRole = sessionStorage.getItem("role");
   if (storedRole) {
     return isQualifierRoleName(storedRole);

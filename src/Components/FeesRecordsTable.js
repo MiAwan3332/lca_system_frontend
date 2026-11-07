@@ -24,6 +24,7 @@ import DiscountFeeModal from "../Pages/Fees/DiscountFeeModal";
 import ActionMenu from "./ActionMenu";
 import { DueDateCell } from "./OverdueFeeAlert";
 import { isFeeOverdue } from "../utlls/feeDueDate";
+import { accessSnapshot, can } from "../utlls/accessCapabilities";
 
 const formatRs = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 })}`;
@@ -190,10 +191,10 @@ function FeesRecordsTable({ fees, fetchStatus, viewOnly, pagination }) {
                                 fee={fee}
                                 isDisabled={fee.amount === 0 || isPaid}
                               />
-                              <DiscountFeeModal
+                              {(!accessSnapshot().managed || can('fees.discount.fee')) && <DiscountFeeModal
                                 fee={fee}
                                 isDisabled={fee.amount === 0 || isPaid}
-                              />
+                              />}
                               <DeleteFeeModal fee={fee} />
                             </ActionMenu>
                           </div>

@@ -5,6 +5,7 @@ import { Check, X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { approveExpense, rejectExpense } from "../../Features/expenseSlice";
 import RejectModal from "./RejectModal";
+import { accessSnapshot, can } from '../../utlls/accessCapabilities';
 
 function ApprovalActions({ expense, onUpdated }) {
   const [authToken] = useState(Cookies.get("authToken"));
@@ -35,7 +36,7 @@ function ApprovalActions({ expense, onUpdated }) {
 
   return (
     <div className="flex items-center gap-1">
-      <Button
+      {(!accessSnapshot().managed || can('expenses.approve.expense')) && <Button
         size="sm"
         borderRadius="lg"
         backgroundColor="#82FFCB"
@@ -46,8 +47,8 @@ function ApprovalActions({ expense, onUpdated }) {
         leftIcon={<Check size={14} />}
       >
         Approve
-      </Button>
-      <Button
+      </Button>}
+      {(!accessSnapshot().managed || can('expenses.reject.expense')) && <Button
         size="sm"
         borderRadius="lg"
         backgroundColor="#FF8A8A"
@@ -57,7 +58,7 @@ function ApprovalActions({ expense, onUpdated }) {
         leftIcon={<X size={14} />}
       >
         Reject
-      </Button>
+      </Button>}
       <RejectModal
         isOpen={isOpen}
         onClose={onClose}

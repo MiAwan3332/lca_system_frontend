@@ -1,27 +1,7 @@
+import { Checkbox, Input, Select, Textarea } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React from "react";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Divider,
-  Flex,
-  FormControl,
-  FormLabel,
-  Grid,
-  GridItem,
-  IconButton,
-  Input,
-  Select,
-  SimpleGrid,
-  Text,
-  Textarea,
-  VStack,
-  Wrap,
-  WrapItem,
-  Tag,
-  TagLabel,
-  TagCloseButton,
-} from "@chakra-ui/react";
+import { Box, Button, Divider, Flex, FormLabel, Grid, GridItem, IconButton, SimpleGrid, Text, VStack, Wrap, WrapItem, Tag, TagLabel, TagCloseButton } from '@chakra-ui/react';
 import { Plus, Trash2 } from "lucide-react";
 import {
   provinceSelectOptions,

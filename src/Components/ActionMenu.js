@@ -135,8 +135,9 @@ function ActionMenu({ children, placement = "left-start", width = "250px" }) {
         <PopoverContent
           ref={contentRef}
           w={width}
-          bg="white"
-          borderColor="#E8EEF4"
+          bg="var(--dash-surface)"
+          color="var(--dash-text)"
+          borderColor="var(--dash-border)"
           borderRadius="1rem"
           boxShadow="0 18px 40px rgba(15, 23, 42, 0.16)"
           zIndex={1400}

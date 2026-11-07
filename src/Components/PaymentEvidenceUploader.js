@@ -1,3 +1,4 @@
+import { NativeInput as AccessNativeInput } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
@@ -10,6 +11,8 @@ import {
 } from "@chakra-ui/react";
 import { Camera, Paperclip, Trash2, Upload, X } from "lucide-react";
 import CameraCapture from "./CameraCapture";
+import { useAccessForm } from './AccessForm';
+import { accessSnapshot, subscribeAccess, canUseField } from '../utlls/accessCapabilities';
 
 const isImageFile = (file) =>
   file && String(file.type || "").startsWith("image/");
@@ -18,7 +21,7 @@ const isImageFile = (file) =>
  * Upload and/or capture payment receipt photos for Online Payment.
  * Supports multiple images/PDFs.
  */
-function PaymentEvidenceUploader({
+function PaymentEvidenceInput({
   files = [],
   onChange,
   error = "",
@@ -27,6 +30,7 @@ function PaymentEvidenceUploader({
   const fileInputRef = useRef(null);
   const [showCamera, setShowCamera] = useState(false);
   const [previews, setPreviews] = useState([]);
+  const [validationError, setValidationError] = useState('');
 
   const list = useMemo(
     () => (Array.isArray(files) ? files.filter(Boolean) : []),
@@ -59,6 +63,11 @@ function PaymentEvidenceUploader({
   }, [list]);
 
   const emit = (nextFiles) => {
+    if (nextFiles.length > 10 || nextFiles.some((file) => file.size > 10 * 1024 * 1024 || !/\.(jpe?g|png|webp|pdf)$/i.test(file.name))) {
+      setValidationError('Choose up to ten JPG, PNG, WebP or PDF files, each at most 10 MB.');
+      return;
+    }
+    setValidationError('');
     onChange?.(nextFiles);
   };
 
@@ -134,11 +143,11 @@ function PaymentEvidenceUploader({
         ) : null}
       </HStack>
 
-      <input
+      <AccessNativeInput
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/jpeg,image/png,image/webp,image/gif,image/*,application/pdf"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
         // Native hidden input — must NOT be HTML-required (browser can't focus it)
         tabIndex={-1}
         aria-hidden="true"
@@ -166,6 +175,7 @@ function PaymentEvidenceUploader({
           bg="#FAFBFC"
         >
           <CameraCapture
+            permissionField="payment_evidence"
             label="Payment receipt photo"
             onCapture={handleCapture}
           />
@@ -233,13 +243,18 @@ function PaymentEvidenceUploader({
         </Text>
       )}
 
-      {error ? (
+      {error || validationError ? (
         <Text color="red.500" fontSize="sm" mt={2}>
-          {error}
+          {error || validationError}
         </Text>
       ) : null}
     </Box>
   );
 }
 
-export default PaymentEvidenceUploader;
+export default function PaymentEvidenceUploader(props) {
+  React.useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const mode = useAccessForm();
+  if (mode && !canUseField('payment_evidence', 'write')) return null;
+  return <PaymentEvidenceInput {...props} />;
+}

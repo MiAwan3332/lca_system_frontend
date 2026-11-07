@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { requireOutput } from './accessCapabilities';
 import moment from "moment";
 import { normalizeEducationBackground } from "./qualifierEducation";
 import { isQualifierProfileComplete } from "./qualifierProfile";
@@ -97,6 +98,7 @@ export const downloadQualifiersExcel = ({
   qualifiers = [],
   batchName = "",
 } = {}) => {
+  requireOutput('qualifiers', 'export');
   const rows = (qualifiers || []).map((q, i) => mapQualifierExportRow(q, i));
   const worksheet = XLSX.utils.aoa_to_sheet([QUALIFIER_EXPORT_HEADERS, ...rows]);
 

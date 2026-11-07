@@ -82,7 +82,7 @@ export const fetchInterviewPanelScheduleBoard = createAsyncThunk(
         headers: { Authorization: `Bearer ${authToken}` },
         params: {
           page: 1,
-          limit: 500,
+          limit: 100,
           query,
           status,
           start_date,
@@ -118,6 +118,11 @@ export const addInterviewPanel = createAsyncThunk(
     }
   }
 );
+
+export const saveInterviewSchedules=createAsyncThunk('interviewPanels/saveSchedules',async({authToken,id,values,append=false},{rejectWithValue})=>{
+  try{const r=await axios.post(BASE_URL+'/interview-panels/schedules/'+id+'/'+(append?'add':'update'),values,{headers:{Authorization:'Bearer '+authToken}});return r.data;}
+  catch(error){toast({title:'Could not save schedules',description:error.response?.data?.message||error.message,status:'error',isClosable:true});return rejectWithValue(error.response?.data?.message||error.message);}
+});
 
 export const updateInterviewPanel = createAsyncThunk(
   "interviewPanels/update",
@@ -185,10 +190,10 @@ export const startInterviewSession = createAsyncThunk(
   "interviewPanels/startInterview",
   async (payload, { rejectWithValue }) => {
     try {
-      const { authToken, panelId, schedule_index } = payload;
+      const { authToken, panelId, schedule_index, schedule_id } = payload;
       const response = await axios.post(
         `${BASE_URL}/interview-panels/start-interview/${panelId}`,
-        { schedule_index },
+        { schedule_index, schedule_id },
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       return response.data;

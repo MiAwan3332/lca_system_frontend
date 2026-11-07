@@ -1,6 +1,8 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { Button, FormControl, Select } from "@chakra-ui/react";
+import { Button } from '@chakra-ui/react';
 import { FilterX } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import TimetableCalendar from "../../Components/TimetableCalendar";
@@ -25,7 +27,7 @@ function Timetable() {
 
   useEffect(() => {
     if (!viewOnly) {
-      dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+      dispatch(fetchBatches({ authToken, queryParams: { limit: 100, page: 1, query: "" } }));
       dispatch(setTeacherLimitFilter(200));
       dispatch(fetchTeachers({ authToken }));
     }

@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { accessSnapshot } from './accessCapabilities';
 import { extractRoleFromToken } from "./useful";
 import { isInterviewConductRoute } from "./interviewEvaluation";
 
@@ -19,6 +20,7 @@ export const isPanelistRoleName = (role) =>
   normalizeRole(role) === "panelist";
 
 export const isPanelistRole = () => {
+  if (accessSnapshot().ready && accessSnapshot().managed) return accessSnapshot().accountType === 'panelist';
   const storedRole = sessionStorage.getItem("role");
   if (storedRole) {
     return isPanelistRoleName(storedRole);

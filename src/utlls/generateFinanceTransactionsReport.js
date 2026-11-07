@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import moment from "moment";
+import { requireOutput } from './accessCapabilities';
 
 const toNumber = (value) => {
   const n = Number(value);
@@ -20,6 +21,18 @@ const isOnlineMethod = (method) => {
   );
 };
 
+/** Money that actually moved: payments less refunds. Created, pending and discount entries are not collections. */
+export const financeTotals = (transactions = []) => transactions.reduce((acc, t) => {
+  const amount = Math.abs(toNumber(t.action_amount ?? t.amount));
+  const action = String(t.action_type || "").toLowerCase();
+  if (t.type === "expense") acc.expense += amount;
+  else if (action === "paid") acc.fee += amount;
+  else if (action === "refund" || t.type === "refund") { acc.fee -= amount; acc.refund += amount; }
+  else if (action === "discounted") acc.discount += amount;
+  acc.count += 1;
+  return acc;
+}, { count: 0, fee: 0, expense: 0, refund: 0, discount: 0 });
+
 /** Required columns — must match Accounts daily collection sheet. */
 export const FINANCE_EXPORT_HEADERS = [
   "SR",
@@ -33,13 +46,14 @@ export const FINANCE_EXPORT_HEADERS = [
   "REMARKS",
 ];
 
-const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) => {
+export const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) => {
   let source = Array.isArray(transactions) ? [...transactions] : [];
 
   source = source.filter(
     (t) => t?.type !== "expense" && String(t?.action_type || "") !== "Expense"
   );
 
+  const discounts = source.filter((t) => String(t?.action_type || "") === "Discounted");
   if (paymentsOnly) {
     const paidOrRefund = source.filter((t) => {
       const action = String(t?.action_type || "").toLowerCase();
@@ -49,9 +63,33 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
         t?.type === "refund"
       );
     });
-    if (paidOrRefund.length) {
-      source = paidOrRefund;
+    source = paidOrRefund;
+  }
+
+  if (paymentsOnly) {
+    const groups = new Map();
+    const keyOf = (transaction, index) => {
+      const identity = transaction.student_id && transaction.student_id !== 'N/A' ? transaction.student_id : transaction._id || `unidentified-${index}`;
+      return JSON.stringify([identity, transaction.batch_id || transaction.batch_name, transaction.roll_number]);
+    };
+    for (const [index, transaction] of source.entries()) {
+      const key = keyOf(transaction, index);
+      const amount = Math.abs(toNumber(transaction.action_amount ?? transaction.amount));
+      const signed = String(transaction.action_type).toLowerCase() === 'refund' || transaction.type === 'refund' ? -amount : amount;
+      const row = groups.get(key) || { ...transaction, daily_cash: 0, daily_online: 0, daily_paid: 0 };
+      row.daily_paid += signed;
+      if (isOnlineMethod(transaction.payment_method)) row.daily_online += signed;
+      else row.daily_cash += signed;
+      groups.set(key, row);
     }
+    // Discounts have no payment entry, so a fully discounted student would otherwise be missing from the day.
+    for (const [index, discount] of discounts.entries()) {
+      const key = keyOf(discount, `discount-${index}`);
+      const row = groups.get(key) || { ...discount, action_type: "Discounted", payment_method: "", description: "", daily_cash: 0, daily_online: 0, daily_paid: 0 };
+      row.daily_discount = (row.daily_discount || 0) + Math.abs(toNumber(discount.action_amount ?? discount.amount));
+      groups.set(key, row);
+    }
+    source = [...groups.values()];
   }
 
   return source.map((t, index) => {
@@ -73,15 +111,15 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
       } else {
         cash = signed;
       }
-    } else {
-      cash = toNumber(t.student_cash_amount);
-      online = toNumber(t.student_online_amount);
     }
 
+    const discountAmount = t.daily_discount ?? (action === "Discounted" ? paymentAmount : 0);
+    const fullDiscount = discountAmount > 0 && toNumber(t.pending_amount ?? t.pending_fee) === 0 && !toNumber(t.paid_fee);
     const remarksParts = [
+      discountAmount > 0 ? `${fullDiscount ? "100% discount" : "Discount"}: Rs ${formatRs(discountAmount)}` : "",
       t.batch_name && t.batch_name !== "N/A" ? `Batch: ${t.batch_name}` : "",
       t.roll_number ? `Roll: ${t.roll_number}` : "",
-      action ? `Action: ${action}` : "",
+      action && !(action === "Discounted" && discountAmount) ? `Action: ${action}` : "",
       method ? `Method: ${method}` : "",
       t.description || t.fee_description || "",
       t.action_by && t.action_by !== "N/A" ? `By: ${t.action_by}` : "",
@@ -95,10 +133,10 @@ const buildCollectionRows = (transactions = [], { paymentsOnly = false } = {}) =
           : t.student_name || "",
       CONTACTS: String(t.student_phone || t.phone || t.contact || "").trim(),
       TOTAL: toNumber(t.total_batch_fee ?? t.total_fee),
-      PAID: toNumber(t.paid_fee),
+      PAID: t.daily_paid ?? toNumber(t.paid_fee),
       REMAINING: toNumber(t.pending_amount ?? t.pending_fee),
-      CASH: cash,
-      ONLINE: online,
+      CASH: t.daily_cash ?? cash,
+      ONLINE: t.daily_online ?? online,
       REMARKS: remarksParts.join(" | "),
     };
   });
@@ -144,7 +182,7 @@ const buildDailyCollectionSheet = (rows) => {
 
 /**
  * Finance Report Excel export.
- * Daily → single sheet with required Accounts columns only.
+ * Daily → the Accounts collection sheet and a batch sheet; other periods add report info.
  */
 export const exportFinanceTransactionsExcel = ({
   transactions = [],
@@ -156,8 +194,11 @@ export const exportFinanceTransactionsExcel = ({
   collectedBy,
   totalCash = 0,
   totalOnline = 0,
+  totalRefunded,
+  totalDiscounted,
   batchWise = [],
 }) => {
+  requireOutput('fees', 'export');
   const safeDate = date
     ? moment(date).format("YYYY-MM-DD")
     : startDate
@@ -178,23 +219,41 @@ export const exportFinanceTransactionsExcel = ({
   const workbook = XLSX.utils.book_new();
   const collectionSheet = buildDailyCollectionSheet(collectionRows);
 
-  // Daily report: only the required Accounts columns sheet.
-  if (isDaily) {
-    XLSX.utils.book_append_sheet(workbook, collectionSheet, "Daily Collection");
-    XLSX.writeFile(workbook, fileName);
-    return fileName;
-  }
-
   const batchRows = (Array.isArray(batchWise) ? batchWise : []).map(
     (batch, index) => ({
       "#": index + 1,
       Batch: batch.batch_name || "Unassigned",
       "Total Cash": toNumber(batch.total_cash),
       "Total Online": toNumber(batch.total_online),
+      "Total Refund": toNumber(batch.total_refund),
       Total: toNumber(batch.total),
     })
   );
+  const batchSheet =
+    batchRows.length > 0
+      ? XLSX.utils.json_to_sheet(batchRows, { skipHeader: false })
+      : XLSX.utils.aoa_to_sheet([
+          ["#", "Batch", "Total Cash", "Total Online", "Total Refund", "Total"],
+          ["", "No batch collections in this period", "", "", "", ""],
+        ]);
+  batchSheet["!cols"] = [
+    { wch: 6 },
+    { wch: 28 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+  ];
 
+  // Daily report: the Accounts collection sheet plus cash, online and refunds per batch.
+  if (isDaily) {
+    XLSX.utils.book_append_sheet(workbook, collectionSheet, "Daily Collection");
+    XLSX.utils.book_append_sheet(workbook, batchSheet, "Batch Wise");
+    XLSX.writeFile(workbook, fileName);
+    return fileName;
+  }
+
+  const totals = financeTotals(transactions);
   const dateRangeLabel =
     startDate && endDate && startDate !== endDate
       ? `${startDate} to ${endDate}`
@@ -213,23 +272,10 @@ export const exportFinanceTransactionsExcel = ({
     ["Total Cash", formatRs(totalCash)],
     ["Total Online", formatRs(totalOnline)],
     ["Combined", formatRs(toNumber(totalCash) + toNumber(totalOnline))],
+    ["Refunds", formatRs(totalRefunded ?? totals.refund)],
+    ["Discounts", formatRs(totalDiscounted ?? totals.discount)],
   ]);
   metaSheet["!cols"] = [{ wch: 28 }, { wch: 42 }];
-
-  const batchSheet =
-    batchRows.length > 0
-      ? XLSX.utils.json_to_sheet(batchRows, { skipHeader: false })
-      : XLSX.utils.aoa_to_sheet([
-          ["#", "Batch", "Total Cash", "Total Online", "Total"],
-          ["", "No batch collections in this period", "", "", ""],
-        ]);
-  batchSheet["!cols"] = [
-    { wch: 6 },
-    { wch: 28 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-  ];
 
   XLSX.utils.book_append_sheet(workbook, collectionSheet, "Collection");
   XLSX.utils.book_append_sheet(workbook, batchSheet, "Batch Wise");

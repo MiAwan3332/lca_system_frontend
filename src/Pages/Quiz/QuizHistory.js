@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { Box, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Badge, Button, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, VStack, useDisclosure } from "@chakra-ui/react";
@@ -132,7 +134,7 @@ function QuizHistory() {
 
       <Modal isOpen={isOpen} onClose={onClose} {...getResponsiveModalSize("4xl")}>
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader>Attempt Detail Log</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
@@ -203,7 +205,7 @@ function QuizHistory() {
               </VStack>
             )}
           </ModalBody>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

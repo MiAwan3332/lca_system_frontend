@@ -1,18 +1,8 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  FormControl,
-  Select,
-  Button,
-  Badge,
-} from "@chakra-ui/react";
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Button, Badge } from '@chakra-ui/react';
 import { FileX, FilterX, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -33,6 +23,7 @@ import ActionMenu from "../../Components/ActionMenu";
 import { getMediaUrl } from "../../utlls/useful";
 import { canAccessPanelists } from "../../utlls/interviewPanelAccess";
 import { Navigate } from "react-router-dom";
+import {accessSnapshot,can} from '../../utlls/accessCapabilities';
 import AddPanelistModal from "./AddPanelistModal";
 import UpdatePanelistModal from "./UpdatePanelistModal";
 import DeletePanelistModal from "./DeletePanelistModal";
@@ -104,7 +95,7 @@ function Panelists() {
     <>
       <PageHeader title="Panelists">
         <FilterStack className="filter-stack--actions">
-          <button className="table-action-btn" onClick={() => setIsAddOpen(true)}>
+          <button hidden={accessSnapshot().managed && !can("panelists.add.panelist")} className="table-action-btn" onClick={() => setIsAddOpen(true)}>
             <Plus size={18} />
             Add Panelist
           </button>
@@ -197,7 +188,7 @@ function Panelists() {
                             alt={panelist.name}
                             className="w-10 h-10 rounded-full object-cover"
                           />
-                          <span>{panelist.name}</span>
+                          <span>{panelist.name}{panelist.login_setup_required && <Badge ml={2} colorScheme="orange">Set initial password</Badge>}</span>
                         </div>
                       </Td>
                       <Td>{panelist.phone}</Td>
@@ -219,9 +210,9 @@ function Panelists() {
                       <Td isNumeric>
                         <ActionMenu>
                           <ViewPanelistModal panelist={panelist} />
-                          <UpdatePanelistModal panelist={panelist} />
-                          <ChangePasswordModal panelist={panelist} />
-                          <DeletePanelistModal panelistId={panelist._id} />
+                          {(!accessSnapshot().managed||can('panelists.update.panelist')) && <UpdatePanelistModal panelist={panelist} />}
+                          {(!accessSnapshot().managed||can('panelists.change.panelist.password')) && <ChangePasswordModal panelist={panelist} />}
+                          {(!accessSnapshot().managed||can('panelists.delete.panelist')) && <DeletePanelistModal panelistId={panelist._id} />}
                         </ActionMenu>
                       </Td>
                     </Tr>

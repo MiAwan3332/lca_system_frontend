@@ -1,23 +1,8 @@
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  useToast,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Button, FormLabel, InputGroup, InputLeftElement, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useToast, VStack } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import axios from "axios";
 import { FileText, Search } from "lucide-react";
@@ -114,7 +99,7 @@ function GeneratePendingFeeWizard() {
         headers: { Authorization: `Bearer ${authToken}` },
         params: {
           batch_id: id,
-          limit: 500,
+          limit: 100,
           page: 1,
           is_active: "true",
         },
@@ -172,7 +157,7 @@ function GeneratePendingFeeWizard() {
         {...getResponsiveModalSize("6xl")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           display="flex"
           flexDirection="column"
@@ -323,7 +308,7 @@ function GeneratePendingFeeWizard() {
               Cancel
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
 
       {activeStudent ? (

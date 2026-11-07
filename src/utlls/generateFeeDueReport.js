@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import moment from "moment";
+import { drawExportHeader, loadExportLogo } from "./exportPdfHeader";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -52,7 +53,7 @@ const drawTableRow = (doc, y, columns, row, margin, highlight = false) => {
   return y + 7;
 };
 
-export const generateFeeDueReport = (report, mode = "download") => {
+export const generateFeeDueReport = async (report, mode = "download") => {
   if (!report) {
     throw new Error("Report data is not available.");
   }
@@ -76,23 +77,17 @@ export const generateFeeDueReport = (report, mode = "download") => {
     }
   };
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(...COLORS.text);
-  doc.text("Lahore CSS Academy", margin, y);
-  y += 7;
-
-  doc.setFontSize(13);
-  doc.text("Daily Fee Due Report", margin, y);
-  y += 6;
+  const logo = await loadExportLogo();
+  y = drawExportHeader(doc, {
+    logo, margin, height: 20,
+    title: "Daily Fee Due Report",
+    subtitle: report.report_date_label || moment().format("dddd, DD MMM YYYY"),
+    details: [{ label: "Generated", value: report.generated_at || moment().format("DD MMM YYYY, hh:mm A") }],
+  }) + 7;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.gray);
-  doc.text(`Report date: ${report.report_date_label || moment().format("DD MMM YYYY")}`, margin, y);
-  y += 4;
-  doc.text(`Generated: ${report.generated_at || moment().format("DD MMM YYYY, hh:mm A")}`, margin, y);
-  y += 4;
   if (report.filter_summary) {
     const filterLines = doc.splitTextToSize(
       `Filters: ${report.filter_summary}`,

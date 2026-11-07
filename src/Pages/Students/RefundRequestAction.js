@@ -1,23 +1,10 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useMemo, useState } from "react";
-import {
-  Alert,
-  AlertIcon,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Text,
-  Textarea,
-  VStack,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Alert, AlertIcon, Button, FormLabel, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, VStack } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Banknote } from "lucide-react";
@@ -139,10 +126,10 @@ function RefundRequestAction({ student }) {
         {...getResponsiveModalSize("md")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader>Refund Fee</ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               <VStack spacing={4} align="stretch">
                 <Text fontSize="sm" color="gray.600">
@@ -235,8 +222,8 @@ function RefundRequestAction({ student }) {
                 </Button>
               ) : null}
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

@@ -1,9 +1,12 @@
+import { Input } from './AccessInputs';
 import React, { useEffect, useRef, useState } from "react";
-import { Box, Button, HStack, Image, Input, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Image, Text } from '@chakra-ui/react';
 import { Camera, RotateCcw, SwitchCamera, Upload } from "lucide-react";
 import ImageCropModal from "./ImageCropModal";
+import { useAccessForm } from './AccessForm';
+import { accessSnapshot, subscribeAccess, canUseField } from '../utlls/accessCapabilities';
 
-function CameraCapture({
+function CameraCaptureInput({
   onCapture,
   label = "Photo",
   enableCrop = true,
@@ -529,4 +532,10 @@ function CameraCapture({
   );
 }
 
-export default CameraCapture;
+export default function CameraCapture(props) {
+  React.useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const mode = useAccessForm();
+  const field = props.permissionField || (/qualifier|panelist/.test(props.fileNamePrefix || '') ? 'photo' : 'image');
+  if (mode && !canUseField(field, 'write')) return null;
+  return <CameraCaptureInput {...props} />;
+}

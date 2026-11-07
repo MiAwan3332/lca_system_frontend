@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import {
   Modal,
@@ -44,7 +45,7 @@ const DeleteModal = ({ teacherId, getteachers }) => {
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader>Delete teacher</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -75,7 +76,7 @@ const DeleteModal = ({ teacherId, getteachers }) => {
               Delete
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { accessSnapshot } from './accessCapabilities';
 import { extractRoleFromToken, extractTeacherIdFromToken } from "./useful";
 
 export const TEACHER_ROUTE_PATHS = [
@@ -16,6 +17,7 @@ export const TEACHER_ROUTE_PATHS = [
 ];
 
 export const isTeacherRole = () => {
+  if (accessSnapshot().ready && accessSnapshot().managed) return accessSnapshot().accountType === 'teacher';
   const storedRole = sessionStorage.getItem("role");
   if (storedRole) {
     return storedRole.toLowerCase() === "teacher";
@@ -35,6 +37,7 @@ export const isTeacherRole = () => {
 };
 
 export const isInstitutionAdmin = () => {
+  if (accessSnapshot().ready && accessSnapshot().managed) return accessSnapshot().accountType === 'staff';
   const storedRole = sessionStorage.getItem("role");
   if (!storedRole) return true;
   const role = storedRole.toLowerCase();

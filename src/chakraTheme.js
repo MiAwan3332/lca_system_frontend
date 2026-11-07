@@ -25,6 +25,12 @@ const theme = extendTheme({
     },
   },
   components: {
+    Menu: {
+      baseStyle: {
+        list: { bg: 'var(--dash-surface)', color: 'var(--dash-text)', borderColor: 'var(--dash-border)' },
+        item: { bg: 'var(--dash-surface)', color: 'var(--dash-text)', _focus: { bg: 'var(--dash-surface-2)' }, _hover: { bg: 'var(--dash-surface-2)' } },
+      },
+    },
     Modal: {
       defaultProps: {
         scrollBehavior: 'inside',

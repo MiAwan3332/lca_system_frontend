@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { CreationStatusButton } from '../../Components/CreationProcessing';
 import {
   Table,
   Thead,
@@ -29,6 +30,7 @@ import TablePagination from "../../Components/TablePagination";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import PageHeader, { DataTableShell, FilterStack } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
 
 const defaultAvatar =
   "https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9";
@@ -82,7 +84,7 @@ function User() {
                 <Th data-searchable>Avatar/Name</Th>
                 <Th data-searchable>Email</Th>
                 <Th data-searchable>Phone</Th>
-                <Th>User Role</Th>
+                <Th>Access Role</Th>
                 {!viewOnly && <Th isNumeric>Actions</Th>}
               </Tr>
             </Thead>
@@ -110,13 +112,14 @@ function User() {
                           className="h-10 w-10 rounded-full"
                         />
                         <span>{user.name}</span>
+                        <CreationStatusButton kind="user" record={user} authToken={authToken} />
                       </div>
                     </Td>
                     <Td>{user.email}</Td>
                     <Td>{user.phone || "—"}</Td>
                     <Td>
                       <span className="uppercase bg-gray-200 text-gray-500 font-medium px-2 py-1 text-xs rounded-lg">
-                        {user.role}
+                        {accessRoleLabel(user)}
                       </span>
                     </Td>
                     {!viewOnly && (

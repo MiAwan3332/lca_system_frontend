@@ -1,21 +1,10 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Select,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Pen } from "lucide-react";
@@ -37,7 +26,7 @@ function UpdateModal({ mcq }) {
   useEffect(() => {
     if (isOpen) {
       dispatch(
-        fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+        fetchCourses({ authToken, queryParams: { limit: 100, page: 1, query: "" } })
       );
     }
   }, [dispatch, isOpen, authToken]);
@@ -83,12 +72,12 @@ function UpdateModal({ mcq }) {
       </button>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Update Mcq
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl id="question">
@@ -235,8 +224,8 @@ function UpdateModal({ mcq }) {
                 Update
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

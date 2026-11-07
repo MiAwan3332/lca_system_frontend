@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { createStandaloneToast } from "@chakra-ui/react";
 import axios from 'axios';
+import { createWithRecovery } from '../utlls/creationRecovery';
 import { config } from "../utlls/config.js";
 import { whatsappWelcomeDescription } from "../utlls/whatsappWelcome.js";
 
@@ -13,6 +14,7 @@ const TABLE_PAGINATION = config.TABLE_PAGINATION;
 
 const initialState = {
     users: [],
+    collectors: [],
     filters: TABLE_FILTERS,
     pagination: TABLE_PAGINATION,
     fetchStatus: 'idle',
@@ -34,27 +36,20 @@ const fetchUsers = createAsyncThunk('users/fetchUsers', async (payload, { getSta
     return response.data;
 });
 
+export const fetchFeeCollectors = createAsyncThunk('users/fetchFeeCollectors', async ({ authToken, page = 1, query = '' }) => {
+    const response = await axios.get(`${BASE_URL}/users/fee-collectors`, { headers: { Authorization: `Bearer ${authToken}` }, params: { page, limit: 100, query } });
+    return response.data;
+});
+
 const addUser = createAsyncThunk(
     'users/addUser',
     async (payload, { rejectWithValue }) => {
         const { formData, authToken } = payload;
         try {
-            const response = await axios.post(
-                `${BASE_URL}/users/add`,
-                {
-                    name: formData.name,
-                    email: formData.email,
-                    phone: formData.phone,
-                    role: formData.role,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-            return response.data;
+            return await createWithRecovery('user', authToken, {
+                name: formData.name, email: formData.email, phone: formData.phone,
+                ...(formData.accessRoleId ? { accessRoleId: formData.accessRoleId, accessBatchIds: formData.accessBatchIds || [], accessCourseIds: formData.accessCourseIds || [] } : {}),
+            });
         } catch (error) {
             return rejectWithValue(
                 error?.response?.data?.message || error.message || "Failed to add user"
@@ -65,7 +60,8 @@ const addUser = createAsyncThunk(
 
 const updateUser = createAsyncThunk('users/updateUser', async (payload) => {
     const { userId, values, authToken } = payload;
-    const response = await axios.post(`${BASE_URL}/users/update/${userId}`, values, {
+    const { role, password, ...profile } = values;
+    const response = await axios.post(`${BASE_URL}/users/update/${userId}`, profile, {
         headers: {
             Authorization: `Bearer ${authToken}`,
             'Content-Type': 'application/json',
@@ -102,6 +98,8 @@ const userSlice = createSlice({
 
     extraReducers: (builder) => {
         builder
+            .addCase(fetchFeeCollectors.fulfilled, (state, action) => { state.collectors = action.payload.docs || []; })
+            .addCase(fetchFeeCollectors.rejected, (state) => { state.collectors = []; })
             // Fetch Users
             .addCase(fetchUsers.pending, (state) => {
                 state.fetchStatus = 'loading';
@@ -135,8 +133,8 @@ const userSlice = createSlice({
                 const wa = action.payload?.whatsapp_welcome;
                 const waNote = whatsappWelcomeDescription(wa);
                 toast({
-                    title: 'User added successfully',
-                    description: waNote,
+                    title: action.payload?.submission_status === 'complete' ? 'User added successfully' : 'Confirming user creation',
+                    description: action.payload?.submission_status === 'complete' ? waNote : 'Keep this form open while we check the result. Do not submit again.',
                     status:
                         wa?.queued || wa?.sent
                             ? "success"
@@ -197,6 +195,7 @@ const userSlice = createSlice({
 });
 
 export const selectAllUsers = (state) => state.users.users;
+export const selectFeeCollectors = (state) => state.users.collectors;
 export const selectUserById = (state, userId) => state.users.users.find((user) => user.id === userId);
 
 export { fetchUsers, addUser, updateUser, deleteUser };

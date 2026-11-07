@@ -167,8 +167,9 @@ function VerifySlip() {
               ) : (
                 <Box p={5}>
                   <Text fontSize="sm" color="gray.600" textAlign="center">
-                    Do not accept this slip. Only slips with a valid LCA
-                    verification QR are authentic.
+                    {result?.status === "cancelled"
+                      ? "Do not accept this slip as proof of payment."
+                      : "Do not accept this slip. Only slips with a valid LCA verification QR are authentic."}
                   </Text>
                 </Box>
               )}

@@ -91,9 +91,9 @@ function Mcq() {
   useEffect(() => {
     loadMcqs();
     dispatch(
-      fetchCourses({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+      fetchCourses({ authToken, queryParams: { limit: 100, page: 1, query: "" } })
     );
-    dispatch(fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } }));
+    dispatch(fetchBatches({ authToken, queryParams: { limit: 100, page: 1, query: "" } }));
   }, [authToken, dispatch]);
 
   useEffect(() => {

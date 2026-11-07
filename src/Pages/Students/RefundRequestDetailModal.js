@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import {
   Badge,
@@ -93,7 +95,7 @@ function RefundRequestDetailModal({ request, isOpen, onClose, onUpdated }) {
         {...getResponsiveModalSize("lg")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader>
             Refund details
             <Badge ml={2} colorScheme={statusMeta.color} borderRadius="md">
@@ -270,7 +272,7 @@ function RefundRequestDetailModal({ request, isOpen, onClose, onUpdated }) {
               Close
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
 
       {canEdit ? (

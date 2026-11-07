@@ -1,34 +1,8 @@
+import { Input, Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useMemo, useState } from "react";
 import moment from "moment";
-import {
-  Badge,
-  Box,
-  Button,
-  Flex,
-  FormControl,
-  FormLabel,
-  HStack,
-  Input,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
-  Select,
-  SimpleGrid,
-  Stat,
-  StatHelpText,
-  StatLabel,
-  StatNumber,
-  Table,
-  Tbody,
-  Td,
-  Text,
-  Th,
-  Thead,
-  Tr,
-  TableContainer,
-  useToast,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, Flex, FormLabel, HStack, Menu, MenuButton, MenuItem, MenuList, SimpleGrid, Stat, StatHelpText, StatLabel, StatNumber, Table, Tbody, Td, Text, Th, Thead, Tr, TableContainer, useToast } from '@chakra-ui/react';
 import {
   AlertTriangle,
   CalendarClock,
@@ -342,7 +316,7 @@ function FeeDueReportPanel({
       if (mode === "excel") {
         fileName = downloadFeeDueReportExcel(filteredReport);
       } else {
-        fileName = generateFeeDueReport(
+        fileName = await generateFeeDueReport(
           filteredReport,
           mode === "print" ? "print" : "download"
         );

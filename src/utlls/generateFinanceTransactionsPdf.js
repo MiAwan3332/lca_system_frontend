@@ -1,5 +1,7 @@
 import jsPDF from "jspdf";
 import moment from "moment";
+import { financeTotals } from "./generateFinanceTransactionsReport";
+import { drawExportHeader, loadExportLogo } from "./exportPdfHeader";
 
 const COLORS = {
   gold: [255, 203, 130],
@@ -19,52 +21,6 @@ const toNumber = (value) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const blobToDataUrl = (blob) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Could not read logo file."));
-    reader.readAsDataURL(blob);
-  });
-
-const svgIconToPngDataUrl = async (svgUrl, widthPx = 140) => {
-  const res = await fetch(svgUrl);
-  if (!res.ok) {
-    throw new Error("Could not load LCA logo.");
-  }
-
-  const svgText = await res.text();
-  const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
-  const svgDataUrl = await blobToDataUrl(svgBlob);
-
-  const img = new Image();
-  img.decoding = "async";
-  img.src = svgDataUrl;
-
-  await new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = () => reject(new Error("Could not render LCA logo."));
-  });
-
-  const iconFraction = 27 / 138;
-  const srcWidth = img.width * iconFraction;
-  const scale = widthPx / srcWidth;
-
-  const canvas = document.createElement("canvas");
-  canvas.width = widthPx;
-  canvas.height = Math.round(img.height * scale);
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("Canvas is not available for logo rendering.");
-  }
-
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0, srcWidth, img.height, 0, 0, canvas.width, canvas.height);
-
-  return canvas.toDataURL("image/png");
-};
 
 const clip = (doc, text, maxWidth) => {
   const value = String(text ?? "");
@@ -84,13 +40,22 @@ export const exportFinanceTransactionsPdf = async ({
   transactions = [],
   period = "daily",
   date,
+  startDate,
+  endDate,
   batchName,
   collectedBy,
   totalCash = 0,
   totalOnline = 0,
+  // Period totals from the server, so the cards match the batch figures whatever rows are filtered.
+  totalCollected,
+  totalRefunded,
+  totalDiscounted,
+  totalExpenses,
   batchWise = [],
   mode = "download",
 }) => {
+  const { requireOutput } = await import('./accessCapabilities');
+  requireOutput('fees', mode === 'print' ? 'print' : 'export');
   const safeDate = date ? moment(date).format("YYYY-MM-DD") : moment().format("YYYY-MM-DD");
   const label = period ? String(period).toLowerCase() : "daily";
   const collectedByLabel = collectedBy || "All admin users";
@@ -107,12 +72,11 @@ export const exportFinanceTransactionsPdf = async ({
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - margin * 2;
 
-  let iconPng;
-  try {
-    iconPng = await svgIconToPngDataUrl("/logo_dark.svg", 120);
-  } catch {
-    iconPng = null;
-  }
+  const logo = await loadExportLogo();
+  const from = startDate || date, to = endDate || from;
+  const dateLabel = from && to && from !== to
+    ? `${moment(from).format("DD MMM YYYY")} – ${moment(to).format("DD MMM YYYY")}`
+    : moment(from || undefined).format("dddd, DD MMM YYYY");
 
   const drawFooter = () => {
     doc.setFont("helvetica", "normal");
@@ -128,77 +92,45 @@ export const exportFinanceTransactionsPdf = async ({
     });
   };
 
-  const drawHeader = () => {
-    const headerH = 14;
-    doc.setFillColor(...COLORS.gold);
-    doc.rect(0, 0, pageWidth, headerH, "F");
-
-    const logoBoxH = 9;
-    const logoBoxY = 2.5;
-    const logoBoxX = margin;
-    const iconW = 7;
-    const iconH = 6.5;
-
-    doc.setFillColor(...COLORS.white);
-    doc.roundedRect(logoBoxX, logoBoxY, 52, logoBoxH, 1, 1, "F");
-
-    if (iconPng) {
-      doc.addImage(iconPng, "PNG", logoBoxX + 1.5, logoBoxY + 1.2, iconW, iconH, undefined, "FAST");
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...COLORS.goldDark);
-    doc.text("Lahore CSS Academy", logoBoxX + 10, logoBoxY + 6);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.text);
-    doc.text("Finance Transactions", logoBoxX + 55, logoBoxY + 6);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(...COLORS.gray);
-    doc.text(
-      `${label.toUpperCase()} · ${safeDate} · Batch: ${batchName || "All"} · By: ${collectedByLabel}`,
-      pageWidth - margin,
-      logoBoxY + 6,
-      { align: "right" }
-    );
-
-    return headerH;
-  };
+  const HEADER_H = 18;
+  const drawHeader = () => drawExportHeader(doc, {
+    logo, margin, height: HEADER_H,
+    title: "Finance Transactions",
+    subtitle: `${label.charAt(0).toUpperCase()}${label.slice(1)} report  ·  ${dateLabel}`,
+    details: [
+      { label: "Batch", value: batchName || "All batches" },
+      { label: "Collected by", value: collectedByLabel },
+      { label: "Generated", value: moment().format("DD MMM YYYY, hh:mm A") },
+    ],
+  });
 
   const txns = Array.isArray(transactions) ? transactions : [];
-  const totals = txns.reduce(
-    (acc, t) => {
-      const isExpense = t.type === "expense";
-      const amount = toNumber(t.action_amount ?? t.amount);
-      if (isExpense) acc.expense += amount;
-      else acc.fee += amount;
-      acc.count += 1;
-      return acc;
-    },
-    { count: 0, fee: 0, expense: 0 }
-  );
+  const totals = financeTotals(txns);
 
   drawHeader();
-  let y = 16;
+  let y = HEADER_H + 4;
 
-  // --- Summary Cards (Highly Visible) ---
+  // --- Summary Cards: money in, money back, what is left, then expenses last ---
+  const pick = (value, fallback) => (value === undefined || value === null ? fallback : toNumber(value));
+  const collected = pick(totalCollected, totals.fee + totals.refund);
+  const refunded = pick(totalRefunded, totals.refund);
+  const discounted = pick(totalDiscounted, totals.discount);
+  const expenses = pick(totalExpenses, totals.expense);
   const summaryCards = [
-    { label: "No Of Entries", value: String(totals.count) },
-    { label: "Fee Collection", value: `Rs. ${formatAmount(totals.fee)}` },
-    { label: "Expenses", value: `Rs. ${formatAmount(totals.expense)}` },
-    { label: "Net Balance", value: `Rs. ${formatAmount(totals.fee - totals.expense)}` },
-    { label: "Cash", value: `Rs. ${formatAmount(cashTotal)}` },
-    { label: "Online", value: `Rs. ${formatAmount(onlineTotal)}` },
+    { label: "Entries", value: String(totals.count), note: "rows in this report" },
+    { label: "Fee Collected", value: `Rs. ${formatAmount(collected)}`, note: "payments received" },
+    { label: "Refunds", value: `Rs. ${formatAmount(refunded)}`, note: "paid back", color: COLORS.expense },
+    { label: "Discounts", value: `Rs. ${formatAmount(discounted)}`, note: "not charged" },
+    { label: "Net Balance", value: `Rs. ${formatAmount(cashTotal + onlineTotal - expenses)}`, note: "cash + online - expenses" },
+    { label: "Cash", value: `Rs. ${formatAmount(cashTotal)}`, note: "after refunds" },
+    { label: "Online", value: `Rs. ${formatAmount(onlineTotal)}`, note: "after refunds" },
+    { label: "Expenses", value: `Rs. ${formatAmount(expenses)}`, note: "approved", color: COLORS.expense },
   ];
 
   const cardGap = 1.5;
   const cardY = y;
   const cardW = contentWidth / summaryCards.length - cardGap;
-  const cardH = 15;
+  const cardH = 18;
 
   summaryCards.forEach((card, index) => {
     const cardX = margin + index * (cardW + cardGap);
@@ -215,8 +147,13 @@ export const exportFinanceTransactionsPdf = async ({
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.setTextColor(33, 37, 41);
+    doc.setTextColor(...(card.color || [33, 37, 41]));
     doc.text(card.value, cardX + cardW / 2, cardY + 11.5, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...COLORS.gray);
+    doc.text(card.note, cardX + cardW / 2, cardY + 15.6, { align: "center" });
   });
 
   y += cardH + 5;
@@ -263,12 +200,13 @@ export const exportFinanceTransactionsPdf = async ({
       const metrics = [
         { label: "Cash", value: `Rs. ${formatAmount(b.total_cash)}` },
         { label: "Online", value: `Rs. ${formatAmount(b.total_online)}` },
+        { label: "Refund", value: `Rs. ${formatAmount(b.total_refund)}` },
         { label: "Pending", value: `Rs. ${formatAmount(b.total_pending)}` },
         { label: "Total", value: `Rs. ${formatAmount(b.total)}` },
       ];
       const innerGap = 1.2;
       const innerPad = 2;
-      const innerW = (bCardW - innerPad * 2 - innerGap * 3) / 4;
+      const innerW = (bCardW - innerPad * 2 - innerGap * (metrics.length - 1)) / metrics.length;
       const innerH = 16;
       const innerY = bCardY + 9;
 
@@ -299,28 +237,21 @@ export const exportFinanceTransactionsPdf = async ({
     y = bCardY + bCardH + 6;
   }
 
-  // Larger fonts → controlled entries per page
-  const ENTRIES_PER_PAGE = 18;
+  // The table spans the full page width; whatever the fixed columns leave goes to Details.
   const col = {
     no: 10,
     date: 30,
-    type: 16,
-    student: 48,
-    action: 20,
-    payment: 26,
-    amount: 26,
-    by: 28,
+    type: 13,
+    student: 50,
+    action: 24,
+    payment: 30,
+    amount: 28,
+    discount: 26,
+    by: 32,
   };
-  const tableW =
-    col.no +
-    col.date +
-    col.type +
-    col.student +
-    col.action +
-    col.payment +
-    col.amount +
-    col.by;
-  const x0 = margin + Math.max(0, (contentWidth - tableW) / 2);
+  col.details = Math.max(30, contentWidth - Object.values(col).reduce((sum, width) => sum + width, 0));
+  const tableW = Object.values(col).reduce((sum, width) => sum + width, 0);
+  const x0 = margin;
   const headerH = 8.5;
   const rowH = 8.5;
   const batchTitleH = 9;
@@ -361,7 +292,9 @@ export const exportFinanceTransactionsPdf = async ({
     put("Action", col.action);
     put("Payment", col.payment);
     put("Amount", col.amount, "right");
+    put("Discount", col.discount, "right");
     put("By", col.by);
+    put("Details", col.details);
     y += headerH;
   };
 
@@ -385,7 +318,7 @@ export const exportFinanceTransactionsPdf = async ({
     drawFooter();
     doc.addPage();
     drawHeader();
-    y = 16;
+    y = HEADER_H + 4;
     if (withTableHeader) drawTableHeader();
   };
 
@@ -394,7 +327,7 @@ export const exportFinanceTransactionsPdf = async ({
   let tableStarted = false;
 
   const ensureEntrySpace = (needed) => {
-    if (pageEntryCount >= ENTRIES_PER_PAGE || y + needed > pageHeight - margin - 5) {
+    if (y + needed > pageHeight - margin - 5) {
       startNewPage({ withTableHeader: true });
       pageEntryCount = 0;
       return true;
@@ -429,7 +362,10 @@ export const exportFinanceTransactionsPdf = async ({
       }
 
       const isExpense = t.type === "expense";
-      const amount =
+      // A discount moves no money: its amount shows under Discount, and Amount is zero (e.g. a 100% discount).
+      const isDiscount = t.action_type === "Discounted";
+      const discountAmount = isDiscount ? Math.abs(toNumber(t.action_amount ?? t.amount)) : 0;
+      const amount = isDiscount ? 0 :
         (isExpense ? -1 : 1) * toNumber(t.action_amount ?? t.amount);
       const amountLabel = amount.toLocaleString("en-PK", {
         maximumFractionDigits: 0,
@@ -480,7 +416,9 @@ export const exportFinanceTransactionsPdf = async ({
         "right",
         isExpense ? COLORS.expense : COLORS.text
       );
+      cell(discountAmount ? `Rs. ${formatAmount(discountAmount)}` : "—", col.discount, "right", discountAmount ? COLORS.fee : COLORS.gray);
       cell(t.action_by || "—", col.by);
+      cell(t.description || "—", col.details, "left", COLORS.gray);
 
       y += rowH;
     });

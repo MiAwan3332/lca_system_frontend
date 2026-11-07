@@ -1,16 +1,10 @@
+import { Input, Select } from './AccessInputs';
+import AccessForm from './AccessForm';
+import FormControl from './AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../utlls/accessForms';
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  ModalBody,
-  ModalFooter,
-  Select,
-  VStack,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Box, Button, FormLabel, ModalBody, ModalFooter, VStack } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import { updateTimeTableEvent } from "../Features/timetableSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -87,7 +81,7 @@ function TimeTableEventEditForm({ event, batches = [], onClose }) {
 
   return (
     <>
-      <form onSubmit={formik.handleSubmit}>
+      <AccessForm onSubmit={formik.handleSubmit}>
         <ModalBody className="!p-0">
           <VStack spacing={4}>
             <FormControl id="day">
@@ -237,7 +231,7 @@ function TimeTableEventEditForm({ event, batches = [], onClose }) {
             Save
           </Button>
         </ModalFooter>
-      </form>
+      </AccessForm>
     </>
   );
 }

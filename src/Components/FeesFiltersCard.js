@@ -1,17 +1,7 @@
+import { Input, Select } from './AccessInputs';
+import FormControl from './AccessFormControl';
 import React from "react";
-import {
-  Box,
-  Button,
-  ButtonGroup,
-  Flex,
-  FormControl,
-  FormLabel,
-  HStack,
-  Input,
-  Select,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Button, ButtonGroup, Flex, FormLabel, HStack, Text, VStack } from '@chakra-ui/react';
 import {
   Calendar,
   Download,

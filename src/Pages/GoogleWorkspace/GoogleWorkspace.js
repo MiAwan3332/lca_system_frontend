@@ -1,19 +1,8 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import {
-  Badge,
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  HStack,
-  Link,
-  Select,
-  SimpleGrid,
-  Text,
-  VStack,
-  createStandaloneToast,
-} from "@chakra-ui/react";
+import { Badge, Box, Button, FormLabel, HStack, Link, SimpleGrid, Text, VStack, createStandaloneToast } from '@chakra-ui/react';
 import {
   CalendarPlus,
   CheckCircle2,
@@ -110,7 +99,7 @@ function GoogleWorkspace() {
 
       setBatches(batchResponse.data?.docs || []);
       setAssignments(assignmentResponse.data?.docs || []);
-      setTimetable(Array.isArray(timetableResponse.data) ? timetableResponse.data : []);
+      setTimetable(Array.isArray(timetableResponse.data?.docs) ? timetableResponse.data.docs : []);
     } catch (error) {
       toast({
         title: "Unable to load portal records",

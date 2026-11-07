@@ -1,25 +1,10 @@
+import { Input, Textarea, Checkbox } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Box,
-  Textarea,
-  Grid,
-  GridItem,
-  Checkbox,
-  Image,
-  Text,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Box, Grid, GridItem, Image, Text } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { Pen } from "lucide-react";
@@ -29,6 +14,7 @@ import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { getMediaUrl } from "../../utlls/useful.js";
 import CameraCapture from "../../Components/CameraCapture";
 import ActionButton from "../../Components/ActionButton";
+import StudentPaymentEvidenceEditor from '../../Components/StudentPaymentEvidenceEditor';
 import {
   getResponsiveModalSize,
   responsiveModalContentProps,
@@ -123,7 +109,7 @@ function UpdateModal({ student }) {
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           as="form"
           onSubmit={formik.handleSubmit}
@@ -266,6 +252,7 @@ function UpdateModal({ student }) {
                 </GridItem>
               )}
             </Grid>
+            {!viewOnly && isOpen && <StudentPaymentEvidenceEditor studentId={student._id} authToken={authToken} />}
           </ModalBody>
 
           <ModalFooter
@@ -298,7 +285,7 @@ function UpdateModal({ student }) {
               Update Student
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

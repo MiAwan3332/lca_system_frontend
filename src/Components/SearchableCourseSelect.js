@@ -1,7 +1,10 @@
+import { Input } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Input, List, ListItem, Text } from "@chakra-ui/react";
+import { Box, List, ListItem, Text } from '@chakra-ui/react';
+import { useAccessForm } from './AccessForm';
+import { accessSnapshot, subscribeAccess, canUseField } from '../utlls/accessCapabilities';
 
-function SearchableCourseSelect({
+function CourseSelectInput({
   courses = [],
   value = "",
   onChange,
@@ -95,7 +98,7 @@ function SearchableCourseSelect({
           left={0}
           right={0}
           mt={1}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
@@ -110,8 +113,8 @@ function SearchableCourseSelect({
               px={4}
               py={2}
               cursor="pointer"
-              bg={value === course._id ? "#FFCB82" : "white"}
-              _hover={{ bg: "#FFCB82" }}
+              bg={value === course._id ? "#FFCB82" : "var(--dash-surface)"} color={value === course._id ? "#263238" : "var(--dash-text)"}
+              _hover={{ bg: "#FFCB82", color: "#263238" }}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelectCourse(course)}
             >
@@ -127,7 +130,7 @@ function SearchableCourseSelect({
           left={0}
           right={0}
           mt={1}
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"
@@ -145,4 +148,11 @@ function SearchableCourseSelect({
   );
 }
 
-export default SearchableCourseSelect;
+export default function SearchableCourseSelect(props) {
+  React.useSyncExternalStore(subscribeAccess, accessSnapshot);
+  const mode = useAccessForm();
+  const field = props.permissionField || 'course';
+  if (!mode || canUseField(field, mode === 'read' ? 'read' : 'write')) return <CourseSelectInput {...props} />;
+  if (!canUseField(field, 'read')) return null;
+  return <Text fontSize="sm">{(props.courses || []).find((course) => course._id === props.value)?.name || '-'}</Text>;
+}

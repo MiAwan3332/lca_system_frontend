@@ -1,3 +1,7 @@
+import { can, accessSnapshot } from '../../utlls/accessCapabilities';
+import { Checkbox, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal,
@@ -8,7 +12,6 @@ import {
   ModalBody,
   ModalCloseButton,
   Button,
-  FormControl,
   FormLabel,
   Text,
   Box,
@@ -17,9 +20,7 @@ import {
   AlertDescription,
   useToast,
   VStack,
-  Checkbox,
   HStack,
-  Textarea,
   Table,
   Thead,
   Tbody,
@@ -40,7 +41,6 @@ import {
   getOrCreatePendingFeeSlip,
   fetchStudents,
 } from "../../Features/studentSlice";
-import { config } from "../../utlls/config.js";
 import SearchableBatchSelect from "../../Components/SearchableBatchSelect";
 import {
   generatePendingFeeSlipPdf,
@@ -65,9 +65,9 @@ const formatPendingAmount = (amount) =>
   })}`;
 
 const formatDueDate = (value) => {
-  if (!value) return "—";
+  if (!value) return "â€”";
   const raw = String(value).slice(0, 10);
-  return raw || "—";
+  return raw || "â€”";
 };
 
 function ShiftBatchModal({ student }) {
@@ -161,6 +161,7 @@ function ShiftBatchModal({ student }) {
     (!isDestinationSpecial || specialSelectedOptions.length > 0);
 
   const canTransferPendingDues =
+    (!accessSnapshot().managed || can('fees.discount.fee')) &&
     !oldDuesNil &&
     Boolean(destinationBatchId) &&
     isDestinationPaid &&
@@ -184,7 +185,7 @@ function ShiftBatchModal({ student }) {
         fetchBatches({
           authToken,
           queryParams: {
-            limit: 200,
+            limit: 100,
             page: 1,
             query: "",
             is_active: "true",
@@ -204,48 +205,12 @@ function ShiftBatchModal({ student }) {
           "This student has an outstanding fee balance from the previous batch.",
         pending_amount: pendingFeeAmount,
         previous_batch_name: currentBatchName,
-        due_date: "",
+        due_date: student?.pending_due_date || student?.due_date || "",
         can_transfer_pending_dues: true,
       }
     );
 
-    if (!destinationBatchId) return undefined;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        // Probe transfer endpoint to enrich previous-batch pending metadata
-        const response = await fetch(
-          `${config.BASE_URL}/students/transfer-batch/${student._id}`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ batch: destinationBatchId }),
-          }
-        );
-        const data = await response.json().catch(() => null);
-        if (cancelled || data?.code !== "PENDING_FEE_BLOCK") return;
-        setPendingBlock(data);
-      } catch {
-        // Keep seeded pending context if probe fails
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    isOpen,
-    oldDuesNil,
-    pendingFeeAmount,
-    currentBatchName,
-    destinationBatchId,
-    student?._id,
-    authToken,
-  ]);
+  }, [isOpen, oldDuesNil, pendingFeeAmount, currentBatchName, student?.pending_due_date, student?.due_date]);
 
   const handleTransfer = async ({
     assignNewFee = false,
@@ -512,7 +477,7 @@ function ShiftBatchModal({ student }) {
         {...getResponsiveModalSize("4xl")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           w={{ base: "100%", sm: "90vw", md: "720px", lg: "820px" }}
           maxW={{ base: "100%", sm: "90vw", md: "820px" }}
@@ -581,7 +546,7 @@ function ShiftBatchModal({ student }) {
                         isChecked={specialSelectedOptions.includes(option.key)}
                         onChange={() => toggleSpecialOption(option.key)}
                       >
-                        {option.label} — {formatPendingAmount(option.fee)}
+                        {option.label} â€” {formatPendingAmount(option.fee)}
                       </Checkbox>
                     ))}
                   </VStack>
@@ -604,7 +569,7 @@ function ShiftBatchModal({ student }) {
                         ? isDestinationSpecial
                           ? " after selecting special options"
                           : " once destination fee is configured"
-                        : " — destination batch has no fee"}
+                        : " â€” destination batch has no fee"}
                     .
                   </AlertDescription>
                 </Alert>
@@ -737,9 +702,10 @@ function ShiftBatchModal({ student }) {
                   <FormControl isRequired mt={4}>
                     <FormLabel fontSize={14}>Remarks</FormLabel>
                     <Textarea
+                      name="remarks"
                       value={transferRemarks}
                       onChange={(e) => setTransferRemarks(e.target.value)}
-                      placeholder="Explain why pending dues are being transferred…"
+                      placeholder="Explain why pending dues are being transferredâ€¦"
                       rows={3}
                       borderRadius="xl"
                     />
@@ -809,7 +775,7 @@ function ShiftBatchModal({ student }) {
               )}
             </HStack>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

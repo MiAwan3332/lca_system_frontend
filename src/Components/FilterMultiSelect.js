@@ -1,12 +1,6 @@
+import { Checkbox } from './AccessInputs';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Flex,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Button, Flex, Text, VStack } from '@chakra-ui/react';
 import { ChevronDown } from "lucide-react";
 
 /**
@@ -115,7 +109,7 @@ function FilterMultiSelect({
           left={0}
           right={0}
           minW="12rem"
-          bg="white"
+          bg="var(--dash-surface)"
           border="1px solid"
           borderColor="#E0E8EC"
           borderRadius="xl"

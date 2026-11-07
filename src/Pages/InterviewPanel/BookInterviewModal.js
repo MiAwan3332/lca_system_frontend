@@ -1,5 +1,8 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, Textarea, VStack, Text, Box, Flex, HStack, Badge, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Text, Box, Flex, HStack, Badge, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import moment from "moment";
 import {
@@ -36,6 +39,7 @@ import {
 } from "../../utlls/responsiveModal";
 import { useNavigate } from "react-router-dom";
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
+import { accessRoleLabel } from '../../utlls/accessRoleLabel';
 
 function BookInterviewModal({
   isOpen,
@@ -113,15 +117,7 @@ function BookInterviewModal({
       return;
     }
 
-    if (currentUser) {
-      setBookedFor(String(currentUser.name || "").trim());
-      setBookedPhone(String(currentUser.email || "").trim());
-      setBookedUserId(currentUser._id || null);
-    } else {
-      setBookedFor("");
-      setBookedPhone("");
-      setBookedUserId(null);
-    }
+    setBookedFor("");setBookedPhone("");setBookedUserId(null);
   }, [
     isOpen,
     scheduleRow,
@@ -144,40 +140,6 @@ function BookInterviewModal({
     onConfirmClose();
   };
 
-  const buildUpdatedSchedules = (bookingPayload) => {
-    const rows = panelToScheduleRows(panel);
-    const index = Number(scheduleRow.schedule_array_index);
-    if (Number.isNaN(index) || index < 0 || index >= rows.length) {
-      return { error: "Could not find this schedule slot" };
-    }
-    rows[index] = {
-      ...rows[index],
-      ...bookingPayload,
-    };
-    return { schedules: formRowsToSchedulesPayload(rows) };
-  };
-
-  const saveSchedules = async (schedules) => {
-    await dispatch(
-      updateInterviewPanel({
-        authToken,
-        id: panel._id,
-        values: { schedules },
-      })
-    ).unwrap();
-    handleClose();
-    dispatch(
-      fetchInterviewPanelScheduleBoard({
-        authToken,
-        query: boardFilters.query || "",
-        status: boardFilters.status || "",
-        start_date: boardFilters.start_date || "",
-        end_date: boardFilters.end_date || "",
-      })
-    );
-    dispatch(fetchInterviewPanels({ authToken }));
-  };
-
   const requestBookConfirm = (event) => {
     event.preventDefault();
     if (isQualifier && !profileComplete) {
@@ -191,7 +153,7 @@ function BookInterviewModal({
     const name = String(bookedFor || "").trim();
     if (!name) {
       setError(
-        "Logged-in user details are missing. Please refresh and try again."
+        "Enter the candidate’s name and the phone number from their Qualifier profile."
       );
       return;
     }
@@ -210,88 +172,14 @@ function BookInterviewModal({
     onConfirmOpen();
   };
 
-  const executeBook = async () => {
-    const name = String(bookedFor || "").trim();
-
-    if (isQualifier) {
-      const scheduleIndex =
-        typeof scheduleRow.schedule_array_index === "number"
-          ? scheduleRow.schedule_array_index
-          : Number(scheduleRow.schedule_index) - 1;
-      try {
-        await dispatch(
-          bookInterviewPanelSlot({
-            authToken,
-            id: panel._id,
-            values: {
-              schedule_index: scheduleIndex,
-              booked_notes: String(bookedNotes || "").trim(),
-              date: scheduleRow.date || "",
-              start_time: scheduleRow.start_time || "",
-            },
-          })
-        ).unwrap();
-        handleClose();
-        dispatch(
-          fetchInterviewPanelScheduleBoard({
-            authToken,
-            query: boardFilters.query || "",
-            status: boardFilters.status || "",
-            start_date: boardFilters.start_date || "",
-            end_date: boardFilters.end_date || "",
-          })
-        );
-      } catch (err) {
-        setError(
-          typeof err === "string"
-            ? err
-            : err?.message || "Could not book interview"
-        );
-        closeConfirm();
-      }
-      return;
-    }
-
-    const result = buildUpdatedSchedules({
-      booking_status: "booked",
-      booked_for: name,
-      booked_phone: String(bookedPhone || "").trim(),
-      booked_notes: String(bookedNotes || "").trim(),
-      booked_user_id: bookedUserId || currentUser?._id || null,
-      booked_at: new Date().toISOString(),
-    });
-    if (result.error) {
-      setError(result.error);
-      closeConfirm();
-      return;
-    }
-    try {
-      await saveSchedules(result.schedules);
-    } catch {
-      // toast handled in slice
-    }
+  const executeBook = async()=>{
+    try{await dispatch(bookInterviewPanelSlot({authToken,id:panel._id,values:{schedule_id:scheduleRow.schedule_id,schedule_index:scheduleRow.schedule_array_index,
+      date:scheduleRow.date,start_time:scheduleRow.start_time,booked_for:bookedFor.trim(),booked_phone:bookedPhone.trim(),booked_notes:bookedNotes.trim()}})).unwrap();
+      handleClose();dispatch(fetchInterviewPanelScheduleBoard({authToken,...boardFilters}));dispatch(fetchInterviewPanels({authToken}));
+    }catch(error){setError(typeof error==='string'?error:error.message);closeConfirm();}
   };
 
-  const executeClearBooking = async () => {
-    const result = buildUpdatedSchedules({
-      booking_status: "available",
-      booked_for: "",
-      booked_phone: "",
-      booked_notes: "",
-      booked_user_id: null,
-      booked_at: null,
-    });
-    if (result.error) {
-      setError(result.error);
-      closeConfirm();
-      return;
-    }
-    try {
-      await saveSchedules(result.schedules);
-    } catch {
-      // toast handled in slice
-    }
-  };
+  const executeClearBooking = async()=>{setError('Use Cancel schedule to preserve the booking and interview history.');closeConfirm();};
 
   const handleConfirm = async () => {
     if (confirmAction === "clear") {
@@ -314,7 +202,7 @@ function BookInterviewModal({
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay bg="blackAlpha.500" backdropFilter="blur(4px)" />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           as="form"
           onSubmit={requestBookConfirm}
@@ -426,7 +314,7 @@ function BookInterviewModal({
                 <Text fontSize="xs" color="gray.500" mb={3}>
                   {isQualifier
                     ? "Filled from your My Profile details."
-                    : "Filled automatically from the logged-in user."}
+                    : "Enter the existing candidate’s name and phone number."}
                 </Text>
 
                 {!profileComplete ? (
@@ -474,8 +362,8 @@ function BookInterviewModal({
                       <Input
                         borderRadius="0.75rem"
                         borderColor="#E6D5B8"
-                        value={bookedFor}
-                        isReadOnly
+                        value={bookedFor} name="booked_for" onChange={e=>setBookedFor(e.target.value)}
+                        isReadOnly={isQualifier || isBooked}
                         bg="#F7F3EC"
                         placeholder="Logged-in user name"
                       />
@@ -483,13 +371,13 @@ function BookInterviewModal({
 
                     <FormControl>
                       <FormLabel fontSize={13} color="#654E26">
-                        {isQualifier ? "Phone" : "Email"}
+                        Phone
                       </FormLabel>
                       <Input
                         borderRadius="0.75rem"
                         borderColor="#E6D5B8"
-                        value={bookedPhone}
-                        isReadOnly
+                        value={bookedPhone} name="booked_phone" onChange={e=>setBookedPhone(e.target.value)}
+                        isReadOnly={isQualifier || isBooked}
                         bg="#F7F3EC"
                         placeholder={
                           isQualifier
@@ -499,9 +387,9 @@ function BookInterviewModal({
                       />
                     </FormControl>
 
-                    {!isQualifier && currentUser?.role ? (
+                    {!isQualifier && accessRoleLabel(currentUser, "") ? (
                       <Text fontSize="xs" color="gray.500">
-                        Role: {currentUser.role}
+                        Role: {accessRoleLabel(currentUser, "")}
                       </Text>
                     ) : null}
 
@@ -516,7 +404,7 @@ function BookInterviewModal({
                         value={bookedNotes}
                         onChange={(e) => setBookedNotes(e.target.value)}
                         placeholder="Optional notes"
-                        isReadOnly={isQualifier && isBooked}
+                        isReadOnly={isBooked}
                       />
                     </FormControl>
                   </VStack>
@@ -591,7 +479,7 @@ function BookInterviewModal({
               </Button>
             ) : null}
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
 
       <AlertDialog

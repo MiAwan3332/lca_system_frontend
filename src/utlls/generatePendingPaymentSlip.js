@@ -174,8 +174,6 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     payingNow = 0,
     remainingAfter = 0,
     discountAmount = 0,
-    remarks = "",
-    discountRemarks = "",
     paymentOption = "full",
     paymentMethod = "Cash",
     nextInstallmentDate = "",
@@ -210,11 +208,12 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     0
   );
   // Net amount after this slip's discount (what Total chip must show)
-  const totalAfterDiscount = Math.max(outstandingBefore - discount, 0);
+  const totalAfterDiscount = Math.max(data.totalFee != null ? Number(data.totalFee) : outstandingBefore - discount, 0);
+  const cumulativePaid = data.paidFee != null ? Number(data.paidFee) : Number(payingNow);
   const isFullyDiscounted =
     discount > 0 && !(Number(payingNow) > 0) && remainingAmount <= 0;
   const paymentLabel = isFullyDiscounted
-    ? "Fully Discounted"
+    ? "No Dues"
     : remainingAmount > 0 || paymentOption === "partial"
       ? "Partial Payment"
       : "Full Payment";
@@ -399,7 +398,7 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
   y = drawRow(
     "Method",
     discount > 0 && !(Number(payingNow) > 0)
-      ? "Discount"
+      ? "N/A"
       : paymentMethod || "N/A",
     y,
     true
@@ -415,17 +414,6 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     y,
     true
   );
-  if (discount > 0) {
-    y = drawRow("Discount", formatCurrency(discount), y);
-  }
-  const remarksText = String(remarks || "").trim();
-  const discountRemarksText = String(discountRemarks || "").trim();
-  if (remarksText) {
-    y = drawRow("Remarks", remarksText, y);
-  }
-  if (discountRemarksText) {
-    y = drawRow("Discount Remarks", discountRemarksText, y, true);
-  }
   y += 1.5;
 
   const hasPendingDues = remainingAmount > 0;
@@ -450,9 +438,9 @@ export const generatePendingPaymentSlip = async (data = {}, mode = "print") => {
     gap,
     // Net total after discount (not gross / pre-discount fee)
     total: totalAfterDiscount,
-    paid: payingNow,
+    paid: cumulativePaid,
     pending: remainingAmount,
-    totalLabel: discount > 0 ? "After Discount" : "Total",
+    totalLabel: "Total",
     formatCurrency,
     colors: COLORS,
   });

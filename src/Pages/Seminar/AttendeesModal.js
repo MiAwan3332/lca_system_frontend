@@ -1,3 +1,4 @@
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button } from "@chakra-ui/react";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@chakra-ui/react";
@@ -122,7 +123,7 @@ const AttendeesModal = ({ seminar }) => {
         {...getResponsiveModalSize("6xl")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Seminar Attendees
           </ModalHeader>
@@ -264,7 +265,7 @@ const AttendeesModal = ({ seminar }) => {
               Export Excel
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
 
       <AddAttendeeModal

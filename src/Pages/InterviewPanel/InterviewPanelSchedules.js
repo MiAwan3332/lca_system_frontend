@@ -1,5 +1,7 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import { Box, Button, Text, Badge, HStack, VStack, Flex, Center, FormControl, FormLabel, Input, Textarea, Stack, IconButton } from "@chakra-ui/react";
+import { Box, Button, Text, Badge, HStack, VStack, Flex, Center, FormLabel, Stack, IconButton } from '@chakra-ui/react';
 import {
   ArrowLeft,
   CalendarDays,
@@ -17,7 +19,7 @@ import {
   clearCurrentInterviewPanel,
   fetchInterviewPanel,
   fetchInterviewPanels,
-  updateInterviewPanel,
+  saveInterviewSchedules,
 } from "../../Features/interviewPanelSlice";
 import {
   createEmptyScheduleRow,
@@ -100,10 +102,10 @@ function InterviewPanelSchedules() {
     try {
       const payload = formRowsToSchedulesPayload(schedules);
       await dispatch(
-        updateInterviewPanel({
+        saveInterviewSchedules({
           authToken,
           id: panel._id,
-          values: { schedules: payload },
+          values: { schedules: payload,expected_revision:panel.__v },
         })
       ).unwrap();
       setInitializedFor("");

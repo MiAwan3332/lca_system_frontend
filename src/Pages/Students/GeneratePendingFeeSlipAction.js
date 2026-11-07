@@ -1,6 +1,10 @@
+import { Input, Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, FormControl, FormLabel, HStack, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Textarea, useToast, VStack } from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Box, Button, FormLabel, HStack, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, useToast, VStack } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import axios from "axios";
@@ -65,10 +69,20 @@ function GeneratePendingFeeSlipAction({
   const [evidenceError, setEvidenceError] = useState("");
   const [hasPaid, setHasPaid] = useState(false);
   const [paidSlipPayload, setPaidSlipPayload] = useState(null);
+  const [previousReceipt, setPreviousReceipt] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [detailStudent, setDetailStudent] = useState(null);
   const [loadingRemarks, setLoadingRemarks] = useState(false);
   const printSlipPayloadRef = useRef(null);
+  useEffect(() => {
+    if (!isOpen || !student?._id) return;
+    const controller = new AbortController();
+    setPreviousReceipt(null);
+    axios.get(`${config.BASE_URL}/students/${student._id}/last-payment-receipt`, {
+      headers: { Authorization: `Bearer ${authToken}` }, signal: controller.signal,
+    }).then(({ data }) => setPreviousReceipt(data)).catch(() => {});
+    return () => controller.abort();
+  }, [isOpen, student?._id, authToken]);
 
   // Prefer freshly loaded profile (includes admission remarks + enriched discount remarks)
   const profile = detailStudent || student;
@@ -272,7 +286,7 @@ function GeneratePendingFeeSlipAction({
       }
 
       try {
-        await dispatch(
+        const paymentResult = await dispatch(
           collectPendingFee({
             authToken,
             studentId: student._id,
@@ -330,6 +344,9 @@ function GeneratePendingFeeSlipAction({
           classStartTime: profile.batch?.class_start_time || "",
           classEndTime: profile.batch?.class_end_time || "",
         };
+        Object.assign(slipPayload, paymentResult.receipt || {});
+        if (paymentResult.receipt_saved === false) toast({ title: 'Payment recorded; receipt archive needs attention',
+          description: 'Print this receipt now and contact an administrator. Do not submit the payment again.', status: 'warning', duration: 10000 });
         setPaidSlipPayload(slipPayload);
         setHasPaid(true);
         saveLastFeeSlipPayload(profile._id || student._id, slipPayload);
@@ -444,6 +461,8 @@ function GeneratePendingFeeSlipAction({
       const payload = { ...slipPayload, isDuplicate: duplicate };
       const { qrDataUrl, verifyUrl } = await issueSlipVerificationQr({
         authToken,
+        student_id: student._id,
+        receipt_id: payload.receiptId,
         student_name: payload.name,
         cnic: payload.cnic,
         phone: payload.phone,
@@ -493,6 +512,10 @@ function GeneratePendingFeeSlipAction({
   printSlipPayloadRef.current = printSlipPayload;
 
   const handlePrintSlip = async ({ duplicate = false } = {}) => {
+    if (duplicate && !paidSlipPayload && previousReceipt) {
+      await printSlipPayload(previousReceipt, { duplicate: true });
+      return;
+    }
     if (!hasPaid || !paidSlipPayload) {
       toast({
         title: "Record payment first",
@@ -531,7 +554,7 @@ function GeneratePendingFeeSlipAction({
     formik.handleSubmit();
   };
 
-  if (!student || (outstanding <= 0 && !hasPaid)) {
+  if (!student) {
     if (showTrigger) return null;
     return null;
   }
@@ -542,7 +565,7 @@ function GeneratePendingFeeSlipAction({
         <ActionButton
           variant="amber"
           icon={<FileText size={16} />}
-          label="Generate Pending Fee Slip"
+          label={outstanding > 0 ? 'Generate Pending Fee Slip' : 'Fee Receipt'}
           onClick={handleOpen}
         />
       ) : null}
@@ -554,7 +577,7 @@ function GeneratePendingFeeSlipAction({
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm component={ModalContent}
           {...responsiveModalContentProps}
           display="flex"
           flexDirection="column"
@@ -630,6 +653,7 @@ function GeneratePendingFeeSlipAction({
                 <Input
                   type="number"
                   name="discount_amount"
+                  permission="fees.discount.fee"
                   borderRadius="0.5rem"
                   placeholder="0"
                   isDisabled={hasPaid}
@@ -868,7 +892,7 @@ function GeneratePendingFeeSlipAction({
                     leftIcon={<Printer size={16} />}
                     onClick={() => handlePrintSlip({ duplicate: true })}
                     isLoading={isPrinting}
-                    isDisabled={!hasPaid}
+                    isDisabled={!hasPaid && !previousReceipt}
                   >
                     Print Duplicate
                   </Button>
@@ -893,13 +917,13 @@ function GeneratePendingFeeSlipAction({
               _hover={{ backgroundColor: "#74A0E3", color: "#223163" }}
               isLoading={updateStatus === "loading" || formik.isSubmitting}
               loadingText="Submitting"
-              isDisabled={hasPaid}
+              isDisabled={hasPaid || outstanding <= 0}
               onClick={handleSubmitClick}
             >
               {hasPaid ? "Payment Recorded" : "Submit Payment"}
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

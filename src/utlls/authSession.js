@@ -1,5 +1,6 @@
 import Cookies from "js-cookie";
 import axios from "axios";
+import { resetAccess } from './accessCapabilities';
 import { createStandaloneToast } from "@chakra-ui/react";
 import {
   beginGlobalLoading,
@@ -75,6 +76,7 @@ export const getSessionRemainingMs = (token = getAuthToken()) => {
 };
 
 export const clearAuthSession = () => {
+  resetAccess();
   sessionStorage.removeItem("authToken");
   sessionStorage.removeItem("permissions");
   sessionStorage.removeItem("role");
@@ -105,6 +107,26 @@ export const expireAuthSession = ({ showToast = false } = {}) => {
 let axiosInterceptorInstalled = false;
 let sessionExpiryHandler = null;
 
+const RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
+const MAX_SAFE_REQUEST_RETRIES = 2;
+
+const retrySafeRequest = async (error) => {
+  const config = error?.config;
+  const method = String(config?.method || "get").toLowerCase();
+  const isSafeMethod = method === "get" || method === "head";
+  const isTemporaryFailure =
+    !error?.response || RETRYABLE_STATUS_CODES.has(error.response.status);
+  const retryCount = Number(config?.__lcaRetryCount || 0);
+
+  if (!config || !isSafeMethod || !isTemporaryFailure || retryCount >= MAX_SAFE_REQUEST_RETRIES) {
+    return null;
+  }
+
+  config.__lcaRetryCount = retryCount + 1;
+  await new Promise((resolve) => setTimeout(resolve, 500 * config.__lcaRetryCount));
+  return axios(config);
+};
+
 export const registerSessionExpiryHandler = (handler) => {
   sessionExpiryHandler = handler;
 };
@@ -132,7 +154,7 @@ export const setupAxiosSessionInterceptor = () => {
       if (response?.config?.__lcaTrackedLoading) endGlobalLoading();
       return response;
     },
-    (error) => {
+    async (error) => {
       if (error?.config?.__lcaTrackedLoading) endGlobalLoading();
       const requestUrl = String(error.config?.url || "");
       const isPublicSlipVerify = requestUrl.includes("/admission-slips/verify/");
@@ -140,6 +162,12 @@ export const setupAxiosSessionInterceptor = () => {
         expireAuthSession({ showToast: true });
         sessionExpiryHandler?.();
       }
+
+      const retryResponse = await retrySafeRequest(error);
+      if (retryResponse) return retryResponse;
+
+      const requestId = error.response?.headers?.["x-request-id"];
+      if (requestId) error.requestId = requestId;
       return Promise.reject(error);
     }
   );

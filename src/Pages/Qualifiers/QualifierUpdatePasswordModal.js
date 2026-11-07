@@ -1,21 +1,10 @@
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Text,
-  useDisclosure,
-} from "@chakra-ui/react";
-import { useFormik } from "formik";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Text, useDisclosure } from '@chakra-ui/react';
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import axios from "axios";
@@ -113,7 +102,7 @@ function QualifierUpdatePasswordModal({ qualifier }) {
 
       <Modal isOpen={isOpen} onClose={handleClose} isCentered>
         <ModalOverlay />
-        <ModalContent as="form" onSubmit={formik.handleSubmit}>
+        <AccessForm component={ModalContent} as="form" onSubmit={formik.handleSubmit}>
           <ModalHeader className="text-xl font-semibold">
             Update Password
           </ModalHeader>
@@ -197,7 +186,7 @@ function QualifierUpdatePasswordModal({ qualifier }) {
               Update Password
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

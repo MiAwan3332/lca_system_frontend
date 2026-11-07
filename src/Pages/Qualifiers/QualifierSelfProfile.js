@@ -1,7 +1,10 @@
+import { Checkbox, Input, Textarea, Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useState } from "react";
-import { Badge, Box, Button, Checkbox, FormControl, FormLabel, Image, Input, Text, Textarea, VStack, SimpleGrid, Center, Wrap, WrapItem, Tag, TagLabel, TagCloseButton, Flex, Select, IconButton, Divider } from "@chakra-ui/react";
+import { Badge, Box, Button, FormLabel, Image, Text, VStack, SimpleGrid, Center, Wrap, WrapItem, Tag, TagLabel, TagCloseButton, Flex, IconButton, Divider } from '@chakra-ui/react';
 import { Plus, Trash2 } from "lucide-react";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useDispatch, useSelector } from "react-redux";

@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React from "react";
 import {
   Modal,
@@ -27,7 +29,7 @@ function AttemptHistoryModal({ isOpen, onClose, attempts }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...responsiveModalProps} {...getResponsiveModalSize("xl")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm permissionMode="read" component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>Quiz Attempt History</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -67,7 +69,7 @@ function AttemptHistoryModal({ isOpen, onClose, attempts }) {
         <ModalFooter>
           <Button onClick={onClose}>Close</Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

@@ -1,30 +1,11 @@
+import { Input, Textarea, Checkbox } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Box,
-  Text,
-  Textarea,
-  Grid,
-  GridItem,
-  HStack,
-  Badge,
-  Flex,
-  Checkbox,
-  VStack,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Box, Text, Grid, GridItem, HStack, Badge, Flex, VStack, useToast } from '@chakra-ui/react';
 import { Printer } from "lucide-react";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import Cookies from "js-cookie";
 import { useSelector, useDispatch } from "react-redux";
@@ -43,6 +24,10 @@ import { generateAdmissionFeeSlip } from "../../utlls/generateAdmissionFeeSlip";
 import { formatClassTimeRange } from "../../utlls/classTime";
 import { config } from "../../utlls/config";
 import axios from "axios";
+import { accessSnapshot, can, canUseField } from '../../utlls/accessCapabilities';
+import CreationProcessing from '../../Components/CreationProcessing';
+import StudentIdentityNotice from '../../Components/StudentIdentityNotice';
+import { pendingCreationKey } from '../../utlls/creationRecovery';
 
 import {
   FEE_PAYMENT_METHODS,
@@ -86,6 +71,8 @@ function AddStudnet({ isOpen, onClose }) {
   const [paymentOption, setPaymentOption] = useState("later");
   const [isPrintingSlip, setIsPrintingSlip] = useState(false);
   const [createdStudent, setCreatedStudent] = useState(null);
+  const [submission, setSubmission] = useState(null);
+  const [identityCheck, setIdentityCheck] = useState({ blocked: true });
   const [mustPrintZeroSlip, setMustPrintZeroSlip] = useState(false);
   const [formSessionKey, setFormSessionKey] = useState(0);
   const toast = useToast();
@@ -93,6 +80,7 @@ function AddStudnet({ isOpen, onClose }) {
   const { addStatus } = useSelector((state) => state.students);
   const batches = useSelector(selectActiveStudentBatches);
   const currentUser = useSelector(selectUser);
+  const canCollectPayment = !accessSnapshot().managed || (canUseField('paying_now', 'write') && (can('fees.pay.fee') || can('fees.collect.pending.fee')));
   const dispatch = useDispatch();
 
   const validationSchema = useMemo(
@@ -340,6 +328,11 @@ function AddStudnet({ isOpen, onClose }) {
       const formData = new FormData();
       formData.append("name", values.name);
       formData.append("phone", values.phone);
+      if (identityCheck.blocked) {
+        toast({ title: 'Check student identity', description: identityCheck.error || 'Resolve the existing student or pending dues before saving.', status: 'warning' });
+        return;
+      }
+      formData.append('reuse_existing', 'true');
       if (values.cnic?.trim()) {
         formData.append("cnic", values.cnic.trim());
       }
@@ -383,6 +376,8 @@ function AddStudnet({ isOpen, onClose }) {
         const created = await dispatch(
           addStudent({ authToken, formData })
         ).unwrap();
+        setSubmission(created);
+        if (created.submission_status !== 'complete') return;
         dispatch(fetchStudents({ authToken }));
         // Normalize API shape (student may be nested or use `id`)
         const raw = created?.student || created?.data || created || {};
@@ -458,11 +453,13 @@ function AddStudnet({ isOpen, onClose }) {
     setPaymentEvidenceError("");
     setPaymentOption("later");
     setCreatedStudent(null);
+    const pendingKey = pendingCreationKey('student', authToken);
+    setSubmission(pendingKey ? { idempotency_key: pendingKey, submission_status: 'unknown' } : null);
     setMustPrintZeroSlip(false);
     setIsPrintingSlip(false);
     setFormSessionKey((key) => key + 1);
     dispatch(
-      fetchBatches({ authToken, queryParams: { limit: 200, page: 1, query: "" } })
+      fetchBatches({ authToken, queryParams: { limit: 100, page: 1, query: "" } })
     );
   }, [isOpen, dispatch, authToken]);
 
@@ -540,6 +537,7 @@ function AddStudnet({ isOpen, onClose }) {
     (isSpecialBatch ? specialTotalFee > 0 : batchFee > 0);
 
   const handlePaymentOptionChange = (option) => {
+    if (option !== 'later' && !canCollectPayment) return;
     setPaymentOption(option);
     if (option === "later") {
       formik.setFieldValue("paying_now", "");
@@ -754,6 +752,7 @@ function AddStudnet({ isOpen, onClose }) {
         const verifyResponse = await axios.post(
           `${config.BASE_URL}/admission-slips/issue`,
           {
+            student_id: studentId,
             student_name: formik.values.name,
             cnic: formik.values.cnic || "",
             phone: formik.values.phone || "",
@@ -943,6 +942,7 @@ function AddStudnet({ isOpen, onClose }) {
         <Input
           type="number"
           name="discount_amount"
+          permission="fees.discount.fee"
           min={0}
           max={admissionFee}
           step="1"
@@ -1004,7 +1004,7 @@ function AddStudnet({ isOpen, onClose }) {
           >
             Pay later
           </Button>
-          {payableFee > 1 && (
+          {canCollectPayment && payableFee > 1 && (
             <Button
               size="sm"
               borderRadius="lg"
@@ -1017,7 +1017,7 @@ function AddStudnet({ isOpen, onClose }) {
               Partial payment
             </Button>
           )}
-          {payableFee > 0 && (
+          {canCollectPayment && payableFee > 0 && (
             <Button
               size="sm"
               borderRadius="lg"
@@ -1171,7 +1171,7 @@ function AddStudnet({ isOpen, onClose }) {
       {...getResponsiveModalSize("2xl")}
     >
       <ModalOverlay />
-      <ModalContent
+      <AccessForm component={ModalContent}
         {...responsiveModalContentProps}
         as="form"
         onSubmit={formik.handleSubmit}
@@ -1189,6 +1189,16 @@ function AddStudnet({ isOpen, onClose }) {
         </ModalHeader>
         {createdStudent ? null : <ModalCloseButton />}
         <ModalBody flex="1" overflowY="auto" py={4}>
+          {submission && <Box mb={4}>
+            <CreationProcessing kind="student" authToken={authToken} submissionKey={submission.idempotency_key}
+              initial={submission} onReset={() => setSubmission(null)} onFinished={(record) => {
+                setCreatedStudent((previous) => record.submission_status === 'complete' ? { ...previous, ...record } : previous);
+                dispatch(fetchStudents({ authToken }));
+              }} onResolved={(record) => {
+                setCreatedStudent((previous) => previous || record);
+                dispatch(fetchStudents({ authToken }));
+              }} />
+          </Box>}
           {createdStudent ? (
             <Box
               mb={4}
@@ -1211,7 +1221,7 @@ function AddStudnet({ isOpen, onClose }) {
               </Text>
             </Box>
           ) : null}
-          <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
+          <Grid as="fieldset" disabled={addStatus === 'loading' || Boolean(submission && !createdStudent)} templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
             <GridItem>
               <FormControl id="name" isRequired>
                 <FormLabel fontSize={14}>Name</FormLabel>
@@ -1267,6 +1277,14 @@ function AddStudnet({ isOpen, onClose }) {
                     {formik.errors.phone}
                   </Box>
                 ) : null}
+                <StudentIdentityNotice phone={formik.values.phone} batch={formik.values.batch} authToken={authToken} active={isOpen}
+                  onResult={(result) => {
+                    setIdentityCheck(result);
+                    if (result.student) {
+                      formik.setFieldValue('name', result.student.name || '', false);
+                      formik.setFieldValue('cnic', result.student.cnic || '', false);
+                    }
+                  }} />
               </FormControl>
             </GridItem>
 
@@ -1527,7 +1545,9 @@ function AddStudnet({ isOpen, onClose }) {
             loadingText="Adding"
             isLoading={addStatus === "loading"}
             isDisabled={
+              identityCheck.blocked ||
               Boolean(createdStudent) ||
+              Boolean(submission) ||
               (isPaidBatch &&
                 !isFullyDiscounted &&
                 (paymentOption === "partial" ||
@@ -1540,7 +1560,7 @@ function AddStudnet({ isOpen, onClose }) {
             {createdStudent ? "Student Added" : "Add Student"}
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

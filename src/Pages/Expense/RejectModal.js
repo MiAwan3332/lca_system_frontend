@@ -1,17 +1,8 @@
+import { Textarea } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Textarea,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel } from '@chakra-ui/react';
 
 function RejectModal({ isOpen, onClose, onReject, isLoading }) {
   const [reason, setReason] = useState("");
@@ -29,13 +20,14 @@ function RejectModal({ isOpen, onClose, onReject, isLoading }) {
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
       <ModalOverlay />
-      <ModalContent>
+      <AccessForm component={ModalContent}>
         <ModalHeader>Reject Expense</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <FormControl>
             <FormLabel fontSize={14}>Reason (optional)</FormLabel>
             <Textarea
+                permissionField="rejection_reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Why is this expense being rejected?"
@@ -57,7 +49,7 @@ function RejectModal({ isOpen, onClose, onReject, isLoading }) {
             Reject
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

@@ -1,25 +1,8 @@
+import { Select } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import {
-  Badge,
-  Button,
-  FormControl,
-  Select,
-  Table,
-  TableContainer,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  useDisclosure,
-  ButtonGroup,
-} from "@chakra-ui/react";
+import { Badge, Button, Table, TableContainer, Tbody, Td, Th, Thead, Tr, Tabs, TabList, TabPanels, Tab, TabPanel, useDisclosure, ButtonGroup } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import { FileX, Plus, Eye, Trash2 } from "lucide-react";
 import TableRowLoading from "../../Components/TableRowLoading";

@@ -1,20 +1,9 @@
+
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Box,
-  Badge,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, Badge } from '@chakra-ui/react';
 import { View } from "lucide-react";
 
 const OPTION_LABELS = ["A", "B", "C", "D"];
@@ -55,7 +44,7 @@ function ViewModal({ mcq }) {
 
       <Modal isOpen={isOpen} onClose={onClose} size="2xl">
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm permissionMode="read" component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">View Mcq</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -109,7 +98,7 @@ function ViewModal({ mcq }) {
               Close
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

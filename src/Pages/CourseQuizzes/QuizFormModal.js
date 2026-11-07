@@ -1,22 +1,8 @@
+import { Input, Textarea, Select, Switch } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  Switch,
-  VStack,
-  HStack,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, FormLabel, VStack, HStack } from '@chakra-ui/react';
 import { useDispatch, useSelector } from "react-redux";
 import {
   addCourseQuiz,
@@ -106,7 +92,7 @@ function QuizFormModal({ isOpen, onClose, authToken, quiz }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} {...responsiveModalProps} {...getResponsiveModalSize("2xl")}>
       <ModalOverlay />
-      <ModalContent {...responsiveModalContentProps}>
+      <AccessForm component={ModalContent} {...responsiveModalContentProps}>
         <ModalHeader>{quiz ? "Edit Course Quiz" : "Create Course Quiz"}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
@@ -221,7 +207,7 @@ function QuizFormModal({ isOpen, onClose, authToken, quiz }) {
             {quiz ? "Update" : "Create"}
           </Button>
         </ModalFooter>
-      </ModalContent>
+      </AccessForm>
     </Modal>
   );
 }

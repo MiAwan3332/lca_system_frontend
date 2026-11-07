@@ -1,3 +1,4 @@
+import { accessFetch as fetch } from '../utlls/accessRequests';
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { config } from "../utlls/config.js";

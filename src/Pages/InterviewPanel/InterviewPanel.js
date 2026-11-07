@@ -1,5 +1,8 @@
+import {accessSnapshot,can} from '../../utlls/accessCapabilities';
+import { Select, Input } from '../../Components/AccessInputs';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useRef, useState } from "react";
-import { Box, Button, SimpleGrid, Text, Badge, HStack, VStack, Select, Input, Flex, IconButton, Center, useDisclosure, FormControl } from "@chakra-ui/react";
+import { Box, Button, SimpleGrid, Text, Badge, HStack, VStack, Flex, IconButton, Center, useDisclosure } from '@chakra-ui/react';
 import {
   CalendarDays,
   CalendarPlus,
@@ -52,6 +55,7 @@ const formatPanelDuration = (panel) => {
 };
 
 function InterviewPanel() {
+  const permitted=p=>!accessSnapshot().managed||can(p);
   const tableSearchRef = useRef();
   const navigate = useNavigate();
   const [authToken] = useState(Cookies.get("authToken"));
@@ -144,7 +148,7 @@ function InterviewPanel() {
           <button
             className="table-action-btn table-action-btn--primary"
             type="button"
-            onClick={onAddOpen}
+            onClick={onAddOpen} hidden={!permitted('interview-panels.add.interview.panel')}
           >
             <Plus size={18} />
             <span>Create Panel</span>
@@ -232,7 +236,7 @@ function InterviewPanel() {
                 mt={2}
                 w={{ base: "full", sm: "auto" }}
                 leftIcon={<Plus size={16} />}
-                onClick={onAddOpen}
+                onClick={onAddOpen} hidden={!permitted('interview-panels.add.interview.panel')}
                 borderRadius="0.75rem"
                 backgroundColor="#FFCB82"
                 color="#85652D"
@@ -408,7 +412,7 @@ function InterviewPanel() {
                       color="#85652D"
                       _hover={{ bg: "#FFF8EE" }}
                       w={{ base: "full", sm: "auto" }}
-                      onClick={() => openSchedules(panel)}
+                      onClick={() => openSchedules(panel)} hidden={!permitted('interview-panels.update.interview.schedules')}
                     >
                       Schedules
                     </Button>
@@ -433,7 +437,7 @@ function InterviewPanel() {
                         variant="ghost"
                         borderRadius="lg"
                         flex={{ base: 1, sm: "none" }}
-                        onClick={() => openEdit(panel)}
+                        onClick={() => openEdit(panel)} hidden={!permitted('interview-panels.update.interview.panel')}
                       />
                       <IconButton
                         aria-label="Delete panel"
@@ -443,7 +447,7 @@ function InterviewPanel() {
                         colorScheme="red"
                         borderRadius="lg"
                         flex={{ base: 1, sm: "none" }}
-                        onClick={() => openDelete(panel)}
+                        onClick={() => openDelete(panel)} hidden={!permitted('interview-panels.delete.interview.panel')}
                       />
                     </HStack>
                   </Flex>

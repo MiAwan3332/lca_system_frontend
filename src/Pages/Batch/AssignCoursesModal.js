@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Checkbox, VStack } from "@chakra-ui/react";
+import { Checkbox } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
+import React, { useState } from "react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack } from '@chakra-ui/react';
 import Cookies from "js-cookie";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import { Check } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -11,7 +14,8 @@ import {
   fetchBatches,
   selectBatchCourses,
 } from "../../Features/batchSlice";
-import { fetchCourses, selectAllCourses, setLimitFilter } from "../../Features/courseSlice";
+import axios from 'axios';
+import { config } from '../../utlls/config';
 import LcaLogoLoading from "../../Components/LcaLogoLoading";
 
 const AssignCoursesModal = ({ batchId }) => {
@@ -25,7 +29,9 @@ const AssignCoursesModal = ({ batchId }) => {
     (state) => state.batches
   );
   const batchCourses = useSelector(selectBatchCourses);
-  const courses = useSelector(selectAllCourses);
+  const [courses, setCourses] = useState([]);
+  const [loadError, setLoadError] = useState('');
+  const [loadingOptions, setLoadingOptions] = useState(false);
   const dispatch = useDispatch();
 
   const formik = useFormik({
@@ -47,20 +53,21 @@ const AssignCoursesModal = ({ batchId }) => {
     },
   });
 
-  const handleOpenModal = () => {
-    dispatch(fetchBatchCourses({ authToken, batchId }))
-      .unwrap()
-      .then((data) => {
+  const handleOpenModal = async () => {
+    onOpen();
+    setLoadError('');
+    setLoadingOptions(true);
+    try {
+      const [options, data] = await Promise.all([
+        axios.get(`${config.BASE_URL}/batches/assignment-options/${batchId}`, { headers: { Authorization: `Bearer ${authToken}` } }),
+        dispatch(fetchBatchCourses({ authToken, batchId })).unwrap(),
+      ]);
+      setCourses(options.data.courses || []);
         const courseIds = data.map((course) => course._id);
         formik.setFieldValue("courses", courseIds);
-      });
-    onOpen();
+    } catch (error) { setCourses([]); setLoadError(error.response?.data?.message || 'Could not load available courses.'); }
+    finally { setLoadingOptions(false); }
   };
-
-  useEffect(() => {
-    dispatch(setLimitFilter(999999));
-    dispatch(fetchCourses({ authToken }));
-  }, []);
 
   return (
     <>
@@ -74,13 +81,14 @@ const AssignCoursesModal = ({ batchId }) => {
 
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside">
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Assign Courses to Batch
           </ModalHeader>
           <ModalCloseButton />
-          <form onSubmit={formik.handleSubmit}>
+          <AccessForm onSubmit={formik.handleSubmit}>
             <ModalBody>
+              {loadError && <p role="alert">{loadError}</p>}
               <div>
                 {fetchBatchCoursesStatus === "loading" ? (
                   <LcaLogoLoading size="sm" />
@@ -135,12 +143,13 @@ const AssignCoursesModal = ({ batchId }) => {
                 type="submit"
                 loadingText="Assigning"
                 isLoading={assignCoursesStatus === "loading"}
+                isDisabled={loadingOptions || Boolean(loadError)}
               >
                 Assign
               </Button>
             </ModalFooter>
-          </form>
-        </ModalContent>
+          </AccessForm>
+        </AccessForm>
       </Modal>
     </>
   );

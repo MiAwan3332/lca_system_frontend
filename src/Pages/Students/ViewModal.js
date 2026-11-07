@@ -1,8 +1,13 @@
+
+import { Input } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
+import { useAccessCreateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useState, useEffect, useMemo } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Input, VStack, Box, IconButton, Image, Grid, GridItem, Flex, Text, Link, useToast } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, IconButton, Image, Grid, GridItem, Flex, Text, Link, useToast } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
-import { useFormik } from "formik";
+
 import * as Yup from "yup";
 import { LogOut, Paperclip, View } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -283,7 +288,7 @@ function ViewModal({ student, forced = false, onComplete }) {
         closeOnEsc={!isForcedCompletion}
       >
         <ModalOverlay />
-        <ModalContent
+        <AccessForm permissionMode="read" component={ModalContent}
           {...responsiveModalContentProps}
           as="form"
           onSubmit={formik.handleSubmit}
@@ -600,7 +605,7 @@ function ViewModal({ student, forced = false, onComplete }) {
               )}
               </div>
             </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

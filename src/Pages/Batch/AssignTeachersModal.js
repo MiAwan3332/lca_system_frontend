@@ -1,9 +1,14 @@
+
+import { Select } from '../../Components/AccessInputs';
+import AccessForm from '../../Components/AccessForm';
+import FormControl from '../../Components/AccessFormControl';
 import React, { useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormControl, FormLabel, Select, Text, Table, Thead, Tbody, Tr, Th, Td, TableContainer, IconButton, Alert, AlertIcon, useToast, Heading } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, VStack, FormLabel, Text, Table, Thead, Tbody, Tr, Th, Td, TableContainer, IconButton, Alert, AlertIcon, useToast, Heading } from '@chakra-ui/react';
 import Cookies from "js-cookie";
 import { UserPlus, Trash2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTeachers, selectAllTeachers } from "../../Features/teacherSlice";
+import axios from 'axios';
+import { config } from '../../utlls/config';
 import {
   assignTeacherCoursesToBatch,
   fetchBatchCourses,
@@ -45,10 +50,11 @@ const AssignTeachersModal = ({ batchId }) => {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [assignments, setAssignments] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const toast = useToast();
 
   const dispatch = useDispatch();
-  const teachers = useSelector(selectAllTeachers);
+  const [teachers, setTeachers] = useState([]);
   const batchCourses = useSelector(selectBatchCourses);
   const { assignTeacherCoursesStatus, fetchBatchCoursesStatus } = useSelector(
     (state) => state.batches
@@ -66,17 +72,15 @@ const AssignTeachersModal = ({ batchId }) => {
     setSelectedCourse("");
     setIsOpen(true);
     setLoadingData(true);
+    setLoadError(false);
+    setTeachers([]);
 
     try {
-      await Promise.all([
-        dispatch(
-          fetchTeachers({
-            authToken,
-            queryParams: { page: 1, limit: 1000, query: "" },
-          })
-        ),
-        dispatch(fetchBatchCourses({ authToken, batchId })),
+      const [options] = await Promise.all([
+        axios.get(`${config.BASE_URL}/batches/assignment-options/${batchId}`, { headers: { Authorization: `Bearer ${authToken}` } }),
+        dispatch(fetchBatchCourses({ authToken, batchId })).unwrap(),
       ]);
+      setTeachers(options.data.teachers || []);
 
       const data = await dispatch(
         fetchBatchTeacherAssignments({ authToken, batchId })
@@ -84,6 +88,7 @@ const AssignTeachersModal = ({ batchId }) => {
 
       setAssignments(mapAssignments(Array.isArray(data) ? data : []));
     } catch {
+      setLoadError(true);
       setAssignments([]);
       toast({
         title: "Could not load existing teacher assignments",
@@ -171,7 +176,7 @@ const AssignTeachersModal = ({ batchId }) => {
         {...getResponsiveModalSize("2xl")}
       >
         <ModalOverlay />
-        <ModalContent {...responsiveModalContentProps}>
+        <AccessForm component={ModalContent} {...responsiveModalContentProps}>
           <ModalHeader className="text-xl font-semibold">
             Assign Teacher to Batch by Course
           </ModalHeader>
@@ -195,7 +200,7 @@ const AssignTeachersModal = ({ batchId }) => {
 
                     <FormControl>
                       <FormLabel>Teacher</FormLabel>
-                      <Select
+                      <Select permissionField="assignments"
                         placeholder="Select teacher"
                         value={selectedTeacher}
                         onChange={(e) => setSelectedTeacher(e.target.value)}
@@ -210,7 +215,7 @@ const AssignTeachersModal = ({ batchId }) => {
 
                     <FormControl>
                       <FormLabel>Course</FormLabel>
-                      <Select
+                      <Select permissionField="assignments"
                         placeholder="Select course"
                         value={selectedCourse}
                         onChange={(e) => setSelectedCourse(e.target.value)}
@@ -294,12 +299,12 @@ const AssignTeachersModal = ({ batchId }) => {
               fontWeight="500"
               onClick={handleSave}
               isLoading={assignTeacherCoursesStatus === "loading"}
-              isDisabled={batchCourses.length === 0 || isLoading}
+              isDisabled={batchCourses.length === 0 || isLoading || loadError}
             >
               Save Assignments
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );

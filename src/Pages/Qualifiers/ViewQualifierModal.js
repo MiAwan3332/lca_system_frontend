@@ -1,3 +1,5 @@
+
+import AccessForm from '../../Components/AccessForm';
 import React, { useState } from "react";
 import {
   Modal,
@@ -54,7 +56,7 @@ function ViewQualifierModal({ qualifier }) {
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
-        <ModalContent>
+        <AccessForm permissionMode="read" component={ModalContent}>
           <ModalHeader className="text-xl font-semibold">
             Qualifier Details
           </ModalHeader>
@@ -189,7 +191,7 @@ function ViewQualifierModal({ qualifier }) {
               Close
             </Button>
           </ModalFooter>
-        </ModalContent>
+        </AccessForm>
       </Modal>
     </>
   );
