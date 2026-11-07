@@ -1,8 +1,34 @@
-import { Checkbox } from '../../Components/AccessInputs';
+import { can, accessSnapshot } from '../../utlls/accessCapabilities';
+import { Checkbox, Textarea } from '../../Components/AccessInputs';
 import AccessForm from '../../Components/AccessForm';
 import FormControl from '../../Components/AccessFormControl';
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, Text, Box, Alert, AlertIcon, AlertDescription, useToast, VStack, HStack } from '@chakra-ui/react';
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Button,
+  FormLabel,
+  Text,
+  Box,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  useToast,
+  VStack,
+  HStack,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+} from "@chakra-ui/react";
 import Cookies from "js-cookie";
 import { ArrowRightLeft, FileText, Receipt } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -38,6 +64,12 @@ const formatPendingAmount = (amount) =>
     maximumFractionDigits: 0,
   })}`;
 
+const formatDueDate = (value) => {
+  if (!value) return "â€”";
+  const raw = String(value).slice(0, 10);
+  return raw || "â€”";
+};
+
 function ShiftBatchModal({ student }) {
   if (!canShiftStudentBatch()) {
     return null;
@@ -47,6 +79,8 @@ function ShiftBatchModal({ student }) {
   const [destinationBatchId, setDestinationBatchId] = useState("");
   const [pendingBlock, setPendingBlock] = useState(null);
   const [specialSelectedOptions, setSpecialSelectedOptions] = useState([]);
+  const [showTransferConfirm, setShowTransferConfirm] = useState(false);
+  const [transferRemarks, setTransferRemarks] = useState("");
   const toast = useToast();
   const dispatch = useDispatch();
 
@@ -57,7 +91,8 @@ function ShiftBatchModal({ student }) {
 
   const currentBatchId = student?.batch?._id || student?.batch || "";
   const currentBatchName = student?.batch?.name || "No Batch";
-  const oldDuesNil = !(Number(student?.pending_fee) > 0);
+  const pendingFeeAmount = Number(student?.pending_fee) || 0;
+  const oldDuesNil = !(pendingFeeAmount > 0);
 
   const destinationBatches = useMemo(
     () =>
@@ -105,11 +140,33 @@ function ShiftBatchModal({ student }) {
     specialSelectedOptions,
   ]);
 
+  const previousPending =
+    Number(pendingBlock?.pending_amount) || pendingFeeAmount || 0;
+  const previousBatchName =
+    pendingBlock?.previous_batch_name || currentBatchName;
+  const previousDueDate = pendingBlock?.due_date || "";
+
+  const appliedDiscount = Math.max(destinationFeeAmount - previousPending, 0);
+  const finalPayable = Math.max(destinationFeeAmount - appliedDiscount, 0);
+  const pendingExceedsNewFee =
+    !oldDuesNil &&
+    destinationFeeAmount > 0 &&
+    previousPending > destinationFeeAmount;
+
   const canGoWithNewFee =
     oldDuesNil &&
     Boolean(destinationBatchId) &&
     isDestinationPaid &&
     destinationFeeAmount > 0 &&
+    (!isDestinationSpecial || specialSelectedOptions.length > 0);
+
+  const canTransferPendingDues =
+    (!accessSnapshot().managed || can('fees.discount.fee')) &&
+    !oldDuesNil &&
+    Boolean(destinationBatchId) &&
+    isDestinationPaid &&
+    destinationFeeAmount > 0 &&
+    !pendingExceedsNewFee &&
     (!isDestinationSpecial || specialSelectedOptions.length > 0);
 
   const onOpen = () => setIsOpen(true);
@@ -118,6 +175,8 @@ function ShiftBatchModal({ student }) {
     setDestinationBatchId("");
     setPendingBlock(null);
     setSpecialSelectedOptions([]);
+    setShowTransferConfirm(false);
+    setTransferRemarks("");
   };
 
   useEffect(() => {
@@ -136,7 +195,27 @@ function ShiftBatchModal({ student }) {
     }
   }, [dispatch, authToken, isOpen]);
 
-  const handleTransfer = async ({ assignNewFee = false } = {}) => {
+  useEffect(() => {
+    if (!isOpen || oldDuesNil) return;
+
+    setPendingBlock((prev) =>
+      prev || {
+        code: "PENDING_FEE_BLOCK",
+        message:
+          "This student has an outstanding fee balance from the previous batch.",
+        pending_amount: pendingFeeAmount,
+        previous_batch_name: currentBatchName,
+        due_date: student?.pending_due_date || student?.due_date || "",
+        can_transfer_pending_dues: true,
+      }
+    );
+
+  }, [isOpen, oldDuesNil, pendingFeeAmount, currentBatchName, student?.pending_due_date, student?.due_date]);
+
+  const handleTransfer = async ({
+    assignNewFee = false,
+    transferPendingDues = false,
+  } = {}) => {
     if (!destinationBatchId) {
       toast({
         title: "Select a batch",
@@ -159,7 +238,40 @@ function ShiftBatchModal({ student }) {
       return;
     }
 
-    if (assignNewFee) {
+    if (transferPendingDues) {
+      if (!canTransferPendingDues) {
+        toast({
+          title: pendingExceedsNewFee
+            ? "Pending dues exceed new batch fee"
+            : "Cannot transfer pending dues",
+          description: pendingExceedsNewFee
+            ? `Previous pending (${formatPendingAmount(
+                previousPending
+              )}) is greater than the new batch fee (${formatPendingAmount(
+                destinationFeeAmount
+              )}).`
+            : isDestinationSpecial
+              ? "Select at least one special batch option with a fee."
+              : "Destination batch must have a fee greater than 0.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      const remarks = String(transferRemarks || "").trim();
+      if (!remarks) {
+        toast({
+          title: "Remarks required",
+          description:
+            "Enter remarks explaining the pending dues transfer before confirming.",
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+    } else if (assignNewFee) {
       if (!canGoWithNewFee) {
         toast({
           title: "Cannot assign new fee",
@@ -176,7 +288,7 @@ function ShiftBatchModal({ student }) {
         toast({
           title: "Clear old dues first",
           description:
-            "Old dues must be nil before assigning a new fee on batch shift.",
+            "Old dues must be nil before assigning a new fee on batch shift, or use Transfer Pending Dues.",
           status: "warning",
           duration: 4000,
           isClosable: true,
@@ -185,7 +297,9 @@ function ShiftBatchModal({ student }) {
       }
     }
 
-    setPendingBlock(null);
+    if (!transferPendingDues) {
+      setPendingBlock(null);
+    }
 
     try {
       await dispatch(
@@ -193,9 +307,14 @@ function ShiftBatchModal({ student }) {
           authToken,
           studentId: student._id,
           batch: destinationBatchId,
-          assign_new_fee: assignNewFee,
-          special_selected_options: assignNewFee
-            ? specialSelectedOptions
+          assign_new_fee: assignNewFee || transferPendingDues,
+          special_selected_options:
+            assignNewFee || transferPendingDues
+              ? specialSelectedOptions
+              : undefined,
+          transfer_pending_dues: transferPendingDues,
+          remarks: transferPendingDues
+            ? String(transferRemarks || "").trim()
             : undefined,
         })
       ).unwrap();
@@ -205,9 +324,22 @@ function ShiftBatchModal({ student }) {
     } catch (error) {
       if (error?.code === "PENDING_FEE_BLOCK") {
         setPendingBlock(error);
+        setShowTransferConfirm(false);
         return;
       }
-      // Error toast is handled by the Redux slice
+      if (error?.code === "PENDING_EXCEEDS_NEW_FEE") {
+        toast({
+          title: "Transfer blocked",
+          description:
+            error.message ||
+            "Previous pending dues exceed the new batch fee.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      // Error toast is handled by the Redux slice for other cases
     }
   };
 
@@ -377,7 +509,7 @@ function ShiftBatchModal({ student }) {
                   <strong>
                     {oldDuesNil
                       ? "Nil"
-                      : formatPendingAmount(student.pending_fee)}
+                      : formatPendingAmount(pendingFeeAmount)}
                   </strong>
                 </Text>
               </Box>
@@ -389,7 +521,8 @@ function ShiftBatchModal({ student }) {
                   value={destinationBatchId}
                   onChange={(batchId) => {
                     setDestinationBatchId(batchId);
-                    setPendingBlock(null);
+                    setShowTransferConfirm(false);
+                    setTransferRemarks("");
                     setSpecialSelectedOptions([]);
                   }}
                   placeholder="Select active destination batch"
@@ -413,7 +546,7 @@ function ShiftBatchModal({ student }) {
                         isChecked={specialSelectedOptions.includes(option.key)}
                         onChange={() => toggleSpecialOption(option.key)}
                       >
-                        {option.label} — {formatPendingAmount(option.fee)}
+                        {option.label} â€” {formatPendingAmount(option.fee)}
                       </Checkbox>
                     ))}
                   </VStack>
@@ -436,13 +569,13 @@ function ShiftBatchModal({ student }) {
                         ? isDestinationSpecial
                           ? " after selecting special options"
                           : " once destination fee is configured"
-                        : " — destination batch has no fee"}
+                        : " â€” destination batch has no fee"}
                     .
                   </AlertDescription>
                 </Alert>
               ) : null}
 
-              {pendingBlock ? (
+              {!oldDuesNil ? (
                 <Alert
                   status="warning"
                   borderRadius="xl"
@@ -451,34 +584,133 @@ function ShiftBatchModal({ student }) {
                 >
                   <Box display="flex" alignItems="flex-start" w="100%">
                     <AlertIcon mt={1} />
-                    <AlertDescription fontSize="sm">
-                      {pendingBlock.message}
-                      <Text mt={2} fontWeight="bold">
-                        Pending Amount:{" "}
-                        {formatPendingAmount(pendingBlock.pending_amount)}
+                    <AlertDescription fontSize="sm" w="100%">
+                      <Text fontWeight="semibold" mb={2}>
+                        Previous batch payment history
                       </Text>
+                      <Text>
+                        Previous batch: <strong>{previousBatchName}</strong>
+                      </Text>
+                      <Text mt={1}>
+                        Pending dues:{" "}
+                        <strong>{formatPendingAmount(previousPending)}</strong>
+                      </Text>
+                      <Text mt={1}>
+                        Due date: <strong>{formatDueDate(previousDueDate)}</strong>
+                      </Text>
+                      {pendingBlock?.message ? (
+                        <Text mt={2} color="gray.700">
+                          {pendingBlock.message}
+                        </Text>
+                      ) : null}
                     </AlertDescription>
                   </Box>
-                  <Button
-                    mt={3}
-                    leftIcon={<FileText size={16} />}
-                    borderRadius="xl"
-                    backgroundColor="#FFCB82"
-                    color="#85652D"
-                    _hover={{ backgroundColor: "#E3B574", color: "#654E26" }}
-                    onClick={handleGeneratePendingFeeSlip}
-                    isLoading={pendingFeeSlipStatus === "loading"}
-                    loadingText={
-                      pendingBlock.has_pending_fee_slip
-                        ? "Opening..."
-                        : "Generating..."
-                    }
-                  >
-                    {pendingBlock.has_pending_fee_slip
-                      ? "Open Pending Fee Slip"
-                      : "Generate Pending Fee Slip"}
-                  </Button>
+                  <HStack mt={3} spacing={2} flexWrap="wrap">
+                    <Button
+                      leftIcon={<FileText size={16} />}
+                      borderRadius="xl"
+                      backgroundColor="#FFCB82"
+                      color="#85652D"
+                      _hover={{ backgroundColor: "#E3B574", color: "#654E26" }}
+                      onClick={handleGeneratePendingFeeSlip}
+                      isLoading={pendingFeeSlipStatus === "loading"}
+                      loadingText={
+                        pendingBlock?.has_pending_fee_slip
+                          ? "Opening..."
+                          : "Generating..."
+                      }
+                    >
+                      {pendingBlock?.has_pending_fee_slip
+                        ? "Open Pending Fee Slip"
+                        : "Generate Pending Fee Slip"}
+                    </Button>
+                    <Button
+                      borderRadius="xl"
+                      backgroundColor="#7AEF85"
+                      color="#257947"
+                      _hover={{ backgroundColor: "#65C76E", color: "#184E2E" }}
+                      onClick={() => setShowTransferConfirm(true)}
+                      isDisabled={!canTransferPendingDues}
+                    >
+                      Transfer Pending Dues to New Batch
+                    </Button>
+                  </HStack>
+                  {pendingExceedsNewFee && destinationBatchId ? (
+                    <Text mt={3} fontSize="sm" color="red.600" fontWeight="500">
+                      Previous pending dues (
+                      {formatPendingAmount(previousPending)}) exceed the new
+                      batch fee ({formatPendingAmount(destinationFeeAmount)}).
+                      Transfer is blocked.
+                    </Text>
+                  ) : null}
                 </Alert>
+              ) : null}
+
+              {showTransferConfirm && !oldDuesNil && canTransferPendingDues ? (
+                <Box
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  borderRadius="xl"
+                  p={4}
+                  bg="gray.50"
+                >
+                  <Text fontWeight="semibold" mb={3}>
+                    Fee breakdown before confirmation
+                  </Text>
+                  <TableContainer>
+                    <Table size="sm" variant="simple">
+                      <Thead>
+                        <Tr>
+                          <Th>Description</Th>
+                          <Th isNumeric>Amount</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        <Tr>
+                          <Td>Original New Batch Fee</Td>
+                          <Td isNumeric>
+                            {formatPendingAmount(destinationFeeAmount)}
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td>Previous Batch Pending Dues</Td>
+                          <Td isNumeric>
+                            {formatPendingAmount(previousPending)}
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td>Applied Discount</Td>
+                          <Td isNumeric>
+                            {formatPendingAmount(appliedDiscount)}
+                          </Td>
+                        </Tr>
+                        <Tr>
+                          <Td fontWeight="bold">Final New Batch Payable</Td>
+                          <Td isNumeric fontWeight="bold">
+                            {formatPendingAmount(finalPayable)}
+                          </Td>
+                        </Tr>
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                  <Text fontSize="sm" color="gray.600" mt={3}>
+                    Previous batch outstanding will be set to Rs. 0 via
+                    adjustment labeled{" "}
+                    <strong>Pending Dues Transferred to New Batch</strong>. No
+                    payment will be recorded.
+                  </Text>
+                  <FormControl isRequired mt={4}>
+                    <FormLabel fontSize={14}>Remarks</FormLabel>
+                    <Textarea
+                      name="remarks"
+                      value={transferRemarks}
+                      onChange={(e) => setTransferRemarks(e.target.value)}
+                      placeholder="Explain why pending dues are being transferredâ€¦"
+                      rows={3}
+                      borderRadius="xl"
+                    />
+                  </FormControl>
+                </Box>
               ) : null}
             </VStack>
           </ModalBody>
@@ -507,19 +739,40 @@ function ShiftBatchModal({ student }) {
                   Go with new fee
                 </Button>
               ) : null}
-              <Button
-                borderRadius="0.75rem"
-                backgroundColor="#7AEF85"
-                color="#257947"
-                _hover={{ backgroundColor: "#65C76E", color: "#184E2E" }}
-                fontWeight="500"
-                onClick={() => handleTransfer({ assignNewFee: false })}
-                isLoading={transferBatchStatus === "loading"}
-                loadingText="Transferring..."
-                isDisabled={!destinationBatchId}
-              >
-                Confirm Transfer
-              </Button>
+              {showTransferConfirm && canTransferPendingDues ? (
+                <Button
+                  borderRadius="0.75rem"
+                  backgroundColor="#7AEF85"
+                  color="#257947"
+                  _hover={{ backgroundColor: "#65C76E", color: "#184E2E" }}
+                  fontWeight="500"
+                  onClick={() =>
+                    handleTransfer({
+                      assignNewFee: true,
+                      transferPendingDues: true,
+                    })
+                  }
+                  isLoading={transferBatchStatus === "loading"}
+                  loadingText="Confirming..."
+                  isDisabled={!String(transferRemarks || "").trim()}
+                >
+                  Confirm Transfer & Admission
+                </Button>
+              ) : (
+                <Button
+                  borderRadius="0.75rem"
+                  backgroundColor="#7AEF85"
+                  color="#257947"
+                  _hover={{ backgroundColor: "#65C76E", color: "#184E2E" }}
+                  fontWeight="500"
+                  onClick={() => handleTransfer({ assignNewFee: false })}
+                  isLoading={transferBatchStatus === "loading"}
+                  loadingText="Transferring..."
+                  isDisabled={!destinationBatchId || !oldDuesNil}
+                >
+                  Confirm Transfer
+                </Button>
+              )}
             </HStack>
           </ModalFooter>
         </AccessForm>

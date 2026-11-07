@@ -220,16 +220,28 @@ const fillNullStudentField = createAsyncThunk(
 const transferStudentBatch = createAsyncThunk(
     'students/transferStudentBatch',
     async (
-        { authToken, studentId, batch, assign_new_fee = false, special_selected_options },
+        {
+            authToken,
+            studentId,
+            batch,
+            assign_new_fee = false,
+            special_selected_options,
+            transfer_pending_dues = false,
+            remarks = '',
+        },
         { rejectWithValue }
     ) => {
         try {
             const body = { batch };
-            if (assign_new_fee) {
+            if (assign_new_fee || transfer_pending_dues) {
                 body.assign_new_fee = true;
                 if (Array.isArray(special_selected_options) && special_selected_options.length) {
                     body.special_selected_options = special_selected_options;
                 }
+            }
+            if (transfer_pending_dues) {
+                body.transfer_pending_dues = true;
+                body.remarks = String(remarks || '').trim();
             }
             const response = await axios.post(
                 `${BASE_URL}/students/transfer-batch/${studentId}`,
@@ -243,7 +255,11 @@ const transferStudentBatch = createAsyncThunk(
             return response.data;
         } catch (error) {
             const data = error.response?.data;
-            if (data?.code === 'PENDING_FEE_BLOCK') {
+            if (
+                data?.code === 'PENDING_FEE_BLOCK' ||
+                data?.code === 'PENDING_EXCEEDS_NEW_FEE' ||
+                data?.code === 'PENDING_ALREADY_TRANSFERRED'
+            ) {
                 return rejectWithValue(data);
             }
             return rejectWithValue(
@@ -942,14 +958,22 @@ const studentSlice = createSlice({
             .addCase(transferStudentBatch.fulfilled, (state, action) => {
                 state.transferBatchStatus = 'succeeded';
                 const assignedNewFee = action.payload?.assign_new_fee === true;
+                const transferredPending =
+                    action.payload?.transfer_pending_dues === true;
                 const feeAmount = Number(action.payload?.new_fee_amount) || 0;
+                const payable =
+                    Number(action.payload?.new_batch_payable) || feeAmount;
                 toast({
-                    title: assignedNewFee
-                        ? "Batch shifted with new fee"
-                        : "Batch transferred",
-                    description: assignedNewFee
-                        ? `Student moved and new fee of Rs. ${feeAmount.toLocaleString("en-PK")} assigned.`
-                        : "Student moved to the selected batch successfully.",
+                    title: transferredPending
+                        ? "Pending dues transferred & admitted"
+                        : assignedNewFee
+                          ? "Batch shifted with new fee"
+                          : "Batch transferred",
+                    description: transferredPending
+                        ? `Previous pending cleared. New payable: Rs. ${payable.toLocaleString("en-PK")}.`
+                        : assignedNewFee
+                          ? `Student moved and new fee of Rs. ${feeAmount.toLocaleString("en-PK")} assigned.`
+                          : "Student moved to the selected batch successfully.",
                     status: "success",
                     duration: 4000,
                     isClosable: true,
@@ -958,7 +982,10 @@ const studentSlice = createSlice({
             .addCase(transferStudentBatch.rejected, (state, action) => {
                 state.transferBatchStatus = 'failed';
                 const payload = action.payload;
-                if (payload?.code !== 'PENDING_FEE_BLOCK') {
+                if (
+                    payload?.code !== 'PENDING_FEE_BLOCK' &&
+                    payload?.code !== 'PENDING_EXCEEDS_NEW_FEE'
+                ) {
                     toast({
                         title: "Batch transfer failed",
                         description:
