@@ -65,9 +65,9 @@ const formatPendingAmount = (amount) =>
   })}`;
 
 const formatDueDate = (value) => {
-  if (!value) return "â€”";
+  if (!value) return "—";
   const raw = String(value).slice(0, 10);
-  return raw || "â€”";
+  return raw || "—";
 };
 
 function ShiftBatchModal({ student }) {
@@ -546,7 +546,7 @@ function ShiftBatchModal({ student }) {
                         isChecked={specialSelectedOptions.includes(option.key)}
                         onChange={() => toggleSpecialOption(option.key)}
                       >
-                        {option.label} â€” {formatPendingAmount(option.fee)}
+                        {option.label} — {formatPendingAmount(option.fee)}
                       </Checkbox>
                     ))}
                   </VStack>
@@ -569,7 +569,7 @@ function ShiftBatchModal({ student }) {
                         ? isDestinationSpecial
                           ? " after selecting special options"
                           : " once destination fee is configured"
-                        : " â€” destination batch has no fee"}
+                        : " — destination batch has no fee"}
                     .
                   </AlertDescription>
                 </Alert>
@@ -705,7 +705,7 @@ function ShiftBatchModal({ student }) {
                       name="remarks"
                       value={transferRemarks}
                       onChange={(e) => setTransferRemarks(e.target.value)}
-                      placeholder="Explain why pending dues are being transferredâ€¦"
+                      placeholder="Explain why pending dues are being transferred…"
                       rows={3}
                       borderRadius="xl"
                     />
