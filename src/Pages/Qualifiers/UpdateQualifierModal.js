@@ -3,7 +3,25 @@ import AccessForm from '../../Components/AccessForm';
 import FormControl from '../../Components/AccessFormControl';
 import { useAccessUpdateFormik as useFormik } from '../../utlls/accessForms';
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormLabel, VStack, Box, Grid, GridItem, useToast } from '@chakra-ui/react';
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  Button,
+  FormLabel,
+  VStack,
+  Box,
+  Grid,
+  GridItem,
+  Text,
+  Flex,
+  Badge,
+  useToast,
+} from '@chakra-ui/react';
 
 import * as Yup from "yup";
 import Cookies from "js-cookie";
@@ -15,7 +33,7 @@ import {
 } from "../../Features/qualifierSlice";
 import ActionButton from "../../Components/ActionButton";
 import CameraCapture from "../../Components/CameraCapture";
-import { getMediaUrl } from "../../utlls/useful";
+import { getMediaUrl, hasPermission } from "../../utlls/useful";
 import {
   fetchBatches,
   selectActiveInterviewBatches,
@@ -30,8 +48,13 @@ import {
   responsiveModalProps,
 } from "../../utlls/responsiveModal";
 import QualifierProfileDetailsFields from "./QualifierProfileDetailsFields";
+import { FEE_PAYMENT_METHODS } from "../../utlls/paymentMethods";
 
 function UpdateQualifierModal({ qualifier }) {
+  const canUpdate = hasPermission([
+    "updateQualifier",
+    "qualifiers.update.qualifier",
+  ]);
   const [isOpen, setIsOpen] = useState(false);
   const toast = useToast();
   const onOpen = () => setIsOpen(true);
@@ -96,6 +119,16 @@ function UpdateQualifierModal({ qualifier }) {
         : [],
       batch: currentBatchId,
       is_active: qualifier?.is_active === false ? "false" : "true",
+      total_fee:
+        qualifier?.total_fee != null ? String(qualifier.total_fee) : "0",
+      discount_amount:
+        qualifier?.discount_amount != null
+          ? String(qualifier.discount_amount)
+          : "0",
+      discount_description: qualifier?.discount_description || "",
+      paid_fee:
+        qualifier?.paid_fee != null ? String(qualifier.paid_fee) : "0",
+      payment_method: qualifier?.payment_method || "",
     },
     validationSchema: Yup.object({
       name: Yup.string().trim().required("Required"),
@@ -122,9 +155,67 @@ function UpdateQualifierModal({ qualifier }) {
         .typeError("Must be a number")
         .min(0, "Must be 0 or more")
         .integer("Must be a whole number"),
+      total_fee: Yup.number()
+        .transform((value, original) =>
+          original === "" || original === null || original === undefined
+            ? 0
+            : value
+        )
+        .typeError("Must be a number")
+        .min(0, "Cannot be negative"),
+      discount_amount: Yup.number()
+        .transform((value, original) =>
+          original === "" || original === null || original === undefined
+            ? 0
+            : value
+        )
+        .typeError("Must be a number")
+        .min(0, "Cannot be negative")
+        .test(
+          "max-total",
+          "Cannot be greater than total fee",
+          function (value) {
+            const total = Number(this.parent.total_fee) || 0;
+            return (Number(value) || 0) <= total;
+          }
+        ),
+      paid_fee: Yup.number()
+        .transform((value, original) =>
+          original === "" || original === null || original === undefined
+            ? 0
+            : value
+        )
+        .typeError("Must be a number")
+        .min(0, "Cannot be negative")
+        .test(
+          "max-payable",
+          "Cannot be greater than payable fee",
+          function (value) {
+            const total = Number(this.parent.total_fee) || 0;
+            const discount = Number(this.parent.discount_amount) || 0;
+            const payable = Math.max(total - discount, 0);
+            return (Number(value) || 0) <= payable;
+          }
+        ),
+      payment_method: Yup.string().oneOf(
+        ["", ...FEE_PAYMENT_METHODS],
+        "Select a valid payment method"
+      ),
     }),
     onSubmit: async (values) => {
       try {
+        const totalFee = Math.max(0, Number(values.total_fee) || 0);
+        const discountAmount = Math.min(
+          Math.max(0, Number(values.discount_amount) || 0),
+          totalFee
+        );
+        const payable = Math.max(totalFee - discountAmount, 0);
+        const paidFee = Math.min(
+          Math.max(0, Number(values.paid_fee) || 0),
+          payable
+        );
+        const pendingFee = Math.max(payable - paidFee, 0);
+
         const formData = new FormData();
         formData.append("name", values.name.trim());
         formData.append("phone", values.phone.trim());
@@ -156,6 +247,17 @@ function UpdateQualifierModal({ qualifier }) {
         );
         formData.append("batch", values.batch);
         formData.append("is_active", values.is_active);
+        formData.append("total_fee", String(totalFee));
+        formData.append("discount_amount", String(discountAmount));
+        formData.append(
+          "discount_description",
+          discountAmount > 0
+            ? values.discount_description?.trim() || ""
+            : ""
+        );
+        formData.append("paid_fee", String(paidFee));
+        formData.append("pending_fee", String(pendingFee));
+        formData.append("payment_method", values.payment_method || "");
         if (photoFile instanceof File) {
           formData.append("photo", photoFile);
         }
@@ -174,6 +276,28 @@ function UpdateQualifierModal({ qualifier }) {
       }
     },
   });
+
+  const totalFee = Math.max(0, Number(formik.values.total_fee) || 0);
+  const discountAmount = Math.min(
+    Math.max(0, Number(formik.values.discount_amount) || 0),
+    totalFee
+  );
+  const payableFee = Math.max(totalFee - discountAmount, 0);
+  const paidFee = Math.min(
+    Math.max(0, Number(formik.values.paid_fee) || 0),
+    payableFee
+  );
+  const pendingFee = Math.max(payableFee - paidFee, 0);
+  const paymentStatus =
+    payableFee <= 0
+      ? discountAmount > 0
+        ? "Fully discounted"
+        : "No fee"
+      : pendingFee <= 0
+        ? "Fully paid"
+        : paidFee > 0
+          ? "Partially paid"
+          : "Unpaid";
 
   const handleSubmitClick = async () => {
     const errors = await formik.validateForm();
@@ -211,6 +335,10 @@ function UpdateQualifierModal({ qualifier }) {
   }, [interviewBatches, qualifier?.batch]);
 
   const existingPhotoUrl = getMediaUrl(qualifier?.photo) || "";
+
+  if (!canUpdate) {
+    return null;
+  }
 
   return (
     <>
@@ -391,6 +519,157 @@ function UpdateQualifierModal({ qualifier }) {
                   onChange={formik.handleChange}
                 />
               </FormControl>
+
+              <Box
+                borderWidth="1px"
+                borderColor="gray.200"
+                borderRadius="0.75rem"
+                p={{ base: 3, sm: 4 }}
+                bg="gray.50"
+              >
+                <Flex
+                  align={{ base: "flex-start", sm: "center" }}
+                  justify="space-between"
+                  direction={{ base: "column", sm: "row" }}
+                  gap={2}
+                  mb={3}
+                >
+                  <Text fontWeight="600" fontSize="sm" color="#2D3748">
+                    Fee ledger
+                  </Text>
+                  <Badge
+                    colorScheme={
+                      paymentStatus === "Fully paid" ||
+                      paymentStatus === "Fully discounted"
+                        ? "green"
+                        : paymentStatus === "Partially paid"
+                          ? "orange"
+                          : "gray"
+                    }
+                  >
+                    {paymentStatus}
+                  </Badge>
+                </Flex>
+
+                <Grid
+                  templateColumns={{ base: "1fr", sm: "1fr 1fr" }}
+                  gap={3}
+                  mb={3}
+                >
+                  <FormControl id="total_fee">
+                    <FormLabel fontSize={14}>Total fee (Rs.)</FormLabel>
+                    <Input
+                      type="number"
+                      name="total_fee"
+                      min={0}
+                      step="1"
+                      borderRadius="0.5rem"
+                      value={formik.values.total_fee}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    {formik.touched.total_fee && formik.errors.total_fee ? (
+                      <Box color="red" fontSize="sm" mt={1}>
+                        {formik.errors.total_fee}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                  <FormControl id="discount_amount">
+                    <FormLabel fontSize={14}>Discount (Rs.)</FormLabel>
+                    <Input
+                      type="number"
+                      name="discount_amount"
+                      min={0}
+                      max={totalFee}
+                      step="1"
+                      borderRadius="0.5rem"
+                      value={formik.values.discount_amount}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    {formik.touched.discount_amount &&
+                    formik.errors.discount_amount ? (
+                      <Box color="red" fontSize="sm" mt={1}>
+                        {formik.errors.discount_amount}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                  {discountAmount > 0 ? (
+                    <FormControl id="discount_description" gridColumn="1 / -1">
+                      <FormLabel fontSize={14}>Discount reason</FormLabel>
+                      <Input
+                        type="text"
+                        name="discount_description"
+                        borderRadius="0.5rem"
+                        placeholder="Optional note for this discount"
+                        value={formik.values.discount_description}
+                        onChange={formik.handleChange}
+                      />
+                    </FormControl>
+                  ) : null}
+                  <FormControl id="paid_fee">
+                    <FormLabel fontSize={14}>Paid fee (Rs.)</FormLabel>
+                    <Input
+                      type="number"
+                      name="paid_fee"
+                      min={0}
+                      max={payableFee}
+                      step="1"
+                      borderRadius="0.5rem"
+                      value={formik.values.paid_fee}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    {formik.touched.paid_fee && formik.errors.paid_fee ? (
+                      <Box color="red" fontSize="sm" mt={1}>
+                        {formik.errors.paid_fee}
+                      </Box>
+                    ) : null}
+                  </FormControl>
+                  <FormControl id="payment_method">
+                    <FormLabel fontSize={14}>Payment method</FormLabel>
+                    <Select
+                      name="payment_method"
+                      borderRadius="0.5rem"
+                      value={formik.values.payment_method}
+                      onChange={formik.handleChange}
+                    >
+                      <option value="">None</option>
+                      {FEE_PAYMENT_METHODS.map((method) => (
+                        <option key={method} value={method}>
+                          {method}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid templateColumns="repeat(3, 1fr)" gap={3}>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500">
+                      Payable
+                    </Text>
+                    <Text fontWeight="600">{payableFee.toLocaleString()} Rs.</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500">
+                      Pending
+                    </Text>
+                    <Text
+                      fontWeight="600"
+                      color={pendingFee > 0 ? "red.500" : "green.600"}
+                    >
+                      {pendingFee.toLocaleString()} Rs.
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500">
+                      Paid
+                    </Text>
+                    <Text fontWeight="600">{paidFee.toLocaleString()} Rs.</Text>
+                  </Box>
+                </Grid>
+              </Box>
 
               <CameraCapture
                 key={isOpen ? `photo-${qualifier?._id}` : "closed"}
