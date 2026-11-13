@@ -31,7 +31,7 @@ import PageHeader, {
   FilterStack,
 } from "../../Components/PageHeader";
 import ActionMenu from "../../Components/ActionMenu";
-import { getMediaUrl } from "../../utlls/useful";
+import { getMediaUrl, hasPermission } from "../../utlls/useful";
 import { isStudentViewOnly } from "../../utlls/studentAccess";
 import { isQualifierRole } from "../../utlls/qualifierAccess";
 import {
@@ -54,6 +54,9 @@ const defaultAvatar =
 function Qualifiers() {
   const isQualifier = isQualifierRole();
   const canManage = !isStudentViewOnly() && !isQualifier;
+  const canUpdateQualifier =
+    canManage &&
+    hasPermission(["updateQualifier", "qualifiers.update.qualifier"]);
   const showActions = canManage;
   const tableSearchRef = useRef();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -89,8 +92,11 @@ function Qualifiers() {
 
   const handleSearchFieldChange = (e) => {
     dispatch(setSearchFieldFilter(e.target.value));
+    // Defer fetch so Redux search_field is applied before params are read.
     if (filters.query) {
-      loadQualifiers();
+      setTimeout(() => {
+        dispatch(fetchQualifiers({ authToken }));
+      }, 0);
     }
   };
 
@@ -429,6 +435,7 @@ function Qualifiers() {
                 <Th data-searchable>Batch</Th>
                 <Th data-searchable>CSS/PMS</Th>
                 <Th data-searchable>CSS/PMS Roll No</Th>
+                <Th data-searchable>CNIC</Th>
                 <Th data-searchable>Mode</Th>
                 <Th data-searchable>Phone</Th>
                 <Th data-searchable>City</Th>
@@ -440,12 +447,12 @@ function Qualifiers() {
             <Tbody>
               {fetchStatus === "loading" ? (
                 <TableRowLoading
-                  nOfColumns={showActions ? 10 : 10}
+                  nOfColumns={showActions ? 11 : 11}
                   actions={showActions ? ["w-10"] : []}
                 />
               ) : qualifiers.length === 0 ? (
                 <Tr>
-                  <Td colSpan={showActions ? 11 : 10}>
+                  <Td colSpan={showActions ? 12 : 11}>
                     <span className="flex justify-center items-center gap-2 text-[#A1A1A1]">
                       <FileX />
                       No qualifier records found
@@ -481,6 +488,7 @@ function Qualifiers() {
                       <Td>{qualifier.batch?.name || "—"}</Td>
                       <Td>{qualifier.exam_type || "—"}</Td>
                       <Td>{qualifier.css_pms_roll_no || "—"}</Td>
+                      <Td>{qualifier.cnic || "—"}</Td>
                       <Td>{qualifier.class_type || "—"}</Td>
                       <Td>{qualifier.phone}</Td>
                       <Td>{qualifier.city || "—"}</Td>
@@ -536,9 +544,11 @@ function Qualifiers() {
                         <Td isNumeric>
                           <ActionMenu>
                             <ViewQualifierModal qualifier={qualifier} />
+                            {canUpdateQualifier && (
+                              <UpdateQualifierModal qualifier={qualifier} />
+                            )}
                             {canManage && (
                               <>
-                                <UpdateQualifierModal qualifier={qualifier} />
                                 <ChangePasswordModal qualifier={qualifier} />
                                 <DeleteQualifierModal
                                   qualifierId={qualifier._id}

@@ -869,7 +869,7 @@ function GeneratePendingFeeSlipAction({
               >
                 <Text fontSize="sm" color="gray.600" mb={2}>
                   {hasPaid
-                    ? "Payment recorded. Print the fee slip now. Use Print Duplicate if the printer failed."
+                    ? "Payment recorded. Print the fee slip now."
                     : "Submit the payment first. Printing is enabled after the payment is recorded."}
                 </Text>
                 <HStack spacing={2} flexWrap="wrap">
@@ -884,17 +884,6 @@ function GeneratePendingFeeSlipAction({
                     isDisabled={!hasPaid}
                   >
                     Print Fee Slip
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    leftIcon={<Printer size={16} />}
-                    onClick={() => handlePrintSlip({ duplicate: true })}
-                    isLoading={isPrinting}
-                    isDisabled={!hasPaid && !previousReceipt}
-                  >
-                    Print Duplicate
                   </Button>
                 </HStack>
                 {hasPaid ? (

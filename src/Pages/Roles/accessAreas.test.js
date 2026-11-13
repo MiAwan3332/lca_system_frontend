@@ -172,6 +172,10 @@ test('granting a page brings the form fields its actions send, without unrelated
   const general = next.find((grant) => grant.permission === 'fields.general.write').fields;
   for (const key of ['exam_type', 'css_pms_roll_no', 'class_type', 'province', 'father_name', 'latest_degree', 'no_of_attempts']) expect(general).toContain(key);
   expect(next.find((grant) => grant.permission === 'fields.contact.write').fields).toContain('city');
+  const financial = next.find((grant) => grant.permission === 'fields.financial.write')?.fields;
+  for (const key of ['total_fee', 'discount_amount', 'paid_fee', 'pending_fee', 'payment_method']) {
+    expect(financial).toContain(key);
+  }
   expect(next.some((grant) => ['fees.discount.fee', 'qualifiers.toggle.qualifier.status'].includes(grant.permission))).toBe(false);
   expect(general).not.toContain('is_active');
   // Field grants that already allow every field stay unrestricted.
