@@ -25,6 +25,7 @@ const formatCount = (value) =>
 
 const emptyTotals = () => ({
   active_students: 0,
+  batch_fee: 0,
   total_fee_created: 0,
   discount: 0,
   received: 0,
@@ -47,8 +48,8 @@ const buildParams = (filters = {}) => {
 };
 
 /**
- * Dashboard table: active batches — students, fee created, discount,
- * received (cash + online), refund, pending.
+ * Dashboard table: active batches — students, batch fee, total fee created
+ * (= batch fee − discount), discount, received, refund, pending.
  */
 function BatchFinanceSection({ filters = {} }) {
   const [rows, setRows] = useState([]);
@@ -102,15 +103,21 @@ function BatchFinanceSection({ filters = {} }) {
         isMoney: false,
       },
       {
-        label: "Created",
-        value: totals.total_fee_created,
-        color: "blue",
+        label: "Batch Fee",
+        value: totals.batch_fee,
+        color: "purple",
         isMoney: true,
       },
       {
         label: "Discount",
         value: totals.discount,
         color: "orange",
+        isMoney: true,
+      },
+      {
+        label: "Created",
+        value: totals.total_fee_created,
+        color: "blue",
         isMoney: true,
       },
       {
@@ -155,8 +162,9 @@ function BatchFinanceSection({ filters = {} }) {
             Batch-wise Fee Summary
           </h2>
           <p className="text-sm dash-text-muted">
-            Active students, fee created, discount, received (cash / online),
-            refund, and pending dues for active batches only
+            Active students, batch fee, total fee created (batch fee − discount),
+            received (cash / online), refund, and pending dues for active
+            batches only
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -192,8 +200,9 @@ function BatchFinanceSection({ filters = {} }) {
               <Tr>
                 <Th>Batch</Th>
                 <Th isNumeric>Active Students</Th>
-                <Th isNumeric>Total Fee Created</Th>
+                <Th isNumeric>Batch Fee</Th>
                 <Th isNumeric>Discount</Th>
+                <Th isNumeric>Total Fee Created</Th>
                 <Th isNumeric>Received</Th>
                 <Th isNumeric>Cash</Th>
                 <Th isNumeric>Online</Th>
@@ -211,12 +220,15 @@ function BatchFinanceSection({ filters = {} }) {
                     {formatCount(row.active_students)}
                   </Td>
                   <Td isNumeric fontWeight="semibold">
-                    {formatRs(row.total_fee_created)}
+                    {formatRs(row.batch_fee)}
                   </Td>
                   <Td isNumeric>
                     <Badge colorScheme="orange" borderRadius="md">
                       {formatRs(row.discount)}
                     </Badge>
+                  </Td>
+                  <Td isNumeric fontWeight="semibold">
+                    {formatRs(row.total_fee_created)}
                   </Td>
                   <Td isNumeric>
                     <Badge colorScheme="green" borderRadius="md">
@@ -257,10 +269,13 @@ function BatchFinanceSection({ filters = {} }) {
                   {formatCount(totals.active_students)}
                 </Td>
                 <Td isNumeric fontWeight="700">
-                  {formatRs(totals.total_fee_created)}
+                  {formatRs(totals.batch_fee)}
                 </Td>
                 <Td isNumeric fontWeight="700">
                   {formatRs(totals.discount)}
+                </Td>
+                <Td isNumeric fontWeight="700">
+                  {formatRs(totals.total_fee_created)}
                 </Td>
                 <Td isNumeric fontWeight="700">
                   {formatRs(totals.received)}
